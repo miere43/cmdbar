@@ -66,16 +66,15 @@ bool CommandWindow::initGlobalResources(HINSTANCE hInstance)
     return true;
 }
 
-bool CommandWindow::clearText()
+void CommandWindow::clearText()
 {
     textBuffer[0] = L'\0';
     textBufferLength = 0;
 
     cursorPos = 0;
+    clearSelection();
 
     this->redraw();
-
-    return true;
 }
 
 bool CommandWindow::setText(const String & text)
@@ -156,6 +155,52 @@ bool CommandWindow::getSelectionRange(int * rangeStart, int * rangeLength)
     return true;
 }
 
+void CommandWindow::onKeyDown(wchar_t c)
+{
+    // Skip if not printable.
+    if (!iswprint(c))
+        return;
+    if (isTextBufferFilled())
+        return;
+
+    if (insertCharAt(textBuffer, textBufferLength, textBufferMaxLength, cursorPos, c))
+    {
+        ++textBufferLength;
+        ++cursorPos;
+
+        onTextChanged();
+        redraw();
+    }
+}
+
+void CommandWindow::onLeftMouseButtonUp()
+{
+    selectionStartCursorPos = -1;
+
+    if (GetCapture() == hwnd)
+        ReleaseCapture();
+}
+
+void CommandWindow::onFocusAcquired()
+{
+    //originalKeyboardLayout = GetKeyboardLayout(GetCurrentThreadId());
+    
+    ActivateKeyboardLayout(g_englishKeyboardLayout, KLF_REORDER);
+}
+
+void CommandWindow::onFocusLost()
+{
+    //ActivateKeyboardLayout(originalKeyboardLayout, KLF_REORDER);
+    //OutputDebugStringA("lost focus.\n");
+    //InvalidateRect(hwnd, nullptr, true);
+    hideWindow();
+}
+
+void CommandWindow::onTextChanged()
+{
+
+}
+
 LRESULT CommandWindow::paint(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     ID2D1HwndRenderTarget* rt = this->hwndRenderTarget;
@@ -165,13 +210,24 @@ LRESULT CommandWindow::paint(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     GetClientRect(hwnd, &clientRect);
     float clientWidth  = static_cast<float>(clientRect.right - clientRect.left);
     float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
+    float cursorUpY = style->borderSize + 3.0f;
+    float cursorBottomY = clientHeight - style->borderSize - 3.0f;
 
-    float marginX = style->textMarginLeft;
+    float marginX = style->textMarginLeft + style->borderSize;
 
     updateTextLayout();
 
+    D2D1_RECT_F textboxRect = D2D1::RectF(
+        style->borderSize,
+        style->borderSize,
+        clientWidth  - style->borderSize,
+        clientHeight - style->borderSize
+    );
+
     rt->BeginDraw();
-    rt->Clear(D2D1::ColorF(D2D1::ColorF::White));
+    rt->Clear(style->borderColor);
+
+    rt->FillRectangle(textboxRect, textboxBackgroundBrush);
 
     float cursorRelativeX = 0.0f, cursorRelativeY = 0.0f;
 
@@ -190,14 +246,21 @@ LRESULT CommandWindow::paint(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         textLayout->HitTestTextPosition(selectionStart, false, &selectionRelativeStartX, &unused, &metrics);
         textLayout->HitTestTextPosition(selectionStart + selectionLength, false, &selectionRelativeEndX, &unused, &metrics);
 
-        rt->FillRectangle(D2D1::RectF(marginX + selectionRelativeStartX, 0.0f, marginX + selectionRelativeEndX, clientHeight), selectedTextBrush);
+        rt->FillRectangle(
+            D2D1::RectF(
+                marginX + selectionRelativeStartX,
+                style->borderSize, 
+                marginX + selectionRelativeEndX,
+                clientHeight - style->borderSize), 
+            selectedTextBrush);
     }
 
-    rt->DrawTextLayout(D2D1::Point2F(marginX, 0.0f), textLayout, textForegroundBrush);
+    float textDrawY = style->borderSize;
+    rt->DrawTextLayout(D2D1::Point2F(marginX, textDrawY), textLayout, textForegroundBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
     // Center cursor X at pixel center to disable anti-aliasing.
     float cursorActualX = floor(marginX + cursorRelativeX) + 0.5f;
-    rt->DrawLine(D2D1::Point2F(cursorActualX, 0.0f), D2D1::Point2F(cursorActualX, clientWidth), textForegroundBrush);
+    rt->DrawLine(D2D1::Point2F(cursorActualX, cursorUpY), D2D1::Point2F(cursorActualX, cursorBottomY), textForegroundBrush);
 
     rt->EndDraw();
 
@@ -205,14 +268,14 @@ LRESULT CommandWindow::paint(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return 0;
 }
 
-bool CommandWindow::init(HINSTANCE hInstance)
+bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
 {
     if (isInitialized)
         return true;
 
-    assert(style);
     assert(windowWidth > 0);
     assert(windowHeight > 0);
+    assert(style);
     assert(d2d1);
     assert(dwrite);
     assert(commandEngine);
@@ -221,7 +284,7 @@ bool CommandWindow::init(HINSTANCE hInstance)
     if (!initGlobalResources(hInstance))
         return false;
 
-    DWORD mainWindowFlags = WS_POPUP;
+    const uint32_t mainWindowFlags = WS_POPUP;
     hwnd = CreateWindowExW(
         0,
         (LPCWSTR)g_windowClass,
@@ -266,11 +329,6 @@ bool CommandWindow::init(HINSTANCE hInstance)
 
     {
         // Initialize Direct2D and DirectWrite resources.
-        RECT size;
-        GetClientRect(hwnd, &size);
-
-        D2D1_SIZE_U d2dSize = D2D1::SizeU(size.right - size.left, size.bottom - size.top);
-
         HRESULT hr = 0;
 
         hr = dwrite->CreateTextFormat(
@@ -281,33 +339,31 @@ bool CommandWindow::init(HINSTANCE hInstance)
             style->fontStretch,
             style->fontHeight,
             L"en-us",
-            &textFormat);
-
-        if (FAILED(hr))
-            return false;
+            &textFormat
+        );
+        assert(SUCCEEDED(hr));
 
         textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
         textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
 
-        //hr = interop->CreateFontFromLOGFONT(&styleFontLogfont, &font);
-        //if (FAILED(hr))
-        //	return false;
+        RECT clientRect;
+        GetClientRect(hwnd, &clientRect);
+        D2D1_SIZE_U clientPixelSize = D2D1::SizeU(clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
 
         hr = d2d1->CreateHwndRenderTarget(
             D2D1::RenderTargetProperties(),
-            D2D1::HwndRenderTargetProperties(hwnd, d2dSize, D2D1_PRESENT_OPTIONS_IMMEDIATELY),
+            D2D1::HwndRenderTargetProperties(hwnd, clientPixelSize, D2D1_PRESENT_OPTIONS_IMMEDIATELY),
             &hwndRenderTarget);
-        if (FAILED(hr))
-            return false;
+        assert(SUCCEEDED(hr));
 
-        hr = hwndRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Black), &textForegroundBrush);
-        if (FAILED(hr))
-            return false;
+        hr = hwndRenderTarget->CreateSolidColorBrush(style->textColor, &textForegroundBrush);
+        assert(SUCCEEDED(hr));
 
-        hr = hwndRenderTarget->CreateSolidColorBrush(D2D1::ColorF(D2D1::ColorF::Aqua), &selectedTextBrush);
-        if (FAILED(hr))
-            return false;
+        hr = hwndRenderTarget->CreateSolidColorBrush(style->selectedTextBackgroundColor, &selectedTextBrush);
+        assert(SUCCEEDED(hr));
 
+        hr = hwndRenderTarget->CreateSolidColorBrush(style->textboxBackgroundColor, &textboxBackgroundBrush);
+        assert(SUCCEEDED(hr));
     }
 
     isInitialized = true;
@@ -326,7 +382,16 @@ void CommandWindow::showWindow()
     GetWindowRect(hwnd, &windowRect);
 
     int windowWidth = windowRect.right - windowRect.left;
-    SetWindowPos(hwnd, HWND_TOPMOST, desktopWidth / 2 - windowWidth / 2, (int)(desktopHeight * showWindowYRatio), 0, 0, SWP_NOSIZE | SWP_SHOWWINDOW);
+
+    SetWindowPos(
+        hwnd,
+        HWND_TOPMOST, 
+        desktopWidth / 2 - windowWidth / 2,
+        static_cast<int>(desktopHeight * showWindowYRatio), 
+        0, 
+        0, 
+        SWP_NOSIZE | SWP_SHOWWINDOW
+    );
 
     SetForegroundWindow(hwnd);
     SetFocus(hwnd);
@@ -345,7 +410,7 @@ void CommandWindow::showAfterAllEventsProcessed()
 void CommandWindow::hideWindow()
 {
     ShowWindow(hwnd, SW_HIDE);
-    setText(String(L"", 0));
+    clearText();
 }
 
 void CommandWindow::toggleVisibility()
@@ -430,21 +495,7 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
 
         case WM_CHAR:
         {
-            wchar_t wideChar = static_cast<wchar_t>(wParam); // "The WM_CHAR message uses Unicode Transformation Format (UTF)-16."
-
-            if (!iswprint(wideChar)) return 0;
-
-            if (textBufferLength >= textBufferMaxLength) return 0;
-            if (insertCharAt(textBuffer, textBufferLength, textBufferMaxLength, cursorPos, wideChar))
-            {
-                ++textBufferLength;
-                ++cursorPos;
-
-                redraw();
-            }
-            
-            // @TODO: onTextChanged
-
+            this->onKeyDown(static_cast<wchar_t>(wParam));
             return 0;
         }
 
@@ -490,7 +541,7 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
                         selectionLength = 0;
                     }
                 }
-                else if (cursorPos >= textBufferLength && removeCharAt(textBuffer, textBufferLength, cursorPos))
+                else if (removeCharAt(textBuffer, textBufferLength, cursorPos))
                 {
                     textBuffer[textBufferLength] = '\0';
                     --textBufferLength;
@@ -596,13 +647,9 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
         {
             int isLeftMouseDown = wParam & 0x0001;
 
-            if (isLeftMouseDown && clickX != -1)
+            if (isLeftMouseDown && selectionStartCursorPos != -1)
             {
-                if (!isMouseCaptured)
-                {
-                    SetCapture(hwnd);
-                    isMouseCaptured = true;
-                }
+                SetCapture(hwnd);
 
                 int mouseX = GET_X_LPARAM(lParam);
                 int mouseY = GET_Y_LPARAM(lParam);
@@ -614,12 +661,12 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
                 DWRITE_HIT_TEST_METRICS metrics ={ 0 };
                 HRESULT hr = 0;
 
-                hr = textLayout->HitTestPoint(mouseX + style->textMarginLeft, mouseY, &isTrailingHit, &isInside, &metrics);
+                hr = textLayout->HitTestPoint(mouseX - style->textMarginLeft - style->borderSize, mouseY, &isTrailingHit, &isInside, &metrics);
                 assert(SUCCEEDED(hr));
 
-                if (clickX != -1)
+                if (selectionStartCursorPos != -1)
                 {
-                    int oldCursorPos = clickCursorPos;
+                    int oldCursorPos = selectionStartCursorPos;
 
                     if (isTrailingHit)
                     {
@@ -630,14 +677,16 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
                         cursorPos = metrics.textPosition;
                     }
 
-                    if (abs(oldCursorPos - cursorPos) == 0)
+                    int calcSelectionLength = abs(oldCursorPos - cursorPos);
+                    if (calcSelectionLength == 0)
                     {
                         clearSelection();
                     }
                     else
                     {
+                        selectionInitialPos = selectionStartCursorPos;
                         selectionPos = min(cursorPos, oldCursorPos);
-                        selectionLength = abs(oldCursorPos - cursorPos);
+                        selectionLength = calcSelectionLength;
                     }
                 }
 
@@ -649,15 +698,7 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
 
         case WM_LBUTTONUP:
         {
-            clickX = -1;
-            clickCursorPos = -1;
-
-            if (isMouseCaptured)
-            {
-                ReleaseCapture();
-                isMouseCaptured = false;
-            }
-
+            this->onLeftMouseButtonUp();
             return 0;
         }
 
@@ -672,23 +713,17 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
             return MA_ACTIVATE;
         }
 
-        //case WM_SETFOCUS:
-        //{
-        //	originalKeyboardLayout = GetKeyboardLayout(GetCurrentThreadId());
-        //	ActivateKeyboardLayout(englishKeyboardLayout, KLF_REORDER);
+        case WM_SETFOCUS:
+        {
+            this->onFocusAcquired();
+        	break;
+        }
 
-        //	OutputDebugStringA("got focus.\n");
-        //	break;
-        //}
-
-        //case WM_KILLFOCUS:
-        //{
-        //	//ActivateKeyboardLayout(originalKeyboardLayout, KLF_REORDER);
-
-        //	OutputDebugStringA("lost focus.\n");
-        //	InvalidateRect(hwnd, nullptr, true);
-        //	return 0;
-        //}
+        case WM_KILLFOCUS:
+        {
+            this->onFocusLost();
+        	return 0;
+        }
 
         case WM_GETTEXT:
         {
@@ -718,11 +753,8 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
             DWRITE_HIT_TEST_METRICS metrics ={ 0 };
             HRESULT hr = 0;
 
-            hr = textLayout->HitTestPoint(mouseX + style->textMarginLeft, mouseY, &isTrailingHit, &isInside, &metrics);
+            hr = textLayout->HitTestPoint(mouseX - style->textMarginLeft - style->borderSize, mouseY, &isTrailingHit, &isInside, &metrics);
             assert(SUCCEEDED(hr));
-
-            //selectionPos = metrics.textPosition;
-            //selectionLength = 0;
 
             if (isTrailingHit)
             {
@@ -733,8 +765,7 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
                 cursorPos = metrics.textPosition;
             }
 
-            clickX = mouseX;
-            clickCursorPos = cursorPos;
+            selectionStartCursorPos = cursorPos;
 
             clearSelection();
             redraw();

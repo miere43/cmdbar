@@ -215,8 +215,8 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="allocators.cpp" />
+    <ClCompile Include="basic_commands.cpp" />
     <ClCompile Include="command_engine.cpp" />
-    <ClCompile Include="command_window_textbox.cpp" />
     <ClCompile Include="context.cpp" />
     <ClCompile Include="features.cpp" />
     <ClCompile Include="line_reader.cpp" />
@@ -235,9 +235,9 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="allocators.h" />
+    <ClInclude Include="basic_commands.h" />
     <ClInclude Include="CommandBar.h" />
     <ClInclude Include="command_engine.h" />
-    <ClInclude Include="command_window_textbox.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="context.h" />

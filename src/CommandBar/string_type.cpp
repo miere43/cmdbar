@@ -205,7 +205,6 @@ bool removeRange(wchar_t * string, size_t stringLength, size_t rangeStart, size_
     assert(string);
     assert(rangeStart + rangeLength <= stringLength);
 
-
     wchar_t* rightPartString = string + (rangeStart + rangeLength);
     size_t rightPartLength = stringLength - rangeStart - rangeLength;
 

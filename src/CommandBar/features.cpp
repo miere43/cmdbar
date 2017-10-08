@@ -1,8 +1,10 @@
+#include <ShlObj.h>
+
 #include "features.h"
 #include "line_reader.h"
 #include "os_utils.h"
 #include "trace.h"
-#include <ShlObj.h>
+
 
 static void execCommand(Command& command, const String* args, uint32_t numArgs)
 {
@@ -27,8 +29,6 @@ static void execCommand(Command& command, const String* args, uint32_t numArgs)
 	OutputDebugStringW(commandLine.data);
 	OutputDebugStringW(L"\n");
 
-	strings.free();
-
 	bool success = 0 != CreateProcessW(
 		strings.data[0]->data,//fileName->data,
 		commandLine.data,//nullptr, //commandLine.data,
@@ -40,6 +40,8 @@ static void execCommand(Command& command, const String* args, uint32_t numArgs)
 		nullptr, //currentDirectory.data,
 		&i, 
 		&info);
+
+    strings.free();
 
 	g_standardAllocator.deallocate(currentDirectory.data);
 	g_standardAllocator.deallocate(commandLine.data);
