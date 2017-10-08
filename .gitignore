@@ -1,0 +1,10 @@
+*.VC.db
+*.vcxproj.filters
+*.vcxproj.user
+Debug/
+Release/
+Release (Static Link CRT)/
+src/CommandBar/CommandBarTextCSharpPlugin/
+src/CommandBarTestPlugin
+.vs/
+*.aps
