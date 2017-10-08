@@ -1,4 +1,5 @@
 #pragma once
+#define NOMINMAX
 #include <Windows.h>
 #include <d2d1.h>
 #include <dwrite.h>
@@ -34,7 +35,6 @@ struct CommandWindow
     IDWriteFactory* dwrite = nullptr;
 
 	const CommandWindowStyle* style = nullptr;
-	CommandWindowTextbox textbox;
 	TaskbarIcon taskbarIcon;
 	CommandEngine* commandEngine = nullptr;
 
@@ -48,30 +48,61 @@ private:
 	bool shouldCatchInvalidUsageErrors = false;
 	float showWindowYRatio = 0.4f;
 
-
 	void evaluate();
 	void dispose();
 
 	static bool initGlobalResources(HINSTANCE hInstance);
 
+    static HKL g_englishKeyboardLayout;
 	static bool g_globalResourcesInitialized;
 	static ATOM g_windowClass;
 	static HICON g_appIcon;
+
+public:
+    bool clearText();
+    bool setText(const String& text);
+    void redraw();
+    void updateTextLayout(bool forced = false);
+    void clearSelection();
+    bool getSelectionRange(int* rangeStart, int* rangeLength);
+
+    wchar_t* textBuffer = nullptr;
+    int textBufferLength = 0;
+    int textBufferMaxLength = 512;
+    int cursorPos = 0;
+
+    int selectionInitialPos = 0;
+    int selectionPos = 0;
+    int selectionLength = 0;
+
+    HKL englishKeyboardLayout = 0;
+    HKL originalKeyboardLayout = 0;
+
+    ID2D1HwndRenderTarget* hwndRenderTarget = nullptr;
+    IDWriteTextFormat* textFormat = nullptr;
+    IDWriteTextLayout* textLayout = nullptr;
+    ID2D1SolidColorBrush* textForegroundBrush = nullptr;
+    ID2D1SolidColorBrush* selectedTextBrush = nullptr;
+
+    bool isTextLayoutDirty = false;
+    int clickX = -1;
+    int clickCursorPos = -1;
+    bool isMouseCaptured = false;
+private:
+    LRESULT paint(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };
 
 struct CommandWindowStyle
 {
-	HBRUSH backgroundBrush = 0;
+    COLORREF marginColor = 0;
+    COLORREF backgroundColor = 0;
+    COLORREF textColor = 0;
+    COLORREF selectedTextBackgroundColor = 0;
+    String fontFamily = { 0 };
+    float fontHeight = 0.0f;
+    DWRITE_FONT_WEIGHT fontWeight = DWRITE_FONT_WEIGHT_REGULAR;
+    DWRITE_FONT_STYLE fontStyle = DWRITE_FONT_STYLE_NORMAL;
+    DWRITE_FONT_STRETCH fontStretch = DWRITE_FONT_STRETCH_NORMAL;
+    float textMarginLeft = 0;
+    int textHeight = 0;
 };
-
-//#include <Windows.h>
-//#include "context.h"
-//
-//
-//int CB_EnterMainUILoop(CB_Context* context, HINSTANCE hInstance, wchar_t * lpCmdLine, int nCmdShow, HANDLE fileMapping);
-//
-////void CB_SetUIVisibility(bool visible);
-////bool CB_IsUIVisible();
-//
-//extern LARGE_INTEGER g_mainStartupTick;
-//extern LARGE_INTEGER g_mainTickFrequency;

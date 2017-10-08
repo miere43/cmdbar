@@ -215,7 +215,6 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="allocators.cpp" />
-    <ClCompile Include="bytes.cpp" />
     <ClCompile Include="command_engine.cpp" />
     <ClCompile Include="command_window_textbox.cpp" />
     <ClCompile Include="context.cpp" />
@@ -236,7 +235,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="allocators.h" />
-    <ClInclude Include="bytes.hpp" />
     <ClInclude Include="CommandBar.h" />
     <ClInclude Include="command_engine.h" />
     <ClInclude Include="command_window_textbox.h" />

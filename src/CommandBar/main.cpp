@@ -50,23 +50,17 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 	features.load(&commandEngine);
 
 	CommandWindowStyle windowStyle;
-	windowStyle.backgroundBrush = CreateSolidBrush(RGB(128, 128, 128));
-
-	CommandWindowTextboxStyle textboxStyle;
-	textboxStyle.textMarginLeft = 2;
-	textboxStyle.textHeight = 26;
-	textboxStyle.textColor = GetSysColor(COLOR_WINDOWTEXT);//RGB(64, 64, 64);
-	textboxStyle.textSelectedColor = RGB(255, 255, 255);
-	textboxStyle.textSelectedBackgroundColor = RGB(0, 0, 0);
-    textboxStyle.backgroundColor = RGB(255, 255, 255); // GetSysColor(COLOR_WINDOW);//RGB(230, 230, 230);
-	textboxStyle.fontFamily = String(L"Segoe UI");
-    textboxStyle.fontHeight = 22.0f;
-    textboxStyle.fontStyle = DWRITE_FONT_STYLE_NORMAL;
-    textboxStyle.fontStretch = DWRITE_FONT_STRETCH_NORMAL;
-    textboxStyle.fontWeight = DWRITE_FONT_WEIGHT_REGULAR;
-	textboxStyle.backgroundBrush = CreateSolidBrush(textboxStyle.backgroundColor);
-	textboxStyle.borderBrush = CreateSolidBrush(GetSysColor(COLOR_INACTIVEBORDER)); //RGB(128, 0, 0);
-	textboxStyle.borderFocusedBrush = CreateSolidBrush(GetSysColor(COLOR_ACTIVEBORDER)); //RGB(255, 0, 0);
+	windowStyle.backgroundColor = RGB(128, 128, 128);
+	windowStyle.textMarginLeft = 2;
+	windowStyle.textHeight = 26;
+	windowStyle.textColor = GetSysColor(COLOR_WINDOWTEXT);//RGB(64, 64, 64);
+	windowStyle.selectedTextBackgroundColor = RGB(0, 0, 0);
+    windowStyle.backgroundColor = RGB(255, 255, 255); // GetSysColor(COLOR_WINDOW);//RGB(230, 230, 230);
+	windowStyle.fontFamily = String(L"Segoe UI");
+    windowStyle.fontHeight = 22.0f;
+    windowStyle.fontStyle = DWRITE_FONT_STYLE_NORMAL;
+    windowStyle.fontStretch = DWRITE_FONT_STRETCH_NORMAL;
+    windowStyle.fontWeight = DWRITE_FONT_WEIGHT_REGULAR;
 
     ID2D1Factory* d2d1 = nullptr;
     IDWriteFactory* dwrite = nullptr;
@@ -88,10 +82,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     }
 
 	CommandWindow commandWindow;
-    commandWindow.windowWidth = 400;
-    commandWindow.windowHeight = 40;
+    commandWindow.windowWidth = 390;
+    commandWindow.windowHeight = 30;
     commandWindow.style = &windowStyle;
-    commandWindow.textbox.style = &textboxStyle;
     commandWindow.commandEngine = &commandEngine;
     commandWindow.d2d1 = d2d1;
     commandWindow.dwrite = dwrite;
@@ -105,7 +98,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 	g_commandWindow = &commandWindow;
 
 	String commandLine { lpCmdLine };
-
 	if (indexOf(commandLine, String(L"/noshow")) == -1)
 		commandWindow.showAfterAllEventsProcessed(); // Make sure all controls are initialized.
 
