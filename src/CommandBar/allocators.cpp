@@ -28,7 +28,7 @@ bool TempAllocator::setSize(uintptr_t size)
 	if (size == 0)
 		return true;
 
-	start = operator new(size);
+	start = malloc(size);
 	if (start == nullptr)
 		return false;
 
@@ -38,23 +38,23 @@ bool TempAllocator::setSize(uintptr_t size)
 	return true;
 }
 
-void * TempAllocator::allocate(uintptr_t size, uintptr_t alignment)
+void* TempAllocator::alloc(uintptr_t size)
 {
 	if (start == nullptr)
 		return nullptr;
 
-	uintptr_t requiredAlignment = bytesRequiredToAlignPointer(current, alignment);
+	uintptr_t requiredAlignment = bytesRequiredToAlignPointer(current, sizeof(void*));
 	void* alignedPointer = addBytesToPointer(current, requiredAlignment);
 	if ((uintptr_t)alignedPointer + size > (uintptr_t)end)
 	{
-		UnfitAllocation* unfit = (UnfitAllocation*)operator new(sizeof(UnfitAllocation) + size + alignment);
+		UnfitAllocation* unfit = (UnfitAllocation*)malloc(sizeof(UnfitAllocation) + size + sizeof(void*));
 
 		if (unfit == nullptr)
 			return nullptr;
 
 		addUnfit(unfit);
 
-		return alignPointer(unfit + sizeof(UnfitAllocation), alignment); // @Leak
+		return alignPointer(unfit + sizeof(UnfitAllocation), sizeof(void*)); // @Leak
 	}
 	else
 	{
@@ -63,7 +63,7 @@ void * TempAllocator::allocate(uintptr_t size, uintptr_t alignment)
 	}
 }
 
-void TempAllocator::deallocate(void * ptr)
+void TempAllocator::dealloc(void * ptr)
 {
 	// I don't care :P
 }
@@ -78,8 +78,7 @@ void TempAllocator::dispose()
 {
 	clear();
 
-	if (start != nullptr)
-		operator delete(start);
+    free(start);
 	start = current = end = nullptr;
 }
 
@@ -90,7 +89,7 @@ void TempAllocator::clearUnfits()
 	while (current != nullptr)
 	{
 		UnfitAllocation* next = current->next;
-		operator delete(current);
+        free(current);
 		current = next;
 	}
 
@@ -111,24 +110,22 @@ void TempAllocator::addUnfit(UnfitAllocation * unfit)
 	}
 }
 
-void * StandardAllocator::allocate(uintptr_t size, uintptr_t alignment)
+void* StandardAllocator::alloc(uintptr_t size)
 {
-	try
-	{
-		void* p = operator new(size);
-		return p;
-	}
-	catch (std::bad_alloc)
-	{
-		return nullptr;
-	}
-	return nullptr;
+    void* block = malloc(size);
+    if (block == nullptr) return nullptr;
+
+    allocated += size;
+    return block;
 }
 
-void StandardAllocator::deallocate(void * ptr)
+void StandardAllocator::dealloc(void* block)
 {
-	if (ptr == nullptr)
-		return;
+    if (block == nullptr) return;
 
-	operator delete(ptr);
+    uintptr_t blockSize = static_cast<uintptr_t>(_msize(block));
+    assert(allocated >= blockSize);
+    allocated -= blockSize;
+
+    free(block);
 }

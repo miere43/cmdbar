@@ -1,26 +1,41 @@
 #pragma once
+#include <ShlObj.h>
 #include <assert.h>
 
-#include "command_window.h"
+#include "os_utils.h"
+#include "command_engine.h"
 
 
-static void quitCommand(Command& command, const String* args, uint32_t numArgs)
+struct CommandLoader;
+void registerBasicCommands(CommandLoader* loader);
+Command* quit_createCommand(Array<String>& keys, Array<String>& values);
+
+
+struct CommandWindow;
+struct QuitCommand : public Command
 {
-    CommandWindow* window = static_cast<CommandWindow*>(command.userdata);
-    assert(window);
+    CommandWindow* commandWindow = nullptr;
 
-    window->exit();
-}
+    virtual bool onExecute(Array<String>& args) override;
+};
 
-static void loadBasicCommands(CommandWindow* window)
+struct OpenDirCommand : public Command
 {
-    assert(window);
-    assert(window->commandEngine);
+    String dirPath;
 
-    CommandEngine* e = window->commandEngine;
-    Command* quit = new Command();
-    quit->name = clone("quit");
-    quit->callback = quitCommand;
-    quit->userdata = window;
-    e->addCommand(quit);
-}
+    virtual bool onExecute(Array<String>& args) override;
+};
+
+struct RunAppCommand : public Command
+{
+    String appPath;
+    String appArgs;
+    String workDir;
+
+    bool shellExec = false;
+    bool asAdmin = false;
+
+    int shellExec_nShow = SW_NORMAL;
+
+    virtual bool onExecute(Array<String>& args) override;
+};

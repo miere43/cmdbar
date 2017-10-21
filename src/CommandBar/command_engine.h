@@ -3,27 +3,52 @@
 #include "string_type.h"
 
 struct Command;
+struct CommandWindow;
 struct CommandEngine;
 typedef void(*CommandCallback)(Command& command, const String* args, uint32_t numArgs);
 typedef void(*CommandBeforeRunCallback)(CommandEngine* engine, void* userdata);
 
+
+enum CommandInfoFlags
+{
+    CI_None = 0,
+    //CI_NoArgSplit = 1,
+    //CI_IncludeCommandNameToArgs = 2,
+};
+
+
+typedef Command*(*CommandInfo_CreateCommand)(Array<String>& keys, Array<String>& values);
+struct CommandInfo
+{
+    String dataName;
+    CommandInfoFlags flags = CI_None;
+
+    CommandInfo_CreateCommand createCommand = 0;
+};
+
 struct Command
 {
-	String name;
+    CommandInfo* info = nullptr;
+    CommandEngine* engine = nullptr;
+    String name;
 
-	CommandCallback callback = nullptr;
-	void* userdata = nullptr;
+    virtual bool onExecute(Array<String>& args) = 0;
 };
 
 struct CommandEngine
 {
-	bool evaluate(const String& expression);
-	bool addCommand(Command* command);
+    CommandWindow* window = nullptr;
+    
+    bool evaluate(const String& expression);
 
 	void setBeforeRunCallback(CommandBeforeRunCallback callback, void* userdata);
 	Command* findCommandByName(const String& name);
 
-	Array<Command*> commands;
 	CommandBeforeRunCallback beforeRunCallback = nullptr;
 	void* beforeRunCallbackUserdata = nullptr;
+
+    Array<CommandInfo*> knownCommandInfoArray;
+    Array<Command*> commands;
+    bool registerCommand(Command* command);
+    bool registerCommandInfo(CommandInfo* info);
 };

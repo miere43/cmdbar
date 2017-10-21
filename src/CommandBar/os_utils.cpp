@@ -1,22 +1,25 @@
 #include "os_utils.h"
 #include "math_utils.h"
 #include "trace.h"
+#include "parse_utils.h"
+#include "unicode.h"
+
 
 String OSUtils::formatErrorCode(DWORD errorCode, DWORD languageID, IAllocator* allocator)
 {
-	const DWORD flags = FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_MAX_WIDTH_MASK;
-	const uint32_t maxMessageSize = 256;
+	static const DWORD flags = FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_MAX_WIDTH_MASK;
+	static const uint32_t maxMessageSize = 256;
 
-	if (allocator == nullptr)
-		return String::null;
+    assert(allocator);
 
-	String msg = allocateStringOfLength(maxMessageSize, allocator);
+	String msg = String::alloc(maxMessageSize, allocator);
 	if (msg.data == nullptr)
 		return String::null;
 
 	DWORD count = FormatMessageW(flags, 0, errorCode, languageID, msg.data, msg.count, nullptr);
-	if (count == 0) {
-		allocator->deallocate(msg.data);
+	if (count == 0)
+    {
+		allocator->dealloc(msg.data);
 		return String::null;
 	}
 
@@ -36,7 +39,7 @@ void* OSUtils::readFileContents(const String& fileName, uint32_t* fileSize, IAll
 	if (!GetFileSizeEx(handle, &size) || size.LowPart == 0)
 		goto exitCloseHandle;
 
-	void* data = allocator->allocate(size.LowPart);
+	void* data = allocator->alloc(size.LowPart);
 	if (data == nullptr)
 		goto exitCloseHandle;
 
@@ -50,7 +53,7 @@ void* OSUtils::readFileContents(const String& fileName, uint32_t* fileSize, IAll
 	return data;
 
 exitFreeData:
-	allocator->deallocate(data);
+	allocator->dealloc(data);
 exitCloseHandle:
 	CloseHandle(handle);
 	return nullptr;
@@ -58,15 +61,11 @@ exitCloseHandle:
 
 String OSUtils::readAllText(const String& fileName, Encoding encoding, IAllocator* allocator)
 {
-	if (allocator == nullptr)
-		return String::null;
+    assert(allocator);
 
 	encoding = normalizeEncoding(encoding);
 	if (encoding == Encoding::Unknown)
 		return String::null;
-
-	if (encoding != Encoding::ASCII)
-		return String::null; // Not supported yet.
 
 	uint32_t fileSize = 0;
 	void* data = readFileContents(fileName, &fileSize, allocator);
@@ -74,45 +73,35 @@ String OSUtils::readAllText(const String& fileName, Encoding encoding, IAllocato
 	if (data == nullptr)
 		return String::null;
 
-	const size_t stringDataSize = (fileSize + 1) * sizeof(wchar_t);
+    String result = unicode::decodeString(data, fileSize, encoding, allocator);
+	allocator->dealloc(data);
 
-	wchar_t* stringData = (wchar_t*)allocator->allocate(stringDataSize);
-	if (stringData == nullptr)
-		goto freeDataAndFail;
-
-	if (!charToWideChar((char*)data, fileSize, stringData, stringDataSize))
-		goto freeStringDataAndFail;
-
-	allocator->deallocate(data);
-
-	return String(stringData, fileSize);
-
-freeStringDataAndFail:
-	allocator->deallocate(stringData);
-freeDataAndFail:
-	allocator->deallocate(data);
-	return String::null;
+    return result;
 }
 
 String OSUtils::getDirectoryFromFileName(const String& fileName, IAllocator* allocator)
 {
-	if (fileName.isEmpty() || allocator == nullptr)
+    assert(allocator != nullptr);
+
+	if (fileName.isEmpty())
 		return String::null;
 
-	int backSlash    = lastIndexOf(fileName, L'\\');
-	int forwardSlash = lastIndexOf(fileName, L'/');
+	int backSlash    = fileName.lastIndexOf(L'\\');
+	int forwardSlash = fileName.lastIndexOf(L'/');
 
 	int slash = math::max(backSlash, forwardSlash);
 
 	if (slash == -1)
-		return clone(fileName, allocator);
+		return String::clone(fileName, allocator);
 
-	return clone(substringRef(fileName, 0, slash));
+	return String::clone(fileName.substring(0, slash));
 }
 
-String OSUtils::buildCommandLine(const String * strings[], size_t stringsArrayLength, IAllocator* allocator)
+String OSUtils::buildCommandLine(const String* strings[], size_t stringsArrayLength, IAllocator* allocator)
 {
-	if (strings == nullptr || stringsArrayLength == 0 || allocator == nullptr)
+    assert(allocator != nullptr);
+
+	if (strings == nullptr || stringsArrayLength == 0)
 		return String::null;
 
 	Array<wchar_t> result { allocator };
@@ -124,7 +113,7 @@ String OSUtils::buildCommandLine(const String * strings[], size_t stringsArrayLe
 		if (arg == nullptr || arg->isEmpty())
 			continue;
 
-		bool hasSpaces = indexOf(*arg, L' ') != -1;
+		bool hasSpaces = arg->indexOf(L' ') != -1;
 		if (hasSpaces)
 		{
 			result.reserve(result.count + arg->count + 2);

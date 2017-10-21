@@ -128,6 +128,9 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d2d1.lib;dwrite.lib;imm32.lib;comctl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <Manifest>
+      <EnableDpiAwareness>PerMonitorHighDPIAware</EnableDpiAwareness>
+    </Manifest>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -140,6 +143,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>comctl32.lib;d2d1.lib;dwrite.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -150,7 +154,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -194,6 +198,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>comctl32.lib;d2d1.lib;dwrite.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release (Static Link CRT)|x64'">
@@ -216,46 +221,59 @@
   <ItemGroup>
     <ClCompile Include="allocators.cpp" />
     <ClCompile Include="basic_commands.cpp" />
+    <ClCompile Include="clipboard.cpp" />
     <ClCompile Include="command_engine.cpp" />
+    <ClCompile Include="command_loader.cpp" />
+    <ClCompile Include="common.cpp" />
     <ClCompile Include="context.cpp" />
-    <ClCompile Include="features.cpp" />
     <ClCompile Include="line_reader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="command_window.cpp" />
     <ClCompile Include="config.cpp" />
     <ClCompile Include="one_instance.cpp" />
     <ClCompile Include="os_utils.cpp" />
+    <ClCompile Include="parse_ini.cpp" />
+    <ClCompile Include="parse_utils.cpp" />
     <ClCompile Include="plugin.cpp" />
     <ClCompile Include="run_application.cpp" />
+    <ClCompile Include="string_builder.cpp" />
     <ClCompile Include="string_type.cpp" />
+    <ClCompile Include="string_utils.cpp" />
     <ClCompile Include="taskbar_icon.cpp" />
     <ClCompile Include="tipui.cpp" />
     <ClCompile Include="trace.cpp" />
     <ClCompile Include="uiopts.cpp" />
+    <ClCompile Include="unicode.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="allocators.h" />
     <ClInclude Include="basic_commands.h" />
+    <ClInclude Include="clipboard.h" />
     <ClInclude Include="CommandBar.h" />
     <ClInclude Include="command_engine.h" />
+    <ClInclude Include="command_loader.h" />
     <ClInclude Include="common.h" />
     <ClInclude Include="config.h" />
     <ClInclude Include="context.h" />
-    <ClInclude Include="features.h" />
     <ClInclude Include="line_reader.h" />
-    <ClInclude Include="math.h" />
     <ClInclude Include="math_utils.h" />
     <ClInclude Include="one_instance.h" />
     <ClInclude Include="array.h" />
     <ClInclude Include="command_window.h" />
     <ClInclude Include="os_utils.h" />
+    <ClInclude Include="parse_ini.h" />
+    <ClInclude Include="parse_utils.h" />
     <ClInclude Include="plugin.h" />
     <ClInclude Include="run_application.h" />
+    <ClInclude Include="string_builder.h" />
     <ClInclude Include="string_type.h" />
+    <ClInclude Include="string_utils.h" />
     <ClInclude Include="taskbar_icon.h" />
+    <ClInclude Include="tinyutf.h" />
     <ClInclude Include="uiopts.h" />
     <ClInclude Include="tipui.h" />
     <ClInclude Include="trace.h" />
+    <ClInclude Include="unicode.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\..\..\cmdbar.ico" />

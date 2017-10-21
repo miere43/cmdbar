@@ -1,6 +1,8 @@
+#include <windowsx.h>
+
 #include "taskbar_icon.h"
 #include "trace.h"
-#include <windowsx.h>
+
 
 bool TaskbarIcon::addToStatusArea(HWND hwnd, HICON icon, int iconID, int messageID)
 {

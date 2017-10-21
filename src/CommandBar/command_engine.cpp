@@ -1,30 +1,83 @@
+#include <assert.h>
+
 #include "command_engine.h"
+
 
 bool CommandEngine::evaluate(const String& expression)
 {
-	Array<String> args;
-	split(expression, &args);
+    Array<String> args;
+    bool inQuotes = false;
+    int argStart = 0;
+    int argLength = 0;
 
-	if (args.count == 0)
-		return false;
+    for (int i = 0; i < expression.count; ++i)
+    {
+        wchar_t c = expression.data[i];
+        if (c == '\"')
+        {
+            if (inQuotes)
+            {
+                inQuotes = false;
+                args.add(String{ expression.data + argStart, argLength });
 
-	const String& commandName = args.data[0];
-	Command* command = findCommandByName(commandName);
-	
-	if (command == nullptr || command->callback == nullptr)
-		return false;
+                argStart = i + 1;
+                argLength = 0;
+            }
+            else
+            {
+                assert(argLength == 0);
+                inQuotes = true;
+                argStart = i + 1;
+                argLength = 0;
+            }
 
-	if (beforeRunCallback != nullptr)
-		beforeRunCallback(this, beforeRunCallbackUserdata);
+            continue;
+        }
+        else if (inQuotes)
+        {
+            ++argLength;
+        }
+        else if (c == L' ')
+        {
+            if (argLength > 0)
+            {
+                args.add(String{ expression.data + argStart, argLength });
+                argStart = i + 1;
+                argLength = 0;
+            }
+            else
+            {
+                continue;
+            }
+        }
+        else
+        {
+            ++argLength;
+        }
+    }
 
-	command->callback(*command, args.count == 1 ? nullptr : args.data + 1, args.count - 1);
+    if (argLength > 0)
+    {
+        args.add(String{ expression.data + argStart, argLength });
+    }
 
-	return true;
-}
+    if (args.count == 0)
+        return false;
 
-bool CommandEngine::addCommand(Command* command)
-{
-	return commands.add(command);
+    const String& commandName = args.data[0];
+    Command* command = findCommandByName(commandName);
+
+    if (command == nullptr)
+        return false;
+
+    if (beforeRunCallback != nullptr)
+        beforeRunCallback(this, beforeRunCallbackUserdata);
+
+    Array<String> actualArgs;
+    for (int i = 1; i < args.count; ++i)
+        actualArgs.add(args.data[i]);
+
+    return command->onExecute(actualArgs);
 }
 
 void CommandEngine::setBeforeRunCallback(CommandBeforeRunCallback callback, void * userdata)
@@ -35,13 +88,34 @@ void CommandEngine::setBeforeRunCallback(CommandBeforeRunCallback callback, void
 
 Command* CommandEngine::findCommandByName(const String& name)
 {
-	for (uint32_t i = 0; i < commands.count; ++i)
+	for (int i = 0; i < commands.count; ++i)
 	{
 		Command* command = commands.data[i];
 
-		if (equals(command->name, name))
+		if (name.equals(command->name))
 			return command;
 	}
 
 	return nullptr;
 }
+
+bool CommandEngine::registerCommand(Command* command)
+{
+    assert(command);
+
+    if (commands.add(command))
+    {
+        command->engine = this;
+        return true;
+    }
+
+    return false;
+}
+
+bool CommandEngine::registerCommandInfo(CommandInfo* info)
+{
+    assert(info);
+
+    return knownCommandInfoArray.add(info);
+}
+

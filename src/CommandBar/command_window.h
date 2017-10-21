@@ -10,7 +10,6 @@
 
 struct CommandWindowStyle;
 
-
 struct CommandWindow
 {
 	bool init(HINSTANCE hInstance, int windowWidth, int windowHeight);
@@ -26,7 +25,6 @@ struct CommandWindow
 	LRESULT wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam);
 	void beforeCommandRun();
 
-
 	HWND hwnd = 0;
 
     ID2D1Factory* d2d1 = nullptr;
@@ -39,6 +37,8 @@ struct CommandWindow
     // Tray Menu
     HMENU trayMenu = 0;
 
+    void dispose();
+
 	static const wchar_t* g_className;
 	static const wchar_t* g_windowName;
 private:
@@ -47,7 +47,6 @@ private:
 	float showWindowYRatio = 0.4f;
 
 	void evaluate();
-	void dispose();
 
 	static bool initGlobalResources(HINSTANCE hInstance);
 
@@ -64,8 +63,7 @@ public:
     void clearSelection();
     bool getSelectionRange(int* rangeStart, int* rangeLength);
 
-    wchar_t* textBuffer = nullptr;
-    int textBufferLength = 0;
+    String textBuffer;
     int textBufferMaxLength = 512;
     int cursorPos = 0;
 
@@ -82,27 +80,47 @@ public:
     ID2D1SolidColorBrush* textForegroundBrush = nullptr;
     ID2D1SolidColorBrush* selectedTextBrush = nullptr;
     
-    void onKeyDown(wchar_t c);
-    void onLeftMouseButtonUp();
-    void onFocusAcquired();
-    void onFocusLost();
+    LRESULT onChar(wchar_t c);
+    LRESULT onKeyDown(LPARAM lParam, WPARAM wParam);
+    LRESULT onMouseActivate();
+    LRESULT onLeftMouseButtonDown(LPARAM lParam, WPARAM wParam);
+    LRESULT onLeftMouseButtonUp();
+    LRESULT onMouseMove(LPARAM lParam, WPARAM wParam);
+    LRESULT onFocusAcquired();
+    LRESULT onFocusLost();
+    LRESULT onPaint();
+    LRESULT onHotkey(LPARAM lParam, WPARAM wParam);
+    LRESULT onTimer(LPARAM lParam, WPARAM wParam);
+    LRESULT onShowWindow(LPARAM lParam, WPARAM wParam);
+    LRESULT onQuit();
+
+    LRESULT onCursorBlinkTimerElapsed();
+
     void onTextChanged();
+    void onAutocompleteRequested();
 
     inline bool isTextBufferFilled()
     {
-        return textBufferLength >= textBufferMaxLength;
+        return textBuffer.count >= textBufferMaxLength;
     }
+    inline bool isTextSelected()
+    {
+        return selectionLength != 0;
+    }
+
+    bool shouldDrawCursor = true;
+    //void setShouldDrawCursor(bool shouldDrawCursor);
+    void setCursorTimer();
+    void killCursorTimer();
 
     bool isTextLayoutDirty = false;
 
     // Selection with mouse variables
     // If -1 then there were no selection.
     int selectionStartCursorPos = -1;
-    bool isMouseCaptured = false;
 private:
 
 
-    LRESULT paint(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 };
 
 struct CommandWindowStyle

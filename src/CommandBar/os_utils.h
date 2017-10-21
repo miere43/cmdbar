@@ -3,18 +3,13 @@
 #define NOMINMAX
 #include <Windows.h>
 
-enum class Encoding
-{
-	Unknown = 0,
-	UTF8,
-	ASCII,
-	MAX_VALUE
-};
 
 struct OSUtils
 {
 	static String formatErrorCode(DWORD errorCode, DWORD languageID = 0, IAllocator* allocator = &g_standardAllocator);
+    // 'fileName' must be null-terminated
 	static void*  readFileContents(const String& fileName, uint32_t* fileSize, IAllocator* allocator = &g_standardAllocator);
+    // 'fileName' must be null-terminated
 	static String readAllText(const String& fileName, Encoding encoding = Encoding::UTF8, IAllocator* allocator = &g_standardAllocator);
 
 	static String getDirectoryFromFileName(const String& fileName, IAllocator* allocator = &g_standardAllocator);

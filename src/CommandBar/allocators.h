@@ -1,17 +1,22 @@
 #pragma once
-#include "common.h"
 #include <allocators>
+#include <assert.h>
+#include <new>
+
+#include "common.h"
 
 struct IAllocator
 {
-	virtual void* allocate(uintptr_t size, uintptr_t alignment = sizeof(void*))   = 0;
-	virtual void  deallocate(void* ptr) = 0;
+	virtual void* alloc(uintptr_t size) = 0;
+	virtual void  dealloc(void* block) = 0;
 };
 
 struct StandardAllocator : public IAllocator
 {
-	virtual void* allocate(uintptr_t size, uintptr_t alignment = sizeof(void*)) override;
-	virtual void  deallocate(void * ptr) override;
+    uintptr_t allocated = 0;
+
+	virtual void* alloc(uintptr_t size) override;
+	virtual void  dealloc(void* block) override;
 };
 
 struct TempAllocator : public IAllocator
@@ -28,8 +33,8 @@ struct TempAllocator : public IAllocator
 
 	bool setSize(uintptr_t size);
 
-	virtual void* allocate(uintptr_t size, uintptr_t alignment = sizeof(void*))   override;
-	virtual void  deallocate(void* ptr) override;
+	virtual void* alloc(uintptr_t size) override;
+	virtual void  dealloc(void* ptr) override;
 
 	void clear();
 	void dispose();
@@ -42,3 +47,26 @@ private:
 
 extern StandardAllocator g_standardAllocator;
 extern TempAllocator g_tempAllocator;
+
+template<typename T>
+static inline T* stdNew()
+{
+    T* obj = (T*)g_standardAllocator.alloc(sizeof(T));
+    if (obj) new (obj) T;
+
+    return obj;
+}
+
+template<typename T>
+static inline T* stdNewArr(int count)
+{
+    assert(count > 0);
+
+    T* obj = (T*)g_standardAllocator.alloc(sizeof(T) * count);
+    if (obj == nullptr) return nullptr;
+    
+    for (int i = 0; i < count; ++i)
+        new (&obj[i]) T;
+
+    return obj;
+}

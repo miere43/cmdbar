@@ -1,4 +1,4 @@
-#include <assert.h>
+﻿#include <assert.h>
 #include <Windows.h>
 #include <CommCtrl.h>
 #include <d2d1.h>
@@ -9,9 +9,11 @@
 #include "os_utils.h"
 #include "allocators.h"
 #include "command_engine.h"
-#include "features.h"
 #include "one_instance.h"
 #include "basic_commands.h"
+#include "command_loader.h"
+#include "string_type.h"
+#include "unicode.h"
 
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmdLine, int nCmdShow)
@@ -24,7 +26,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 
 		return 0;
 	}
+
+    CloseClipboard();
 #endif
+
+    Array<int> arr;
 
     HRESULT hr;
 
@@ -57,11 +63,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
         }
     }
 
-
 	CommandEngine commandEngine;
-
-	Features features;
-	features.load(&commandEngine);
 
 	CommandWindowStyle windowStyle;
 	windowStyle.textMarginLeft = 4.0f;
@@ -82,17 +84,42 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     commandWindow.d2d1 = d2d1;
     commandWindow.dwrite = dwrite;
 
-    loadBasicCommands(&commandWindow);
+    CommandLoader cmdLoader;
+    registerBasicCommands(&cmdLoader);
 
-	if (!commandWindow.init(hInstance, 400, 40))
-	{
-		__debugbreak();
-		return 1;
-	}
+    Array<Command*> cmds = cmdLoader.loadFromFile(L"D:/Vlad/cb/cmds.ini");
+    for (int i = 0; i < cmdLoader.commandInfoArray.count; ++i)
+        commandEngine.registerCommandInfo(cmdLoader.commandInfoArray.data[i]);
+    for (int i = 0; i < cmds.count; ++i)
+        commandEngine.registerCommand(cmds.data[i]);
+
+    bool initialized = commandWindow.init(hInstance, 400, 40);
+    assert(initialized);
 
 	String commandLine { lpCmdLine };
-	if (indexOf(commandLine, String(L"/noshow")) == -1)
+	if (commandLine.indexOf(String(L"/noshow")) == -1)
 		commandWindow.showAfterAllEventsProcessed(); // Make sure all controls are initialized.
 
-	return commandWindow.enterEventLoop();
+    MSG msg;
+    uint32_t ret;
+
+    while ((ret = GetMessageW(&msg, 0, 0, 0)) != 0)
+    {
+        if (ret == -1)
+        {
+#ifdef _DEBUG
+            String error = OSUtils::formatErrorCode(GetLastError());
+            __debugbreak();
+            g_standardAllocator.dealloc(error.data);
+#endif
+            continue;
+        }
+
+        TranslateMessage(&msg);
+        DispatchMessageW(&msg);
+    }
+
+    commandWindow.dispose();
+    
+    return static_cast<int>(msg.wParam);
 }

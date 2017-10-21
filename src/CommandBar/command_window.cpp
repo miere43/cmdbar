@@ -3,11 +3,13 @@
 
 #include "command_window.h"
 #include "CommandBar.h"
-#include "math.h"
+#include "math_utils.h"
 #include "trace.h"
 #include "os_utils.h"
 #include "one_instance.h"
-
+#include "basic_commands.h"
+#include "clipboard.h"
+#include "string_utils.h"
 
 
 LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -20,6 +22,12 @@ HKL CommandWindow::g_englishKeyboardLayout = 0;
 const wchar_t* CommandWindow::g_windowName = L"Command Bar";
 const wchar_t* CommandWindow::g_className = L"CommandWindow";
 
+
+enum
+{
+    SHOW_APP_WINDOW_HOTKEY_ID = 0,
+    CURSOR_BLINK_TIMER_ID = 0
+};
 
 enum class CustomMessage
 {
@@ -68,8 +76,8 @@ bool CommandWindow::initGlobalResources(HINSTANCE hInstance)
 
 void CommandWindow::clearText()
 {
-    textBuffer[0] = L'\0';
-    textBufferLength = 0;
+    textBuffer.data[0] = L'\0';
+    textBuffer.count = 0;
 
     cursorPos = 0;
     clearSelection();
@@ -83,10 +91,10 @@ bool CommandWindow::setText(const String & text)
         return false;
 
     int length = text.count;
-    if (length > textBufferLength) return false;
+    if (length > textBuffer.count) return false;
 
-    wmemcpy(textBuffer, text.data, length);
-    textBufferLength = length;
+    wmemcpy(textBuffer.data, text.data, length);
+    textBuffer.count = length;
     cursorPos = length;
     clearSelection();
 
@@ -119,8 +127,8 @@ void CommandWindow::updateTextLayout(bool forced)
         HRESULT hr;
 
         hr = dwrite->CreateTextLayout(
-            textBuffer,
-            textBufferLength,
+            textBuffer.data,
+            textBuffer.count,
             textFormat,
             clientWidth,
             clientHeight,
@@ -130,6 +138,16 @@ void CommandWindow::updateTextLayout(bool forced)
         assert(SUCCEEDED(hr));
 
         textLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+
+        DWRITE_TEXT_RANGE range;
+        int index = textBuffer.indexOf(L' ');
+        
+        if (index != -1)
+            range = { 0, static_cast<UINT32>(index) };
+        else
+            range = { 0, static_cast<UINT32>(textBuffer.count) };
+
+        textLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range);
 
         isTextLayoutDirty = false;
     }
@@ -155,53 +173,514 @@ bool CommandWindow::getSelectionRange(int * rangeStart, int * rangeLength)
     return true;
 }
 
-void CommandWindow::onKeyDown(wchar_t c)
+LRESULT CommandWindow::onChar(wchar_t c)
 {
     // Skip if not printable.
-    if (!iswprint(c))
-        return;
-    if (isTextBufferFilled())
-        return;
+    if (!iswprint(c)) return 0;
+    if (isTextBufferFilled()) return 0;
 
-    if (insertCharAt(textBuffer, textBufferLength, textBufferMaxLength, cursorPos, c))
+    if (isTextSelected())
     {
-        ++textBufferLength;
+        bool s = removeRange(textBuffer.data, textBuffer.count, selectionPos, selectionLength);
+        if (s)
+            textBuffer.count -= selectionLength;
+        else
+            return 0;
+
+        s = insertCharAt(textBuffer.data, textBuffer.count, textBufferMaxLength, selectionPos, c);
+        if (s)
+            ++textBuffer.count;
+        else
+            return 0;
+
+        cursorPos = selectionPos + 1;
+        clearSelection();
+    
+        onTextChanged();
+        shouldDrawCursor = true;
+        setCursorTimer();
+
+        redraw();
+    }
+    else
+    {
+        if (!insertCharAt(textBuffer.data, textBuffer.count, textBufferMaxLength, cursorPos, c))
+            return 0;
+
+        ++textBuffer.count;
         ++cursorPos;
 
         onTextChanged();
+        shouldDrawCursor = true;
+        setCursorTimer();
+
         redraw();
     }
+
+    return 0;
 }
 
-void CommandWindow::onLeftMouseButtonUp()
+LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
+{
+    BOOL shiftPressed = GetKeyState(VK_LSHIFT) & 0x8000;
+    BOOL ctrlPressed = GetKeyState(VK_LCONTROL) & 0x8000;
+
+    switch (vk)
+    {
+        case VK_ESCAPE:
+        {
+            if (IsWindowVisible(hwnd))
+            {
+                hideWindow();
+            }
+
+            break;
+        }
+        case VK_TAB:
+        {
+            onAutocompleteRequested();
+            break;
+        }
+        // Backspace
+        case VK_BACK:
+        {
+            shouldDrawCursor = true;
+            setCursorTimer();
+
+            if (selectionLength != 0)
+            {
+                if (removeRange(textBuffer.data, textBuffer.count, selectionPos, selectionLength))
+                {
+                    textBuffer.count -= selectionLength;
+                    textBuffer.data[textBuffer.count] = L'\0';
+                    if (selectionInitialPos <= cursorPos)
+                        cursorPos -= selectionLength;
+                    selectionLength = 0;
+                }
+            }
+            else if (cursorPos != 0 && removeCharAt(textBuffer.data, textBuffer.count, cursorPos - 1))
+            {
+                --textBuffer.count;
+                textBuffer.data[textBuffer.count] = L'\0';
+                --cursorPos;
+            }
+
+            onTextChanged();
+            redraw();
+
+            break;
+        }
+
+        case VK_DELETE:
+        {
+            shouldDrawCursor = true;
+            setCursorTimer();
+
+            if (selectionLength != 0)
+            {
+                if (removeRange(textBuffer.data, textBuffer.count, selectionPos, selectionLength))
+                {
+                    textBuffer.count -= selectionLength;
+                    textBuffer.data[textBuffer.count] = L'\0';
+                    if (selectionInitialPos <= cursorPos)
+                        cursorPos -= selectionLength;
+                    selectionLength = 0;
+                }
+            }
+            else if (removeCharAt(textBuffer.data, textBuffer.count, cursorPos))
+            {
+                textBuffer.data[textBuffer.count] = '\0';
+                --textBuffer.count;
+            }
+
+            onTextChanged();
+            redraw();
+
+            break;
+        }
+
+        case VK_RETURN:
+        {
+            evaluate();
+
+            break;
+        }
+
+        case VK_RIGHT:
+        {
+            shouldDrawCursor = true;
+            setCursorTimer();
+
+            if (cursorPos < textBuffer.count)
+            {
+                if (shiftPressed) // High-order bit == 1 => key down
+                {
+                    if (selectionLength == 0)
+                    {
+                        selectionInitialPos = selectionPos = cursorPos;
+                        selectionLength = 1;
+                    }
+                    else
+                    {
+                        if (cursorPos <= selectionInitialPos)
+                        {
+                            selectionPos = cursorPos + 1;
+                            --selectionLength;
+                        }
+                        else
+                        {
+                            ++selectionLength;
+                        }
+                    }
+                }
+
+                ++cursorPos;
+                redraw();
+            }
+
+            if (!shiftPressed)
+            {
+                if (selectionLength != 0)
+                {
+                    cursorPos = selectionPos + selectionLength;
+                }
+
+                selectionLength = 0;
+
+                redraw();
+            }
+
+            break;
+        }
+
+        case VK_LEFT:
+        {
+            shouldDrawCursor = true;
+            setCursorTimer();
+
+            if (cursorPos > 0)
+            {
+                --cursorPos;
+
+                if (shiftPressed)
+                {
+                    if (selectionLength == 0)
+                    {
+                        selectionInitialPos = selectionPos = cursorPos;
+                        selectionLength = 1;
+                    }
+                    else
+                    {
+                        if (cursorPos >= selectionInitialPos)
+                        {
+                            OutputDebugStringW(L"hello!\n");
+                            //selectionPos = cursorPos;
+                            --selectionLength;
+                        }
+                        else
+                        {
+                            selectionPos = cursorPos;
+                            ++selectionLength;
+                        }
+                    }
+                }
+
+                redraw();
+            }
+
+            if (!shiftPressed)
+            {
+                if (selectionLength != 0)
+                {
+                    cursorPos = selectionPos;
+                }
+
+                selectionLength = 0;
+
+                redraw();
+            }
+        }
+
+        break;
+    }
+
+    if (ctrlPressed && vk == L'C')
+    {
+        if (!isTextSelected())
+            return 0;
+        if (!Clipboard::open(hwnd))
+            assert(false);
+
+        String copyStr = textBuffer.substring(selectionPos, selectionLength);
+        bool copied = Clipboard::copyText(copyStr.data, copyStr.count);
+        assert(copied);
+
+        Clipboard::close();
+
+        onTextChanged();
+        shouldDrawCursor = true;
+        setCursorTimer();
+
+        redraw();
+    }
+    else if (ctrlPressed && vk == L'V')
+    {
+        if (!Clipboard::open(hwnd))
+            assert(false);
+
+        String textToCopy = { 0, 0 };
+        bool copied = Clipboard::getText(&textToCopy);
+        assert(copied);
+
+        Clipboard::close();
+
+        if (textToCopy.isEmpty())
+        {
+            g_standardAllocator.dealloc(textToCopy.data);
+            return 0;
+        }
+
+        if (isTextSelected())
+        {
+            bool s = removeRange(textBuffer.data, textBuffer.count, selectionPos, selectionLength);
+            assert(s);
+
+            textBuffer.count -= selectionLength;
+
+            s = StringUtils::insertChars(textBuffer.data, textBuffer.count, textBufferMaxLength, textToCopy.data, textToCopy.count, selectionPos);
+            assert(s);
+
+            textBuffer.count += textToCopy.count;
+
+            cursorPos = selectionPos + textToCopy.count;
+            clearSelection();
+
+            onTextChanged();
+            shouldDrawCursor = true;
+            setCursorTimer();
+
+            redraw();
+        }
+        else
+        {
+            bool s = StringUtils::insertChars(textBuffer.data, textBuffer.count, textBufferMaxLength, textToCopy.data, textToCopy.count, cursorPos);
+            assert(s);
+
+            textBuffer.count += textToCopy.count;
+            
+            cursorPos += textToCopy.count;
+
+            onTextChanged();
+            shouldDrawCursor = true;
+            setCursorTimer();
+
+            redraw();
+        }
+
+        g_standardAllocator.dealloc(textToCopy.data);
+        return 0;
+    }
+
+    return 0;
+}
+
+LRESULT CommandWindow::onMouseActivate()
+{
+    if (GetFocus() != hwnd)
+    {
+        SetFocus(hwnd);
+        redraw();
+    }
+
+    return MA_ACTIVATE;
+}
+
+LRESULT CommandWindow::onLeftMouseButtonDown(LPARAM lParam, WPARAM wParam)
+{
+    float mouseX = static_cast<float>(GET_X_LPARAM(lParam));
+    float mouseY = static_cast<float>(GET_Y_LPARAM(lParam));
+    const float borderSize = static_cast<float>(style->borderSize);
+
+    updateTextLayout();
+    shouldDrawCursor = true;
+    setCursorTimer();
+
+    BOOL isInside = false;
+    BOOL isTrailingHit = false;
+    DWRITE_HIT_TEST_METRICS metrics ={ 0 };
+    HRESULT hr = 0;
+
+    hr = textLayout->HitTestPoint(mouseX - style->textMarginLeft - borderSize, mouseY, &isTrailingHit, &isInside, &metrics);
+    assert(SUCCEEDED(hr));
+
+    if (isTrailingHit)
+    {
+        cursorPos = metrics.textPosition + 1;
+    }
+    else
+    {
+        cursorPos = metrics.textPosition;
+    }
+
+    selectionStartCursorPos = cursorPos;
+
+    clearSelection();
+    redraw();
+
+    return 0;
+}
+
+LRESULT CommandWindow::onLeftMouseButtonUp()
 {
     selectionStartCursorPos = -1;
 
     if (GetCapture() == hwnd)
         ReleaseCapture();
+
+    return 0;
 }
 
-void CommandWindow::onFocusAcquired()
+LRESULT CommandWindow::onFocusAcquired()
 {
     //originalKeyboardLayout = GetKeyboardLayout(GetCurrentThreadId());
     
     ActivateKeyboardLayout(g_englishKeyboardLayout, KLF_REORDER);
+
+    shouldDrawCursor = true;
+    setCursorTimer();
+
+    return 0;
 }
 
-void CommandWindow::onFocusLost()
+LRESULT CommandWindow::onFocusLost()
 {
     //ActivateKeyboardLayout(originalKeyboardLayout, KLF_REORDER);
     //OutputDebugStringA("lost focus.\n");
     //InvalidateRect(hwnd, nullptr, true);
     hideWindow();
+
+    return 0;
 }
 
 void CommandWindow::onTextChanged()
 {
-
+    shouldDrawCursor = true;
+    setCursorTimer();
 }
 
-LRESULT CommandWindow::paint(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CommandWindow::onMouseMove(LPARAM lParam, WPARAM wParam)
+{
+    bool isLeftMouseDown = static_cast<bool>(wParam & 0x0001);
+
+    if (!isLeftMouseDown || selectionStartCursorPos == -1)
+        return 0;
+
+    SetCapture(hwnd);
+
+    float mouseX = static_cast<float>(GET_X_LPARAM(lParam));
+    float mouseY = static_cast<float>(GET_Y_LPARAM(lParam));
+    const float borderSize = static_cast<float>(style->borderSize);
+
+    updateTextLayout();
+
+    BOOL isInside = false;
+    BOOL isTrailingHit = false;
+    DWRITE_HIT_TEST_METRICS metrics ={ 0 };
+    HRESULT hr = 0;
+
+    hr = textLayout->HitTestPoint(mouseX - style->textMarginLeft - borderSize, mouseY, &isTrailingHit, &isInside, &metrics);
+    assert(SUCCEEDED(hr));
+
+    if (selectionStartCursorPos != -1)
+    {
+        int oldCursorPos = selectionStartCursorPos;
+
+        if (isTrailingHit)
+        {
+            cursorPos = metrics.textPosition + 1;
+        }
+        else
+        {
+            cursorPos = metrics.textPosition;
+        }
+
+        int calcSelectionLength = abs(oldCursorPos - cursorPos);
+        if (calcSelectionLength == 0)
+        {
+            clearSelection();
+        }
+        else
+        {
+            selectionInitialPos = selectionStartCursorPos;
+            selectionPos = math::min(cursorPos, oldCursorPos);
+            selectionLength = calcSelectionLength;
+        }
+    }
+
+    redraw();
+
+    return 0;
+}
+
+void CommandWindow::onAutocompleteRequested()
+{
+    String command;
+
+    int index = stringFindCharIndex(textBuffer.data, textBuffer.count, L' ');
+    command.data  = textBuffer.data;
+    command.count = index == -1 ? textBuffer.count : index;
+
+    if (command.count == 0)
+        return;
+
+    for (int i = 0; i < commandEngine->commands.count; ++i)
+    {
+        Command* candidate = commandEngine->commands.data[i];
+        bool isMatchingCandidate = stringStartsWith(
+            candidate->name.data,
+            candidate->name.count,
+            command.data,
+            command.count,
+            false
+        );
+
+        if (!isMatchingCandidate)
+            continue;
+
+        wmemcpy(textBuffer.data, candidate->name.data, candidate->name.count);
+        textBuffer.count = candidate->name.count;
+
+        clearSelection();
+        cursorPos = textBuffer.count;
+
+        redraw();
+
+        return;
+    }
+}
+
+void CommandWindow::setCursorTimer()
+{
+    SetLastError(NO_ERROR);
+
+    uintptr_t timerID = SetTimer(hwnd, CURSOR_BLINK_TIMER_ID, 600, nullptr);
+    
+    if (timerID == 0 && GetLastError() != NO_ERROR)
+    {
+        __debugbreak();
+    }
+}
+void CommandWindow::killCursorTimer()
+{
+    KillTimer(hwnd, CURSOR_BLINK_TIMER_ID);
+}
+//
+//void CommandWindow::setShouldDrawCursor(bool shouldDrawCursor)
+//{
+//
+//}
+
+LRESULT CommandWindow::onPaint()
 {
     ID2D1HwndRenderTarget* rt = this->hwndRenderTarget;
     assert(rt);
@@ -211,17 +690,19 @@ LRESULT CommandWindow::paint(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     float clientWidth  = static_cast<float>(clientRect.right - clientRect.left);
     float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
     float cursorUpY = style->borderSize + 3.0f;
-    float cursorBottomY = clientHeight - style->borderSize - 3.0f;
+    
+    const float borderSize = static_cast<float>(style->borderSize);
+    float cursorBottomY = clientHeight - borderSize - 3.0f;
 
     float marginX = style->textMarginLeft + style->borderSize;
 
     updateTextLayout();
 
     D2D1_RECT_F textboxRect = D2D1::RectF(
-        style->borderSize,
-        style->borderSize,
-        clientWidth  - style->borderSize,
-        clientHeight - style->borderSize
+        borderSize,
+        borderSize,
+        clientWidth  - borderSize,
+        clientHeight - borderSize
     );
 
     rt->BeginDraw();
@@ -229,42 +710,106 @@ LRESULT CommandWindow::paint(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     rt->FillRectangle(textboxRect, textboxBackgroundBrush);
 
-    float cursorRelativeX = 0.0f, cursorRelativeY = 0.0f;
+    float cursorRelativeX = 0.0f;
+    float cursorRelativeY = 0.0f;
 
     DWRITE_HIT_TEST_METRICS metrics;
     textLayout->HitTestTextPosition(cursorPos, false, &cursorRelativeX, &cursorRelativeY, &metrics);
 
     // Draw selection background
-    int selectionStart = 0;
-    int selectionLength = 0;
-    if (getSelectionRange(&selectionStart, &selectionLength))
+    if (isTextSelected())
     {
         float unused;
         float selectionRelativeStartX = 0.0f;
         float selectionRelativeEndX = 0.0f;
 
-        textLayout->HitTestTextPosition(selectionStart, false, &selectionRelativeStartX, &unused, &metrics);
-        textLayout->HitTestTextPosition(selectionStart + selectionLength, false, &selectionRelativeEndX, &unused, &metrics);
+        textLayout->HitTestTextPosition(selectionPos, false, &selectionRelativeStartX, &unused, &metrics);
+        textLayout->HitTestTextPosition(selectionPos + selectionLength, false, &selectionRelativeEndX, &unused, &metrics);
 
         rt->FillRectangle(
             D2D1::RectF(
                 marginX + selectionRelativeStartX,
-                style->borderSize, 
+                borderSize, 
                 marginX + selectionRelativeEndX,
-                clientHeight - style->borderSize), 
+                clientHeight - borderSize), 
             selectedTextBrush);
     }
 
-    float textDrawY = style->borderSize;
+    float textDrawY = borderSize;
     rt->DrawTextLayout(D2D1::Point2F(marginX, textDrawY), textLayout, textForegroundBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
-    // Center cursor X at pixel center to disable anti-aliasing.
-    float cursorActualX = floor(marginX + cursorRelativeX) + 0.5f;
-    rt->DrawLine(D2D1::Point2F(cursorActualX, cursorUpY), D2D1::Point2F(cursorActualX, cursorBottomY), textForegroundBrush);
+    if (shouldDrawCursor && !isTextSelected())
+    {
+        // Center cursor X at pixel center to disable anti-aliasing.
+        float cursorActualX = floorf(marginX + cursorRelativeX) + 0.5f;
+        rt->DrawLine(D2D1::Point2F(cursorActualX, cursorUpY), D2D1::Point2F(cursorActualX, cursorBottomY), textForegroundBrush);
+    }
 
     rt->EndDraw();
 
     ValidateRect(hwnd, nullptr);
+    return 0;
+}
+
+LRESULT CommandWindow::onHotkey(LPARAM lParam, WPARAM wParam)
+{
+    if (wParam == SHOW_APP_WINDOW_HOTKEY_ID)
+    {
+        if (IsWindowVisible(hwnd))
+        {
+            hideWindow();
+        }
+        else
+        {
+            showWindow();
+        }
+    }
+
+    return 0;
+}
+
+LRESULT CommandWindow::onTimer(LPARAM lParam, WPARAM timerID)
+{
+    switch (timerID)
+    {
+        case CURSOR_BLINK_TIMER_ID: return onCursorBlinkTimerElapsed();
+        default:
+            __debugbreak(); // Unknown timer.
+    }
+    
+    return 0;
+}
+
+LRESULT CommandWindow::onShowWindow(LPARAM lParam, WPARAM wParam)
+{
+    // @TODO: this function is weird and called only when window is about to be hidden.
+
+    bool isWindowShown = lParam == 1;
+    OutputDebugStringW(L"onShowWindow " + isWindowShown ? L"true\n" : L"false\n");
+
+    if (isWindowShown)
+    {
+        setCursorTimer();
+        __debugbreak();
+    }
+    else 
+        killCursorTimer();
+
+    return 0;
+}
+
+LRESULT CommandWindow::onQuit()
+{
+    DestroyWindow(hwnd);
+
+    return 0;
+}
+
+LRESULT CommandWindow::onCursorBlinkTimerElapsed()
+{
+    shouldDrawCursor = !shouldDrawCursor;
+    redraw();
+
     return 0;
 }
 
@@ -273,7 +818,7 @@ bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
     if (isInitialized)
         return true;
 
-    assert(windowWidth > 0);
+    assert(windowWidth  > 0);
     assert(windowHeight > 0);
     assert(style);
     assert(d2d1);
@@ -302,14 +847,14 @@ bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
     if (hwnd == 0)
         return false;
 
-    SetWindowLongW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+    SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
 
     if (!taskbarIcon.addToStatusArea(hwnd, g_appIcon, 1, WM_USER + 15))
     {
         // We can live without it.
     }
 
-    if (!RegisterHotKey(hwnd, 0, MOD_ALT | MOD_NOREPEAT, 0x51))
+    if (!RegisterHotKey(hwnd, SHOW_APP_WINDOW_HOTKEY_ID, MOD_ALT | MOD_NOREPEAT, 0x51))
         MessageBoxW(hwnd, L"Hotkey Alt+Q is already claimed.", L"Command Bar", MB_OK);
 
     if ((trayMenu = CreatePopupMenu()) != 0)
@@ -322,10 +867,12 @@ bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
     commandEngine->setBeforeRunCallback(beforeRunCallback, this);
 
     textBufferMaxLength = 512;
-    textBufferLength = 0;
-    textBuffer = static_cast<wchar_t*>(malloc(textBufferMaxLength * sizeof(textBuffer[0])));
-    if (textBuffer == nullptr)
+    textBuffer.count = 0;
+    textBuffer.data = static_cast<wchar_t*>(malloc(textBufferMaxLength * sizeof(textBuffer.data[0])));
+    if (textBuffer.data == nullptr)
         return false;
+
+    setCursorTimer();
 
     {
         // Initialize Direct2D and DirectWrite resources.
@@ -365,6 +912,12 @@ bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
         hr = hwndRenderTarget->CreateSolidColorBrush(style->textboxBackgroundColor, &textboxBackgroundBrush);
         assert(SUCCEEDED(hr));
     }
+
+    QuitCommand* quitcmd = stdNew<QuitCommand>();
+    quitcmd->name = String::clone(L"quit");
+    quitcmd->info = nullptr;
+    quitcmd->commandWindow = this;
+    commandEngine->registerCommand(quitcmd);
 
     isInitialized = true;
     return isInitialized;
@@ -439,7 +992,7 @@ int CommandWindow::enterEventLoop()
             {
                 String error = OSUtils::formatErrorCode(GetLastError());
                 __debugbreak();
-                g_standardAllocator.deallocate(error.data);
+                g_standardAllocator.dealloc(error.data);
             }
             else
             {
@@ -453,15 +1006,12 @@ int CommandWindow::enterEventLoop()
 
     dispose();
 
-    return 0;
+    return static_cast<int>(msg.wParam);
 }
 
 void CommandWindow::evaluate()
 {
-    String empty{ L"", 0 };
-    String expr{ textBuffer, textBufferLength };
-
-    if (!commandEngine->evaluate(expr))
+    if (!commandEngine->evaluate(textBuffer))
     {
         MessageBoxW(hwnd, L"Unknown command", L"Error", MB_OK | MB_ICONERROR);
         SetFocus(hwnd); // We lose focus after MessageBox.s
@@ -488,313 +1038,20 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
 {
     switch (msg)
     {
-        case WM_ERASEBKGND:
-        {
-            return 1;
-        }
-
-        case WM_CHAR:
-        {
-            this->onKeyDown(static_cast<wchar_t>(wParam));
-            return 0;
-        }
-
-        case WM_KEYDOWN:
-        {
-            BOOL shiftPressed = GetKeyState(VK_LSHIFT) & 0x8000;
-
-            if (wParam == VK_BACK) // Backspace
-            {
-                if (textBufferLength <= 0) return 0;
-                if (selectionLength != 0)
-                {
-                    if (removeRange(textBuffer, textBufferLength, selectionPos, selectionLength))
-                    {
-                        textBufferLength -= selectionLength;
-                        textBuffer[textBufferLength] = L'\0';
-                        if (selectionInitialPos <= cursorPos)
-                            cursorPos -= selectionLength;
-                        selectionLength = 0;
-                    }
-                }
-                else if (cursorPos != 0 && removeCharAt(textBuffer, textBufferLength, cursorPos - 1))
-                {
-                    --textBufferLength;
-                    textBuffer[textBufferLength] = L'\0';
-                    --cursorPos;
-                }
-
-                redraw();
-            }
-            else if (wParam == VK_DELETE)
-            {
-                if (textBufferLength <= 0) return 0;
-
-                if (selectionLength != 0)
-                {
-                    if (removeRange(textBuffer, textBufferLength, selectionPos, selectionLength))
-                    {
-                        textBufferLength -= selectionLength;
-                        textBuffer[textBufferLength] = L'\0';
-                        if (selectionInitialPos <= cursorPos)
-                            cursorPos -= selectionLength;
-                        selectionLength = 0;
-                    }
-                }
-                else if (removeCharAt(textBuffer, textBufferLength, cursorPos))
-                {
-                    textBuffer[textBufferLength] = '\0';
-                    --textBufferLength;
-                }
-
-                redraw();
-            }
-            else if (wParam == VK_RETURN)
-            {
-                evaluate();
-            }
-            else if (wParam == VK_RIGHT)
-            {
-                if (cursorPos < textBufferLength)
-                {
-                    if (shiftPressed) // High-order bit == 1 => key down
-                    {
-                        if (selectionLength == 0)
-                        {
-                            selectionInitialPos = selectionPos = cursorPos;
-                            selectionLength = 1;
-                        }
-                        else
-                        {
-                            if (cursorPos <= selectionInitialPos)
-                            {
-                                selectionPos = cursorPos + 1;
-                                --selectionLength;
-                            }
-                            else
-                            {
-                                ++selectionLength;
-                            }
-                        }
-                    }
-
-                    ++cursorPos;
-                    redraw();
-                }
-
-                if (!shiftPressed)
-                {
-                    if (selectionLength != 0)
-                    {
-                        cursorPos = selectionPos + selectionLength;
-                    }
-
-                    selectionLength = 0;
-                    isTextLayoutDirty = true;
-                    InvalidateRect(hwnd, nullptr, true);
-                }
-            }
-            else if (wParam == VK_LEFT)
-            {
-                if (cursorPos > 0)
-                {
-                    --cursorPos;
-
-                    if (shiftPressed)
-                    {
-                        if (selectionLength == 0)
-                        {
-                            selectionInitialPos = selectionPos = cursorPos;
-                            selectionLength = 1;
-                        }
-                        else
-                        {
-                            if (cursorPos >= selectionInitialPos)
-                            {
-                                OutputDebugStringW(L"hello!\n");
-                                //selectionPos = cursorPos;
-                                --selectionLength;
-                            }
-                            else
-                            {
-                                selectionPos = cursorPos;
-                                ++selectionLength;
-                            }
-                        }
-                    }
-
-                    isTextLayoutDirty = true;
-                    InvalidateRect(hwnd, nullptr, true);
-                }
-
-                if (!shiftPressed)
-                {
-                    if (selectionLength != 0)
-                    {
-                        cursorPos = selectionPos;
-                    }
-
-                    selectionLength = 0;
-                    isTextLayoutDirty = true;
-                    InvalidateRect(hwnd, nullptr, true);
-                }
-            }
-
-            return 0;
-        }
-
-        case WM_MOUSEMOVE:
-        {
-            int isLeftMouseDown = wParam & 0x0001;
-
-            if (isLeftMouseDown && selectionStartCursorPos != -1)
-            {
-                SetCapture(hwnd);
-
-                int mouseX = GET_X_LPARAM(lParam);
-                int mouseY = GET_Y_LPARAM(lParam);
-
-                updateTextLayout();
-
-                BOOL isInside = false;
-                BOOL isTrailingHit = false;
-                DWRITE_HIT_TEST_METRICS metrics ={ 0 };
-                HRESULT hr = 0;
-
-                hr = textLayout->HitTestPoint(mouseX - style->textMarginLeft - style->borderSize, mouseY, &isTrailingHit, &isInside, &metrics);
-                assert(SUCCEEDED(hr));
-
-                if (selectionStartCursorPos != -1)
-                {
-                    int oldCursorPos = selectionStartCursorPos;
-
-                    if (isTrailingHit)
-                    {
-                        cursorPos = metrics.textPosition + 1;
-                    }
-                    else
-                    {
-                        cursorPos = metrics.textPosition;
-                    }
-
-                    int calcSelectionLength = abs(oldCursorPos - cursorPos);
-                    if (calcSelectionLength == 0)
-                    {
-                        clearSelection();
-                    }
-                    else
-                    {
-                        selectionInitialPos = selectionStartCursorPos;
-                        selectionPos = min(cursorPos, oldCursorPos);
-                        selectionLength = calcSelectionLength;
-                    }
-                }
-
-                redraw();
-            }
-
-            return 0;
-        }
-
-        case WM_LBUTTONUP:
-        {
-            this->onLeftMouseButtonUp();
-            return 0;
-        }
-
-        case WM_MOUSEACTIVATE:
-        {
-            if (GetFocus() != hwnd)
-            {
-                SetFocus(hwnd);
-                redraw();
-            }
-
-            return MA_ACTIVATE;
-        }
-
-        case WM_SETFOCUS:
-        {
-            this->onFocusAcquired();
-        	break;
-        }
-
-        case WM_KILLFOCUS:
-        {
-            this->onFocusLost();
-        	return 0;
-        }
-
-        case WM_GETTEXT:
-        {
-            int maxCharsToCopy = ((int)wParam) - 1;
-            wchar_t * buffer = (wchar_t *)lParam;
-
-            int numCharsToCopy = min(maxCharsToCopy, textBufferLength);
-            memcpy(buffer, textBuffer, sizeof(wchar_t *) * numCharsToCopy);
-            buffer[numCharsToCopy] = L'\0';
-
-            return (LRESULT)numCharsToCopy;
-        }
-        case WM_GETTEXTLENGTH:
-        {
-            return (LRESULT)textBufferLength;
-        }
-
-        case WM_LBUTTONDOWN:
-        {
-            int mouseX = GET_X_LPARAM(lParam);
-            int mouseY = GET_Y_LPARAM(lParam);
-
-            updateTextLayout(false);
-
-            BOOL isInside = false;
-            BOOL isTrailingHit = false;
-            DWRITE_HIT_TEST_METRICS metrics ={ 0 };
-            HRESULT hr = 0;
-
-            hr = textLayout->HitTestPoint(mouseX - style->textMarginLeft - style->borderSize, mouseY, &isTrailingHit, &isInside, &metrics);
-            assert(SUCCEEDED(hr));
-
-            if (isTrailingHit)
-            {
-                cursorPos = metrics.textPosition + 1;
-            }
-            else
-            {
-                cursorPos = metrics.textPosition;
-            }
-
-            selectionStartCursorPos = cursorPos;
-
-            clearSelection();
-            redraw();
-
-            return 0;
-        }
-
-        case WM_PAINT:
-        {
-            return paint(hwnd, msg, wParam, lParam);
-        }
-
-        case WM_HOTKEY:
-        {
-            if (wParam == 0)
-            {
-                if (IsWindowVisible(hwnd))
-                {
-                    hideWindow();
-                    //CB_TipHideWindow(&ui.tip);
-                }
-                else
-                {
-                    showWindow();
-                }
-            }
-
-            return 0;
-        }
+        case WM_ERASEBKGND:     return 1;
+        case WM_CHAR:           return this->onChar(static_cast<wchar_t>(wParam));
+        case WM_KEYDOWN:        return this->onKeyDown(lParam, wParam);
+        case WM_MOUSEMOVE:      return this->onMouseMove(lParam, wParam);
+        case WM_LBUTTONUP:      return this->onLeftMouseButtonUp();
+        case WM_LBUTTONDOWN:    return this->onLeftMouseButtonDown(lParam, wParam);
+        case WM_MOUSEACTIVATE:  return this->onMouseActivate();
+        case WM_SETFOCUS:       return this->onFocusAcquired();
+        case WM_KILLFOCUS:      return this->onFocusLost();
+        case WM_PAINT:          return this->onPaint();
+        case WM_HOTKEY:         return this->onHotkey(lParam, wParam);
+        case WM_TIMER:          return this->onTimer(lParam, wParam);
+        case WM_SHOWWINDOW:     return this->onShowWindow(lParam, wParam);
+        case WM_QUIT:           return this->onQuit();
 
         case (UINT)CustomMessage::ShowAfterAllEventsProcessed:
         {
@@ -855,7 +1112,7 @@ LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
     if (msg == WM_CREATE)
         return 0;
 
-    CommandWindow* window = (CommandWindow*)GetWindowLongW(hwnd, GWLP_USERDATA);
+    CommandWindow* window = reinterpret_cast<CommandWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
 
     if (window != nullptr)
         return window->wndProc(hwnd, msg, lParam, wParam);
@@ -868,128 +1125,3 @@ void beforeRunCallback(CommandEngine * engine, void * userdata)
     if (userdata != nullptr)
         ((CommandWindow*)userdata)->beforeCommandRun();
 }
-
-
-//LARGE_INTEGER g_mainStartupTick;
-//LARGE_INTEGER g_mainTickFrequency;
-//
-//
-//CB_TipUI_AutocompletionStyle g_defaultAutocompletionStyle;
-//CB_TextboxStyle g_defaultTextboxStyle;
-//
-//
-//static struct {
-//	HWND mainWindow;
-//	bool shouldQuit;
-//
-//	CB_Context* context;
-//
-//	HBRUSH editControlBackgroundBrush;
-//	HBRUSH editControlTextBrush;
-//
-//	CB_TipUI tip;
-//	CB_TextboxUI textbox;
-//	HICON icon = 0;
-//
-//	TaskbarIcon taskbarIcon;
-//} ui;
-//
-
-//	int inputWidth = 300;
-//	int inputHeight = 20;
-//	
-//	//HDC hdc = GetDC(hWnd);
-//	//LOGFONTW logFont;
-//	//memset(&logFont, 0, sizeof(logFont));
-//	//memcpy(logFont.lfFaceName, L"Segoe UI", sizeof(L"Segoe UI"));
-//	//logFont.lfWeight = FW_REGULAR;
-//	//logFont.lfHeight = 20;
-//	//HFONT font = CreateFontIndirectW(&logFont);
-//	//SendMessageW(input, WM_SETFONT, (WPARAM)font, TRUE);
-//	//ReleaseDC(hWnd, hdc);
-//
-//	ui.editControlBackgroundBrush = CreateSolidBrush(RGB(230, 230, 230));
-//	ui.editControlTextBrush = CreateSolidBrush(RGB(29, 29, 29));
-//
-//	ui.taskbarIcon.addToTray(hWnd, ui.icon);
-//
-//
-
-//	if (i == 0) {
-//		MessageBoxA(hWnd, "u are running two instances of this app baka", "kek", MB_OK);
-//	}
-//
-//	if (!CB_TipCreateWindow(&ui.tip, ui.mainWindow, hInstance, inputWidth, 200)) {
-//		return 1;
-//	}
-//	if (!CB_TextboxCreateWindow(&ui.textbox, ui.mainWindow, hInstance, mainWindowMarginValue, mainWindowMarginValue, 300, 20)) {
-//		return 1;
-//	}
-//
-//	CB_TipSetAutocompletionStyle(&ui.tip, &g_defaultAutocompletionStyle);
-//	CB_TipSetShowOffset(&ui.tip, mainWindowMarginValue, mainWindowMarginValue + inputHeight);
-//	CB_TipSetCommandDefVector(&ui.tip, &ui.context->commands);
-//
-//	CB_TextboxSetStyle(&ui.textbox, &g_defaultTextboxStyle);
-//
-//	UpdateWindow(hWnd);
-//
-//	//if (fileMapping != NULL)
-//	//{
-//	//	void* map = MapViewOfFile(fileMapping, FILE_MAP_ALL_ACCESS, 0, 0, 32);
-//	//	if (!map)
-//	//	{
-//	//		MessageBoxW(ui.mainWindow, L"Unable to map", L"Error", MB_OK);
-//	//	}
-//	//	else
-//	//	{
-//	//		*((HWND*)map) = ui.mainWindow;
-//	//		UnmapViewOfFile(map);
-//	//	}
-//	//	CloseHandle(fileMapping);
-//	//}
-//	CB_LoadUIOptions();
-//
-//#if _DEBUG
-//	CB_ShowUI();
-//#endif
-//
-//	LARGE_INTEGER lastTick;
-//	QueryPerformanceCounter(&lastTick);
-//
-//	double startupSeconds = ((lastTick.QuadPart - g_mainStartupTick.QuadPart) / (double)g_mainTickFrequency.QuadPart);
-//	
-//	char ss[64];
-//	sprintf(ss, "startup: %f\n", startupSeconds);
-//	OutputDebugStringA(ss);
-//
-//	MSG msg;
-//	ui.shouldQuit = 0;
-//	int ret;
-//	while (!ui.shouldQuit && (ret = GetMessage(&msg, NULL, 0, 0)) != 0) {
-//		if (ret == -1) {
-//			//int err = GetLastError();
-//			//__debugbreak();
-//		}
-//		TranslateMessage(&msg);
-//		DispatchMessageW(&msg);
-//	}
-//
-//	return 0;
-//}
-//
-//void InitStyles()
-//{
-//	{
-//		CB_TipUI_AutocompletionStyle * s = &g_defaultAutocompletionStyle;
-//		ZeroMemory(s, sizeof(*s));
-//
-//		s->backgroundColor = RGB(64, 64, 64);
-//		s->itemDrawFont = (HFONT)GetStockObject(DEFAULT_GUI_FONT);
-//		s->itemMarginX = 5;
-//		s->itemMarginY = 5;
-//		s->itemMaxHeight = 100;
-//		s->marginBottom = 5;
-//		s->textColor = RGB(230, 230, 230);
-//	}
-//}
