@@ -5,7 +5,7 @@ A thing that appears on your screen.
 
 ### cmds.ini
 * Commands are loaded from cmds.ini, currently hardcoded to `D:/Vlad/cb/cmds.ini`.
-```
+```ini
 [open_dir]
 name=dls
 path=D:\Downloads
