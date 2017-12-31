@@ -135,9 +135,9 @@ Command * runApp_createCommand(Array<String>& keys, Array<String>& values)
         assert(cmd->shellExec);
 
     // Reallocate strings, because right now they are references to data that may be deleted or modified.
-    cmd->appPath = String::clone(cmd->appPath.trim());
-    cmd->appArgs = String::clone(cmd->appArgs.trim());
-    cmd->workDir = String::clone(cmd->workDir.trim());
+    cmd->appPath = String::clone(cmd->appPath.trimmed());
+    cmd->appArgs = String::clone(cmd->appArgs.trimmed());
+    cmd->workDir = String::clone(cmd->workDir.trimmed());
 
     return cmd;
 }

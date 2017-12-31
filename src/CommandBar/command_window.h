@@ -66,6 +66,7 @@ public:
     String textBuffer;
     int textBufferMaxLength = 512;
     int cursorPos = 0;
+    Command* autocompletionCandidate = nullptr;
 
     int selectionInitialPos = 0;
     int selectionPos = 0;
@@ -78,6 +79,7 @@ public:
     IDWriteTextLayout* textLayout = nullptr;
     ID2D1SolidColorBrush* textboxBackgroundBrush = nullptr;
     ID2D1SolidColorBrush* textForegroundBrush = nullptr;
+    ID2D1SolidColorBrush* autocompletionTextForegroundBrush = nullptr;
     ID2D1SolidColorBrush* selectedTextBrush = nullptr;
     
     LRESULT onChar(wchar_t c);
@@ -93,11 +95,15 @@ public:
     LRESULT onTimer(LPARAM lParam, WPARAM wParam);
     LRESULT onShowWindow(LPARAM lParam, WPARAM wParam);
     LRESULT onQuit();
+    LRESULT onActivate();
 
     LRESULT onCursorBlinkTimerElapsed();
 
     void onTextChanged();
-    void onAutocompleteRequested();
+    void onUserRequestedAutocompletion();
+    Command* findAutocompletionCandidate();
+
+    void updateAutocompletion();
 
     inline bool isTextBufferFilled()
     {
@@ -128,6 +134,7 @@ struct CommandWindowStyle
     COLORREF marginColor = 0;
     D2D1_COLOR_F borderColor;
     D2D1_COLOR_F textColor;
+    D2D1_COLOR_F autocompletionTextColor;
     D2D1_COLOR_F selectedTextBackgroundColor;
     D2D1_COLOR_F textboxBackgroundColor;
     String fontFamily = { 0 };

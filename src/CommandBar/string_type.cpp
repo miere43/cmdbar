@@ -222,7 +222,7 @@ bool stringStartsWith(const wchar_t * str, int strCount, const wchar_t * substr,
 //    // copy part after replace dest to the right
 //}
 
-String String::trim() const
+String String::trimmed() const
 {
     if (isEmpty())
         return String{ data, 0 };

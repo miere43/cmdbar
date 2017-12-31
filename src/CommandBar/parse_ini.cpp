@@ -28,7 +28,7 @@ bool INIParser::next()
     ParseUtils::getLine(currSource, &line, &lineBreakLength);
     sourceIndex += line.count + lineBreakLength;
 
-    line = line.trim();
+    line = line.trimmed();
 
     if (line.isEmpty())
     {
@@ -57,8 +57,8 @@ bool INIParser::next()
         }
 
         this->type = INIValueType::KeyValuePair;
-        this->key = line.substring(0, sepIndex).trim();
-        this->value = line.substring(sepIndex + 1).trim();
+        this->key = line.substring(0, sepIndex).trimmed();
+        this->value = line.substring(sepIndex + 1).trimmed();
     }
 
     return true;

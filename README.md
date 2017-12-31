@@ -3,6 +3,9 @@ A thing that appears on your screen.
 
 ![cmdbar main window](https://i.imgur.com/mJOI1Wx.jpg)
 
+### Requirements
+* Windows Vista/7/8/10. XP and older are not supported (because we are using DirectWrite and Direct2D).
+
 ### cmds.ini
 * Commands are loaded from cmds.ini, currently hardcoded to `D:/Vlad/cb/cmds.ini`.
 ```ini

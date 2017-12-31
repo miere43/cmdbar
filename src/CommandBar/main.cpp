@@ -68,6 +68,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 	CommandWindowStyle windowStyle;
 	windowStyle.textMarginLeft = 4.0f;
     windowStyle.textColor = D2D1::ColorF(D2D1::ColorF::Black);
+    windowStyle.autocompletionTextColor = D2D1::ColorF(D2D1::ColorF::Gray);
     windowStyle.textboxBackgroundColor = D2D1::ColorF(D2D1::ColorF::White);
     windowStyle.selectedTextBackgroundColor = D2D1::ColorF(D2D1::ColorF::Aqua);
 	windowStyle.fontFamily = String(L"Segoe UI");

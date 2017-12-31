@@ -30,7 +30,7 @@ struct String
 
 	inline bool isEmpty() const { return data == nullptr || count <= 0; }
 
-    String trim() const;
+    String trimmed() const;
     String substring(int startPos, int length = -1) const;
     int indexOf(uint32_t codepoint) const;
     int indexOf(const String& str) const;

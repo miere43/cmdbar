@@ -82,7 +82,9 @@ void CommandWindow::clearText()
     cursorPos = 0;
     clearSelection();
 
-    this->redraw();
+    autocompletionCandidate = nullptr;
+
+    redraw();
 }
 
 bool CommandWindow::setText(const String & text)
@@ -139,15 +141,15 @@ void CommandWindow::updateTextLayout(bool forced)
 
         textLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
 
-        DWRITE_TEXT_RANGE range;
-        int index = textBuffer.indexOf(L' ');
-        
-        if (index != -1)
-            range = { 0, static_cast<UINT32>(index) };
-        else
-            range = { 0, static_cast<UINT32>(textBuffer.count) };
+        //DWRITE_TEXT_RANGE range;
+        //int index = textBuffer.indexOf(L' ');
 
-        textLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range);
+        //if (index != -1)
+        //    range = { 0, static_cast<UINT32>(index) };
+        //else
+        //    range = { 0, static_cast<UINT32>(textBuffer.count) };
+
+        //textLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range);
 
         isTextLayoutDirty = false;
     }
@@ -238,7 +240,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
         }
         case VK_TAB:
         {
-            onAutocompleteRequested();
+            onUserRequestedAutocompletion();
             break;
         }
         // Backspace
@@ -558,6 +560,8 @@ LRESULT CommandWindow::onFocusLost()
     //OutputDebugStringA("lost focus.\n");
     //InvalidateRect(hwnd, nullptr, true);
     hideWindow();
+    
+    // @TODO: use built-in CreateCaret/ShowCaret/etc. stuff!
 
     return 0;
 }
@@ -566,6 +570,8 @@ void CommandWindow::onTextChanged()
 {
     shouldDrawCursor = true;
     setCursorTimer();
+
+    updateAutocompletion();
 }
 
 LRESULT CommandWindow::onMouseMove(LPARAM lParam, WPARAM wParam)
@@ -622,16 +628,42 @@ LRESULT CommandWindow::onMouseMove(LPARAM lParam, WPARAM wParam)
     return 0;
 }
 
-void CommandWindow::onAutocompleteRequested()
+void CommandWindow::onUserRequestedAutocompletion()
 {
-    String command;
+    if (autocompletionCandidate == nullptr)
+    {
+        autocompletionCandidate = findAutocompletionCandidate();
+        if (autocompletionCandidate == nullptr)
+            return;
+    }
+
+    // @TODO: textBuffer may not have enough storage.
+    wmemcpy(textBuffer.data, autocompletionCandidate->name.data, autocompletionCandidate->name.count);
+    textBuffer.count = autocompletionCandidate->name.count;
+    textBuffer.data[textBuffer.count] = L' ';
+    textBuffer.count += 1;
+
+    clearSelection();
+    cursorPos = textBuffer.count;
+
+    redraw();
+
+    return;
+}
+
+Command* CommandWindow::findAutocompletionCandidate()
+{
+    if (textBuffer.count == 0)
+        return nullptr;
 
     int index = stringFindCharIndex(textBuffer.data, textBuffer.count, L' ');
+
+    String command;
     command.data  = textBuffer.data;
     command.count = index == -1 ? textBuffer.count : index;
 
     if (command.count == 0)
-        return;
+        return nullptr;
 
     for (int i = 0; i < commandEngine->commands.count; ++i)
     {
@@ -644,18 +676,20 @@ void CommandWindow::onAutocompleteRequested()
             false
         );
 
-        if (!isMatchingCandidate)
-            continue;
+        if (isMatchingCandidate)
+            return candidate;
+    }
 
-        wmemcpy(textBuffer.data, candidate->name.data, candidate->name.count);
-        textBuffer.count = candidate->name.count;
+    return nullptr;
+}
 
-        clearSelection();
-        cursorPos = textBuffer.count;
-
+void CommandWindow::updateAutocompletion()
+{
+    Command* newCandidate = findAutocompletionCandidate();
+    if (autocompletionCandidate != newCandidate)
+    {
+        autocompletionCandidate = newCandidate;
         redraw();
-
-        return;
     }
 }
 
@@ -736,6 +770,18 @@ LRESULT CommandWindow::onPaint()
     }
 
     float textDrawY = borderSize;
+    
+    // Draw autocompletion candidate
+    if (autocompletionCandidate != nullptr)
+    {
+        rt->DrawTextW(
+            autocompletionCandidate->name.data,
+            autocompletionCandidate->name.count, 
+            textFormat,
+            D2D1::RectF(marginX, borderSize, 1000, 1000), autocompletionTextForegroundBrush);
+    }
+
+    // Draw actual user text
     rt->DrawTextLayout(D2D1::Point2F(marginX, textDrawY), textLayout, textForegroundBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
     if (shouldDrawCursor && !isTextSelected())
@@ -802,6 +848,11 @@ LRESULT CommandWindow::onQuit()
 {
     DestroyWindow(hwnd);
 
+    return 0;
+}
+
+LRESULT CommandWindow::onActivate()
+{
     return 0;
 }
 
@@ -904,6 +955,9 @@ bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
         assert(SUCCEEDED(hr));
 
         hr = hwndRenderTarget->CreateSolidColorBrush(style->textColor, &textForegroundBrush);
+        assert(SUCCEEDED(hr));
+
+        hr = hwndRenderTarget->CreateSolidColorBrush(style->autocompletionTextColor, &autocompletionTextForegroundBrush);
         assert(SUCCEEDED(hr));
 
         hr = hwndRenderTarget->CreateSolidColorBrush(style->selectedTextBackgroundColor, &selectedTextBrush);
@@ -1052,6 +1106,7 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
         case WM_TIMER:          return this->onTimer(lParam, wParam);
         case WM_SHOWWINDOW:     return this->onShowWindow(lParam, wParam);
         case WM_QUIT:           return this->onQuit();
+        case WM_ACTIVATE:       return this->onActivate();
 
         case (UINT)CustomMessage::ShowAfterAllEventsProcessed:
         {
