@@ -125,8 +125,14 @@ public:
     // If -1 then there were no selection.
     int selectionStartCursorPos = -1;
 private:
+    enum class WindowAnimation
+    {
+        Show = 1,
+        Hide = 2,
+    };
 
-
+    // This function blocks!
+    void animateWindow(WindowAnimation animation);
 };
 
 struct CommandWindowStyle

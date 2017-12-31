@@ -51,7 +51,6 @@ bool CommandWindow::initGlobalResources(HINSTANCE hInstance)
     if (g_appIcon == 0)
     {
         g_appIcon = (HICON)LoadImageW(hInstance, MAKEINTRESOURCEW(IDI_APPTRAYICON), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
-
         if (g_appIcon == 0)
             g_appIcon = LoadIconW(0, IDI_APPLICATION);
     }
@@ -708,6 +707,46 @@ void CommandWindow::killCursorTimer()
 {
     KillTimer(hwnd, CURSOR_BLINK_TIMER_ID);
 }
+
+void CommandWindow::animateWindow(WindowAnimation animation)
+{
+    uint64_t clockFrequency;
+    uint64_t clockCurrTick;
+    QueryPerformanceFrequency((LARGE_INTEGER*)&clockFrequency);
+    QueryPerformanceCounter((LARGE_INTEGER*)&clockCurrTick);
+
+    const double animDuration = 0.05;
+    double currSecs = clockCurrTick / (double)clockFrequency;
+    double targetSecs = currSecs + animDuration;
+
+    MSG msg;
+    while (currSecs < targetSecs)
+    {
+        while (PeekMessageW(&msg, hwnd, 0, 0, PM_REMOVE) != 0)
+        {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+
+        QueryPerformanceCounter((LARGE_INTEGER*)&clockCurrTick);
+        currSecs = clockCurrTick / (double)clockFrequency;
+
+        if (currSecs >= targetSecs)
+        {
+            SetLayeredWindowAttributes(hwnd, 0, animation == WindowAnimation::Show ? 255 : 0, LWA_ALPHA);
+            break;
+        }
+        else
+        {
+            double diff = ((targetSecs - currSecs) * (1.0 / animDuration));
+            if (animation == WindowAnimation::Show)
+                diff = 1.0 - diff;
+            SetLayeredWindowAttributes(hwnd, 0, (BYTE)(diff * 255), LWA_ALPHA);
+        }
+
+        Sleep(1);
+    }
+}
 //
 //void CommandWindow::setShouldDrawCursor(bool shouldDrawCursor)
 //{
@@ -899,6 +938,7 @@ bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
         return false;
 
     SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
+    SetWindowLongPtrW(hwnd, GWL_EXSTYLE, GetWindowLongPtrW(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 
     if (!taskbarIcon.addToStatusArea(hwnd, g_appIcon, 1, WM_USER + 15))
     {
@@ -990,18 +1030,21 @@ void CommandWindow::showWindow()
 
     int windowWidth = windowRect.right - windowRect.left;
 
+    // Change opacity before we display window.
+    SetLayeredWindowAttributes(hwnd, 0, 0, LWA_ALPHA);
     SetWindowPos(
         hwnd,
-        HWND_TOPMOST, 
+        HWND_TOPMOST,
         desktopWidth / 2 - windowWidth / 2,
-        static_cast<int>(desktopHeight * showWindowYRatio), 
-        0, 
-        0, 
+        static_cast<int>(desktopHeight * showWindowYRatio),
+        0,
+        0,
         SWP_NOSIZE | SWP_SHOWWINDOW
     );
-
     SetForegroundWindow(hwnd);
     SetFocus(hwnd);
+
+    animateWindow(WindowAnimation::Show);
 }
 
 void CommandWindow::showAfterAllEventsProcessed()
@@ -1016,6 +1059,8 @@ void CommandWindow::showAfterAllEventsProcessed()
 
 void CommandWindow::hideWindow()
 {
+    animateWindow(WindowAnimation::Hide);
+
     ShowWindow(hwnd, SW_HIDE);
     clearText();
 }
