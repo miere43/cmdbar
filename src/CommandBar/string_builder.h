@@ -8,9 +8,9 @@ struct StringBuilder
     int capacity = 0;
     IAllocator* allocator = nullptr;
 
-    void reserve(int newCapacity);
+    void reserve(uint32_t newCapacity);
     void appendChar(wchar_t c);
-    void appendString(const wchar_t* str, int count);
+    void appendString(const wchar_t* str, uint32_t count);
     void appendString(const wchar_t* str);
     void appendString(const String& str);
     void appendFormat(const wchar_t* format, ...);

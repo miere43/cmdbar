@@ -64,8 +64,8 @@ public:
     bool getSelectionRange(int* rangeStart, int* rangeLength);
 
     String textBuffer;
-    int textBufferMaxLength = 512;
-    int cursorPos = 0;
+    uint32_t textBufferMaxLength = 512;
+    uint32_t cursorPos = 0;
     Command* autocompletionCandidate = nullptr;
 
     int selectionInitialPos = 0;

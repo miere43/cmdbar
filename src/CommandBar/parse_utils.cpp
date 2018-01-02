@@ -12,7 +12,7 @@ void ParseUtils::getLine(const String& str, String* lineSubstr, int* lineBreakLe
 
     if (!str.isEmpty())
     {
-        for (int i = 0; i < str.count; ++i)
+        for (uint32_t i = 0; i < str.count; ++i)
         {
             wchar_t c = str.data[i];
 

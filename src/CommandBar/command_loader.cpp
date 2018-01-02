@@ -76,7 +76,7 @@ Array<Command*> CommandLoader::loadFromFile(String filePath)
 
 CommandInfo* CommandLoader::findCommandInfoByName(const String& name)
 {
-    for (int i = 0; i < commandInfoArray.count; ++i)
+    for (uint32_t i = 0; i < commandInfoArray.count; ++i)
     {
         CommandInfo* info = commandInfoArray.data[i];
         if (name.equals(info->dataName))

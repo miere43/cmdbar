@@ -5,7 +5,7 @@
 #include "tinyutf.h"
 
 
-String unicode::decodeString(const void* data, int dataSize, Encoding encoding, IAllocator* allocator)
+String unicode::decodeString(const void* data, uint32_t dataSize, Encoding encoding, IAllocator* allocator)
 {
     assert(data != nullptr);
     assert(dataSize >= 0);
@@ -15,25 +15,25 @@ String unicode::decodeString(const void* data, int dataSize, Encoding encoding, 
     {
         case Encoding::ASCII:
         {
-            const int bufCount = (dataSize);
-            const int bufSize  = (dataSize + 1) * sizeof(wchar_t);
+            const uint32_t bufCount = (dataSize);
+            const uint32_t bufSize  = (dataSize + 1) * sizeof(wchar_t);
             wchar_t* buf = static_cast<wchar_t*>(allocator->alloc(bufSize));
             if (buf == nullptr)
                 return String::null;
 
             const char* strData = reinterpret_cast<const char*>(data);
 
-            for (int i = 0; i < bufCount; ++i)
+            for (uint32_t i = 0; i < bufCount; ++i)
                 *buf++ = static_cast<wchar_t>(*strData++);
             *buf = L'\0';
 
-            return String{ buf, static_cast<int>(bufCount) };
+            return String{ buf, bufCount };
         }
         case Encoding::UTF8:
         {
             Array<wchar_t> buf{ allocator };
 
-            const int bestCaseCount = dataSize + 2 + 1;
+            const uint32_t bestCaseCount = dataSize + 2 + 1;
             if (!buf.reserve(bestCaseCount))
                 return false;
 
@@ -59,7 +59,7 @@ String unicode::decodeString(const void* data, int dataSize, Encoding encoding, 
                 }
 
                 wchar_t* newBufData = tuEncode16(bufData, codepoint);
-                buf.count += static_cast<int>(newBufData - bufData);
+                buf.count += static_cast<uint32_t>(newBufData - bufData);
                 bufData = newBufData;
             }
 

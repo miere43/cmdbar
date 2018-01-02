@@ -91,7 +91,7 @@ bool CommandWindow::setText(const String & text)
     if (text.data == nullptr)
         return false;
 
-    int length = text.count;
+    uint32_t length = text.count;
     if (length > textBuffer.count) return false;
 
     wmemcpy(textBuffer.data, text.data, length);
@@ -609,7 +609,7 @@ LRESULT CommandWindow::onMouseMove(LPARAM lParam, WPARAM wParam)
             cursorPos = metrics.textPosition;
         }
 
-        int calcSelectionLength = abs(oldCursorPos - cursorPos);
+        int calcSelectionLength = abs(oldCursorPos - (int)cursorPos);
         if (calcSelectionLength == 0)
         {
             clearSelection();
@@ -617,7 +617,7 @@ LRESULT CommandWindow::onMouseMove(LPARAM lParam, WPARAM wParam)
         else
         {
             selectionInitialPos = selectionStartCursorPos;
-            selectionPos = math::min(cursorPos, oldCursorPos);
+            selectionPos = math::min((int)cursorPos, oldCursorPos);
             selectionLength = calcSelectionLength;
         }
     }
@@ -664,7 +664,7 @@ Command* CommandWindow::findAutocompletionCandidate()
     if (command.count == 0)
         return nullptr;
 
-    for (int i = 0; i < commandEngine->commands.count; ++i)
+    for (uint32_t i = 0; i < commandEngine->commands.count; ++i)
     {
         Command* candidate = commandEngine->commands.data[i];
         bool isMatchingCandidate = stringStartsWith(

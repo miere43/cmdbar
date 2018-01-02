@@ -29,9 +29,9 @@ struct INIParser
     INIParser();
 
     String source;
-    int sourceIndex;
+    uint32_t sourceIndex;
     
-    int currentLine;
+    uint32_t currentLine;
     void init(String source);
 
     bool next();

@@ -16,7 +16,7 @@ void INIParser::init(String source)
 
 bool INIParser::next()
 {
-    if (sourceIndex < 0 || sourceIndex >= source.count)
+    if (sourceIndex >= source.count)
         return false;
     if (source.data == nullptr)
         return false;

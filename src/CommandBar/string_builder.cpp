@@ -5,7 +5,7 @@
 #include "unicode.h"
 
 
-void StringBuilder::reserve(int newCapacity)
+void StringBuilder::reserve(uint32_t newCapacity)
 {
     assert(newCapacity >= 0);
 
@@ -31,10 +31,8 @@ void StringBuilder::appendChar(wchar_t c)
     str.data[str.count++] = c;
 }
 
-void StringBuilder::appendString(const wchar_t* newstr, int count)
+void StringBuilder::appendString(const wchar_t* newstr, uint32_t count)
 {
-    assert(count >= 0);
-    
     if (newstr == nullptr)
     {
         newstr = L"(null)";

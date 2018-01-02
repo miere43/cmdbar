@@ -1,5 +1,6 @@
 #pragma once
 #include <assert.h>
+#include <stdint.h>
 
 #include "common.h"
 #include "allocators.h"
@@ -8,8 +9,8 @@
 template<typename T>
 struct Array {
 	T*  data     = nullptr;
-	int count    = 0;
-	int capacity = 0;
+	uint32_t count    = 0;
+	uint32_t capacity = 0;
 	IAllocator* allocator = nullptr;
 
 	Array(IAllocator* allocator = &g_standardAllocator)
@@ -17,16 +18,14 @@ struct Array {
 		this->allocator = allocator;
 	}
 
-	Array(int initialCapacity, IAllocator* allocator = &g_standardAllocator)
+	Array(uint32_t initialCapacity, IAllocator* allocator = &g_standardAllocator)
 	{
 		this->allocator = allocator;
 		setCapacity(initialCapacity);
 	}
 
-	bool reserve(int newCapacity)
+	bool reserve(uint32_t newCapacity)
 	{
-        assert(newCapacity > 0);
-
 		if (capacity < newCapacity)
 		{
 			int toReserve = newCapacity <= 5 ? 10 : newCapacity;
@@ -48,17 +47,15 @@ struct Array {
 
 	// Adds all elements from array 'values'.
 	// Returns false if no items were added to this resizeable array or if there is nothing to add (values == nullptr or count == 0).
-	bool addRange(const T* values, int count)
+	bool addRange(const T* values, uint32_t count)
 	{
-        assert(count >= 0);
-
 		if (values == nullptr || count <= 0)
 			return true;
 
 		if (!reserve(this->count + count))
 			return false;
 
-		for (int i = 0; i < count; ++i)
+		for (uint32_t i = 0; i < count; ++i)
 			data[this->count++] = values[i];
 
 		return true;
@@ -80,7 +77,7 @@ struct Array {
 		capacity = 0;
 	}
 
-	bool setCapacity(int newCapacity)
+	bool setCapacity(uint32_t newCapacity)
 	{
 		if (data == nullptr)
 		{

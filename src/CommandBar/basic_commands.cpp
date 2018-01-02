@@ -15,7 +15,7 @@ Command* openDir_createCommand(Array<String>& keys, Array<String>& values)
 {
     OpenDirCommand* cmd = stdNew<OpenDirCommand>();
 
-    for (int i = 0; i < keys.count; ++i)
+    for (uint32_t i = 0; i < keys.count; ++i)
     {
         String key = keys.data[i];
         String value = values.data[i];
@@ -96,7 +96,7 @@ Command * runApp_createCommand(Array<String>& keys, Array<String>& values)
     RunAppCommand* cmd = stdNew<RunAppCommand>();
     if (cmd == nullptr) return nullptr;
 
-    for (int i = 0; i < keys.count; ++i)
+    for (uint32_t i = 0; i < keys.count; ++i)
     {
         String key = keys.data[i];
         String value = values.data[i];
@@ -167,7 +167,7 @@ bool RunAppCommand::onExecute(Array<String>& args)
         int dataSize = 1; // Null-terminator.
         if (!appArgs.isEmpty())
             dataSize += appArgs.count + 1; // Include one space character for user-defined app args.
-        for (int i = 0; i < args.count; ++i)
+        for (uint32_t i = 0; i < args.count; ++i)
             dataSize += args.data[i].count;
         dataSize += args.count * 3; // Include one space character and two brackets for each arg.
         dataSize *= sizeof(wchar_t);
@@ -187,7 +187,7 @@ bool RunAppCommand::onExecute(Array<String>& args)
             i += 1;
         }
 
-        for (int argIndex = 0; argIndex < args.count; ++argIndex)
+        for (uint32_t argIndex = 0; argIndex < args.count; ++argIndex)
         {
             const String& arg = args.data[argIndex];
 

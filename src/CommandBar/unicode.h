@@ -6,7 +6,7 @@
 
 namespace unicode
 {
-    String decodeString(const void* data, int dataSize, Encoding encoding, IAllocator* allocator = &g_standardAllocator);
+    String decodeString(const void* data, uint32_t dataSize, Encoding encoding, IAllocator* allocator = &g_standardAllocator);
     const wchar_t* decode16(const wchar_t* text, uint32_t* codepoint);
 
     inline bool isHighSurrogate(uint32_t lowpart)

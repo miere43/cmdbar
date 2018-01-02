@@ -7,10 +7,10 @@ bool CommandEngine::evaluate(const String& expression)
 {
     Array<String> args;
     bool inQuotes = false;
-    int argStart = 0;
-    int argLength = 0;
+    uint32_t argStart = 0;
+    uint32_t argLength = 0;
 
-    for (int i = 0; i < expression.count; ++i)
+    for (uint32_t i = 0; i < expression.count; ++i)
     {
         wchar_t c = expression.data[i];
         if (c == '\"')
@@ -74,7 +74,7 @@ bool CommandEngine::evaluate(const String& expression)
         beforeRunCallback(this, beforeRunCallbackUserdata);
 
     Array<String> actualArgs;
-    for (int i = 1; i < args.count; ++i)
+    for (uint32_t i = 1; i < args.count; ++i)
         actualArgs.add(args.data[i]);
 
     return command->onExecute(actualArgs);
@@ -88,7 +88,7 @@ void CommandEngine::setBeforeRunCallback(CommandBeforeRunCallback callback, void
 
 Command* CommandEngine::findCommandByName(const String& name)
 {
-	for (int i = 0; i < commands.count; ++i)
+	for (uint32_t i = 0; i < commands.count; ++i)
 	{
 		Command* command = commands.data[i];
 

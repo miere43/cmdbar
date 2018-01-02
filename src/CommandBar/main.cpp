@@ -30,10 +30,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     CloseClipboard();
 #endif
 
-    Array<int> arr;
-
     HRESULT hr;
-
 	Trace::init();
 	
 	InitCommonControls();
@@ -89,15 +86,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     registerBasicCommands(&cmdLoader);
 
     Array<Command*> cmds = cmdLoader.loadFromFile(L"D:/Vlad/cb/cmds.ini");
-    for (int i = 0; i < cmdLoader.commandInfoArray.count; ++i)
+    for (uint32_t i = 0; i < cmdLoader.commandInfoArray.count; ++i)
         commandEngine.registerCommandInfo(cmdLoader.commandInfoArray.data[i]);
-    for (int i = 0; i < cmds.count; ++i)
+    for (uint32_t i = 0; i < cmds.count; ++i)
         commandEngine.registerCommand(cmds.data[i]);
 
     bool initialized = commandWindow.init(hInstance, 400, 40);
     assert(initialized);
 
-	String commandLine { lpCmdLine };
+	String commandLine{ lpCmdLine };
 	if (commandLine.indexOf(String(L"/noshow")) == -1)
 		commandWindow.showAfterAllEventsProcessed(); // Make sure all controls are initialized.
 

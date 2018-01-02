@@ -133,6 +133,6 @@ String OSUtils::buildCommandLine(const String* strings[], size_t stringsArrayLen
 
 	result.add('\0');
 
-	return String { result.data, (int)result.count - 1 };
+	return String { result.data, result.count - 1 };
 }
 

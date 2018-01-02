@@ -21,7 +21,7 @@ bool split(const String& string, Array<String>* splits, uint32_t maxSplits)
 	int count  = 0;
 	uint32_t numSplits = 0;
 
-	for (int i = 0; i < string.count; ++i)
+	for (uint32_t i = 0; i < string.count; ++i)
 	{
 		wchar_t c = string.data[i];
 
@@ -175,7 +175,7 @@ bool charToWideChar(const char* source, size_t sourceLength, wchar_t* destinatio
 	return true;
 }
 
-int stringFindCharIndex(const wchar_t* str, int count, wchar_t c)
+int stringFindCharIndex(const wchar_t* str, uint32_t count, wchar_t c)
 {
     for (int i = 0; i < count; ++i)
     {
@@ -186,12 +186,10 @@ int stringFindCharIndex(const wchar_t* str, int count, wchar_t c)
     return -1;
 }
 
-bool stringStartsWith(const wchar_t * str, int strCount, const wchar_t * substr, int substrCount, bool caseSensitive)
+bool stringStartsWith(const wchar_t * str, uint32_t strCount, const wchar_t * substr, uint32_t substrCount, bool caseSensitive)
 {
     assert(str);
-    assert(strCount >= 0);
     assert(substr);
-    assert(substrCount >= 0);
 
     if (substrCount > strCount)
         return false;
@@ -227,12 +225,12 @@ String String::trimmed() const
     if (isEmpty())
         return String{ data, 0 };
 
-    int i;
+    uint32_t i;
     for (i = 0; i < count; ++i)
         if (!(data[i] == L' ' || data[i] == L'\t'))
             break;
 
-    int j;
+    uint32_t j;
     for (j = count; j >= i; --j)
         if (!(data[j] == L' ' || data[j] == L'\t'))
             break;
@@ -278,11 +276,11 @@ int String::indexOf(const String& str) const
     if (this->data == nullptr || str.data == nullptr || this->count < str.count)
         return -1;
 
-    for (int i = 0; i <= this->count - str.count; ++i)
+    for (uint32_t i = 0; i <= this->count - str.count; ++i)
     {
         if (this->data[i] == str.data[0])
         {
-            for (int j = i + 1; j < str.count; ++j)
+            for (uint32_t j = i + 1; j < str.count; ++j)
             {
                 if (this->data[j] != str.data[j])
                 {
@@ -290,7 +288,7 @@ int String::indexOf(const String& str) const
                 }
             }
 
-            return i;
+            return (int)i;
         noMatch:
             {
             }
@@ -307,16 +305,16 @@ int String::lastIndexOf(uint32_t codepoint) const
 
     assert(!unicode::isSurrogatePair(codepoint));
 
-    for (int i = count - 1; i >= 0; --i)
+    for (uint32_t i = count - 1; i >= 0; --i)
     {
         if (data[i] == codepoint)
-            return i;
+            return (int)i;
     }
 
     return -1;
 }
 
-bool String::equals(const wchar_t* strdata, int strcount, StringComparison cmpmode) const
+bool String::equals(const wchar_t* strdata, uint32_t strcount, StringComparison cmpmode) const
 {
     if (this->data == nullptr || strdata == nullptr || this->count != strcount)
         return false;
@@ -337,7 +335,7 @@ bool String::equals(const String& rhs, StringComparison cmpmode) const
     return this->equals(rhs.data, rhs.count, cmpmode);
 }
 
-String String::alloc(int count, IAllocator* allocator)
+String String::alloc(uint32_t count, IAllocator* allocator)
 {
     assert(count >= 0);
     assert(allocator);
@@ -352,9 +350,8 @@ String String::alloc(int count, IAllocator* allocator)
     return result;
 }
 
-String String::clone(const char* string, int count, IAllocator* allocator)
+String String::clone(const char* string, uint32_t count, IAllocator* allocator)
 {
-    assert(count >= 0);
     assert(allocator != nullptr);
     if (string == nullptr)
         return String::null;
@@ -362,7 +359,7 @@ String String::clone(const char* string, int count, IAllocator* allocator)
     String result = String::alloc(count, allocator);
     if (result.data == nullptr) return String::null;
 
-    for (int i = 0; i < count; ++i)
+    for (uint32_t i = 0; i < count; ++i)
         result.data[i] = string[i];
     result.data[count] = '\0';
 
@@ -378,9 +375,8 @@ String String::clone(const char* string, IAllocator* allocator)
     return String::clone(string, static_cast<int>(strlen(string)), allocator);
 }
 
-String String::clone(const wchar_t* string, int count, IAllocator* allocator)
+String String::clone(const wchar_t* string, uint32_t count, IAllocator* allocator)
 {
-    assert(count >= 0);
     assert(allocator != nullptr);
     if (string == nullptr)
         return String::null;
