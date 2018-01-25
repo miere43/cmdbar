@@ -335,6 +335,25 @@ bool String::equals(const String& rhs, StringComparison cmpmode) const
     return this->equals(rhs.data, rhs.count, cmpmode);
 }
 
+bool String::startsWith(const String& rhs, StringComparison cmpmode) const
+{
+    if (rhs.isEmpty())  return false;
+    if (rhs.count > this->count)  return false;
+
+    auto compareProc = cmpmode == StringComparison::CaseSensitive ? wcsncmp : _wcsnicmp;
+    return compareProc(this->data, rhs.data, rhs.count) == 0;
+}
+
+bool String::startsWith(const String& rhs, uint32_t numChars, StringComparison cmpmode) const
+{
+    if (rhs.isEmpty())  return false;
+    if (rhs.count < numChars)  return false;
+    if (numChars > this->count)  return false;
+
+    auto compareProc = cmpmode == StringComparison::CaseSensitive ? wcsncmp : _wcsnicmp;
+    return compareProc(this->data, rhs.data, numChars) == 0;
+}
+
 String String::alloc(uint32_t count, IAllocator* allocator)
 {
     assert(count >= 0);

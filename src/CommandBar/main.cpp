@@ -14,7 +14,11 @@
 #include "command_loader.h"
 #include "string_type.h"
 #include "unicode.h"
+#include "hint_window.h"
 
+#pragma comment(linker,"\"/manifestdependency:type='win32' \
+name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
+processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmdLine, int nCmdShow)
 {
@@ -33,7 +37,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     HRESULT hr;
 	Trace::init();
 	
-	InitCommonControls();
+    INITCOMMONCONTROLSEX icc;
+    icc.dwSize = sizeof(icc);
+    icc.dwICC = ICC_STANDARD_CLASSES;
+	if (!InitCommonControlsEx(&icc)) 
+    {
+        MessageBoxW(0, L"Failed to initialize common controls.", L"Error", MB_OK | MB_ICONERROR);
+        return 1;
+    }
+
 	hr = CoInitialize(nullptr);
     if (FAILED(hr))
     {
@@ -97,6 +109,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 	String commandLine{ lpCmdLine };
 	if (commandLine.indexOf(String(L"/noshow")) == -1)
 		commandWindow.showAfterAllEventsProcessed(); // Make sure all controls are initialized.
+
+    LOGFONTW font = {};
+    lstrcpyW(font.lfFaceName, L"Segoe UI");
+
+    HFONT hfont = CreateFontIndirectW(&font);
 
     MSG msg;
     uint32_t ret;

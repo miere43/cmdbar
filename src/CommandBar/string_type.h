@@ -28,7 +28,7 @@ struct String
         this->count = data ? count : 0;
 	}
 
-	inline bool isEmpty() const { return data == nullptr || count <= 0; }
+	inline bool isEmpty() const { return data == nullptr || count == 0; }
 
     String trimmed() const;
     String substring(int startPos, int length = -1) const;
@@ -38,6 +38,9 @@ struct String
     bool equals(const wchar_t* str, uint32_t count, StringComparison cmpmode = StringComparison::CaseSensitive) const;
     bool equals(const wchar_t* str, StringComparison cmpmode = StringComparison::CaseSensitive) const;
     bool equals(const String& rhs, StringComparison cmpmode = StringComparison::CaseSensitive) const;
+    bool startsWith(const String& rhs, StringComparison cmpmode = StringComparison::CaseSensitive) const;
+    bool startsWith(const String& rhs, uint32_t numChars, StringComparison cmpmode = StringComparison::CaseSensitive) const;
+
 
     static String alloc(uint32_t count, IAllocator* allocator = &g_standardAllocator);
     static String clone(const char* string, uint32_t count, IAllocator* allocator = &g_standardAllocator);

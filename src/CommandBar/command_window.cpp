@@ -10,6 +10,8 @@
 #include "basic_commands.h"
 #include "clipboard.h"
 #include "string_utils.h"
+#include "string_builder.h"
+#include "edit_commands_window.h"
 
 
 LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -46,8 +48,6 @@ bool CommandWindow::initGlobalResources(HINSTANCE hInstance)
     if (g_globalResourcesInitialized)
         return true;
 
-    g_globalResourcesInitialized = true;
-
     if (g_appIcon == 0)
     {
         g_appIcon = (HICON)LoadImageW(hInstance, MAKEINTRESOURCEW(IDI_APPTRAYICON), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
@@ -70,6 +70,7 @@ bool CommandWindow::initGlobalResources(HINSTANCE hInstance)
 
     g_englishKeyboardLayout = LoadKeyboardLayoutW(L"00000409", KLF_ACTIVATE);
 
+    g_globalResourcesInitialized = true;
     return true;
 }
 
@@ -127,6 +128,8 @@ void CommandWindow::updateTextLayout(bool forced)
 
         HRESULT hr;
 
+        int spaceIndex = textBuffer.indexOf(L' ');
+
         hr = dwrite->CreateTextLayout(
             textBuffer.data,
             textBuffer.count,
@@ -139,16 +142,21 @@ void CommandWindow::updateTextLayout(bool forced)
         assert(SUCCEEDED(hr));
 
         textLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+        //if (autocompletionCandidate != nullptr)
+        //{
+        //    //assert(textBuffer.startsWith(
+        //    //    autocompletionCandidate->name,
+        //    //    math::min(textBuffer.count, autocompletionCandidate->name.count), 
+        //    //    StringComparison::CaseInsensitive));
+        //}
 
-        //DWRITE_TEXT_RANGE range;
-        //int index = textBuffer.indexOf(L' ');
+        DWRITE_TEXT_RANGE range;
+        if (spaceIndex != -1)
+            range = { 0, static_cast<UINT32>(spaceIndex) };
+        else
+            range = { 0, static_cast<UINT32>(textBuffer.count) };
 
-        //if (index != -1)
-        //    range = { 0, static_cast<UINT32>(index) };
-        //else
-        //    range = { 0, static_cast<UINT32>(textBuffer.count) };
-
-        //textLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range);
+        textLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range);
 
         isTextLayoutDirty = false;
     }
@@ -810,16 +818,6 @@ LRESULT CommandWindow::onPaint()
 
     float textDrawY = borderSize;
     
-    // Draw autocompletion candidate
-    if (autocompletionCandidate != nullptr)
-    {
-        rt->DrawTextW(
-            autocompletionCandidate->name.data,
-            autocompletionCandidate->name.count, 
-            textFormat,
-            D2D1::RectF(marginX, borderSize, 1000, 1000), autocompletionTextForegroundBrush);
-    }
-
     // Draw actual user text
     rt->DrawTextLayout(D2D1::Point2F(marginX, textDrawY), textLayout, textForegroundBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
@@ -870,7 +868,7 @@ LRESULT CommandWindow::onShowWindow(LPARAM lParam, WPARAM wParam)
     // @TODO: this function is weird and called only when window is about to be hidden.
 
     bool isWindowShown = lParam == 1;
-    OutputDebugStringW(L"onShowWindow " + isWindowShown ? L"true\n" : L"false\n");
+    //OutputDebugStringW(L"onShowWindow " + isWindowShown ? L"true\n" : L"false\n");
 
     if (isWindowShown)
     {
@@ -932,21 +930,20 @@ bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
         0,
         0,
         hInstance,
-        0);
+        this);
 
     if (hwnd == 0)
         return false;
 
-    SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
     SetWindowLongPtrW(hwnd, GWL_EXSTYLE, GetWindowLongPtrW(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 
-    if (!taskbarIcon.addToStatusArea(hwnd, g_appIcon, 1, WM_USER + 15))
+    if (!taskbarIcon.enable(hwnd, g_appIcon, 1, WM_USER + 15))
     {
         // We can live without it.
     }
 
     if (!RegisterHotKey(hwnd, SHOW_APP_WINDOW_HOTKEY_ID, MOD_ALT | MOD_NOREPEAT, 0x51))
-        MessageBoxW(hwnd, L"Hotkey Alt+Q is already claimed.", L"Command Bar", MB_OK);
+        MessageBoxW(hwnd, L"Hotkey Alt+Q is already claimed.", L"Command Bar", MB_ICONINFORMATION);
 
     if ((trayMenu = CreatePopupMenu()) != 0)
     {
@@ -1012,6 +1009,9 @@ bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
     quitcmd->info = nullptr;
     quitcmd->commandWindow = this;
     commandEngine->registerCommand(quitcmd);
+
+    //EditCommandsWindow* edit = new EditCommandsWindow();
+    //edit->init(hwnd, commandEngine);
 
     isInitialized = true;
     return isInitialized;
@@ -1127,7 +1127,7 @@ void CommandWindow::evaluate()
 
 void CommandWindow::dispose()
 {
-    taskbarIcon.deleteFromStatusArea();
+    taskbarIcon.disable();
 
     DeleteMenu(trayMenu, 0, 0);
     trayMenu = 0;
@@ -1187,14 +1187,14 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
         {
             case TrayMenuItem::Show: showWindow(); break;
             case TrayMenuItem::Exit: exit(); break;
-            case TrayMenuItem::None: break;
-            default:                 Trace::debug("Unknown TrayMenuItem selected."); return 0;
+            default:                 break;
         }
 
         return 0;
     }
     else if (taskbarIcon.isClicked(hwnd, msg, lParam, wParam))
     {
+        OutputDebugStringW(L"clicked\n");
         toggleVisibility();
         return 0;
     }
@@ -1209,15 +1209,24 @@ void CommandWindow::beforeCommandRun()
 
 LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+    CommandWindow* window = nullptr;
+
     if (msg == WM_CREATE)
-        return 0;
+    {
+        CREATESTRUCT* cs = reinterpret_cast<CREATESTRUCT*>(lParam);
+        if (cs == nullptr)  return 1;
 
-    CommandWindow* window = reinterpret_cast<CommandWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+        window = reinterpret_cast<CommandWindow*>(cs->lpCreateParams);
+        if (window == nullptr)  return 1;
+        
+        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
+    }
+    else
+    {
+        window = reinterpret_cast<CommandWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+    }
 
-    if (window != nullptr)
-        return window->wndProc(hwnd, msg, lParam, wParam);
-
-    return DefWindowProcW(hwnd, msg, wParam, lParam);
+    return window ? window->wndProc(hwnd, msg, lParam, wParam) : DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 void beforeRunCallback(CommandEngine * engine, void * userdata)

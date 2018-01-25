@@ -4,7 +4,7 @@
 #include "trace.h"
 
 
-bool TaskbarIcon::addToStatusArea(HWND hwnd, HICON icon, int iconID, int messageID)
+bool TaskbarIcon::enable(HWND hwnd, HICON icon, int iconID, int messageID)
 {
 	if (isAdded)
 		return true;
@@ -33,7 +33,7 @@ bool TaskbarIcon::addToStatusArea(HWND hwnd, HICON icon, int iconID, int message
 	return true;
 }
 
-bool TaskbarIcon::deleteFromStatusArea()
+bool TaskbarIcon::disable()
 {
 	if (!isAdded)
 		return true;

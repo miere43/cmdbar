@@ -8,8 +8,8 @@ struct TaskbarIcon
     int iconID = 0;
     int messageID = 0;
 
-	bool addToStatusArea(HWND hwnd, HICON icon, int iconID, int messageID);
-	bool deleteFromStatusArea();
+	bool enable(HWND hwnd, HICON icon, int iconID, int messageID);
+	bool disable();
 
 	bool isClicked(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam);
 	bool isContextMenuRequested(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam);
