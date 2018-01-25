@@ -6,7 +6,6 @@
 #include "string_type.h"
 
 
-
 bool Clipboard::open(HWND owner)
 {
     return !!OpenClipboard(owner);

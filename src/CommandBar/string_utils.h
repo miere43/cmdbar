@@ -11,4 +11,6 @@ struct StringUtils
         const wchar_t* strToInsert,
         int strToInsertCount,
         int insertPos);
+
+    static bool parseInt(const String& text, int* result, int defaultValue);
 };

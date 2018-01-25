@@ -12,7 +12,7 @@ struct CommandWindowStyle;
 
 struct CommandWindow
 {
-	bool init(HINSTANCE hInstance, int windowWidth, int windowHeight);
+	bool init(int windowWidth, int windowHeight);
 
 	void showWindow();
 	void showAfterAllEventsProcessed();

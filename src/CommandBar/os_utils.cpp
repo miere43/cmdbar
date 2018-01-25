@@ -135,3 +135,10 @@ String OSUtils::buildCommandLine(const String* strings[], size_t stringsArrayLen
 	return String { result.data, result.count - 1 };
 }
 
+bool OSUtils::fileExists(const String & fileName)
+{
+    DWORD attrs = GetFileAttributesW(fileName.data);
+
+    return attrs != 0 && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
+}
+

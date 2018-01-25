@@ -899,7 +899,7 @@ LRESULT CommandWindow::onCursorBlinkTimerElapsed()
     return 0;
 }
 
-bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
+bool CommandWindow::init(int windowWidth, int windowHeight)
 {
     if (isInitialized)
         return true;
@@ -908,6 +908,8 @@ bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
     assert(windowHeight > 0);
     assert(style);
     assert(commandEngine);
+
+    HINSTANCE hInstance = GetModuleHandleW(0);
 
     isInitialized = false;
     if (!initGlobalResources(hInstance))

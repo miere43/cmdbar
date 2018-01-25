@@ -231,8 +231,8 @@ String String::trimmed() const
             break;
 
     uint32_t j;
-    for (j = count; j >= i; --j)
-        if (!(data[j] == L' ' || data[j] == L'\t'))
+    for (j = count; j > i; --j)
+        if (!(data[j - 1] == L' ' || data[j - 1] == L'\t'))
             break;
 
     return String { data + i, j };
