@@ -918,8 +918,9 @@ bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
         return false;
 
     const uint32_t mainWindowFlags = WS_POPUP;
+    const uint32_t mainWindowExtendedFlags = WS_EX_TOOLWINDOW;
     hwnd = CreateWindowExW(
-        0,
+        mainWindowExtendedFlags,
         (LPCWSTR)g_windowClass,
         L"Command Bar",
         mainWindowFlags,
