@@ -1,7 +1,6 @@
 #include <windowsx.h>
 
 #include "taskbar_icon.h"
-#include "trace.h"
 
 
 bool TaskbarIcon::enable(HWND hwnd, HICON icon, int iconID, int messageID)

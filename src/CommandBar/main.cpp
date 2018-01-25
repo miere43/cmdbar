@@ -4,7 +4,6 @@
 #include <d2d1.h>
 #include <dwrite.h>
 
-#include "trace.h"
 #include "command_window.h"
 #include "os_utils.h"
 #include "allocators.h"
@@ -40,7 +39,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 #endif
 
     HRESULT hr;
-	Trace::init();
 	
     INITCOMMONCONTROLSEX icc;
     icc.dwSize = sizeof(icc);

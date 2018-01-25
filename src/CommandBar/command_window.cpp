@@ -4,7 +4,6 @@
 #include "command_window.h"
 #include "CommandBar.h"
 #include "math_utils.h"
-#include "trace.h"
 #include "os_utils.h"
 #include "basic_commands.h"
 #include "clipboard.h"
