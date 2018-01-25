@@ -53,25 +53,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
         return 1;
     }
 
-    // Initialize Direct2D and DirectWrite
-    ID2D1Factory* d2d1 = nullptr;
-    IDWriteFactory* dwrite = nullptr;
-    {
-        if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2d1)))
-        {
-            // @TODO: better error message
-            MessageBoxW(0, L"Cannot initialize Direct2D.", L"Error", MB_OK | MB_ICONERROR);
-            return 1;
-        }
-
-        if (FAILED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&dwrite))))
-        {
-            // @TODO: better error message
-            MessageBoxW(0, L"Cannot initialize DirectWrite.", L"Error", MB_OK | MB_ICONERROR);
-            return 1;
-        }
-    }
-
 	CommandEngine commandEngine;
 
 	CommandWindowStyle windowStyle;
@@ -91,8 +72,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 	CommandWindow commandWindow;
     commandWindow.style = &windowStyle;
     commandWindow.commandEngine = &commandEngine;
-    commandWindow.d2d1 = d2d1;
-    commandWindow.dwrite = dwrite;
 
     CommandLoader cmdLoader;
     registerBasicCommands(&cmdLoader);

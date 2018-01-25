@@ -909,13 +909,30 @@ bool CommandWindow::init(HINSTANCE hInstance, int windowWidth, int windowHeight)
     assert(windowWidth  > 0);
     assert(windowHeight > 0);
     assert(style);
-    assert(d2d1);
-    assert(dwrite);
     assert(commandEngine);
 
     isInitialized = false;
     if (!initGlobalResources(hInstance))
         return false;
+
+    // Initialize Direct2D and DirectWrite
+    this->d2d1 = nullptr;
+    this->dwrite = nullptr;
+    {
+        if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2d1)))
+        {
+            // @TODO: better error message
+            MessageBoxW(0, L"Cannot initialize Direct2D.", L"Error", MB_OK | MB_ICONERROR);
+            return 1;
+        }
+
+        if (FAILED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&dwrite))))
+        {
+            // @TODO: better error message
+            MessageBoxW(0, L"Cannot initialize DirectWrite.", L"Error", MB_OK | MB_ICONERROR);
+            return false;
+        }
+    }
 
     const uint32_t mainWindowFlags = WS_POPUP;
     const uint32_t mainWindowExtendedFlags = WS_EX_TOOLWINDOW;
