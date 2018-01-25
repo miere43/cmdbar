@@ -232,7 +232,7 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="command_window.cpp" />
     <ClCompile Include="config.cpp" />
-    <ClCompile Include="one_instance.cpp" />
+    <ClCompile Include="single_instance.cpp" />
     <ClCompile Include="os_utils.cpp" />
     <ClCompile Include="parse_ini.cpp" />
     <ClCompile Include="parse_utils.cpp" />
@@ -261,7 +261,7 @@
     <ClInclude Include="hint_window.h" />
     <ClInclude Include="line_reader.h" />
     <ClInclude Include="math_utils.h" />
-    <ClInclude Include="one_instance.h" />
+    <ClInclude Include="single_instance.h" />
     <ClInclude Include="array.h" />
     <ClInclude Include="command_window.h" />
     <ClInclude Include="os_utils.h" />

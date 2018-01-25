@@ -41,6 +41,7 @@ struct CommandWindow
 
 	static const wchar_t* g_className;
 	static const wchar_t* g_windowName;
+    static const UINT g_showWindowMessageId;
 private:
     bool isInitialized = false;
 	bool shouldCatchInvalidUsageErrors = false;

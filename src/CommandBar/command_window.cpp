@@ -6,7 +6,6 @@
 #include "math_utils.h"
 #include "trace.h"
 #include "os_utils.h"
-#include "one_instance.h"
 #include "basic_commands.h"
 #include "clipboard.h"
 #include "string_utils.h"
@@ -23,7 +22,7 @@ ATOM CommandWindow::g_windowClass = 0;
 HKL CommandWindow::g_englishKeyboardLayout = 0;
 const wchar_t* CommandWindow::g_windowName = L"Command Bar";
 const wchar_t* CommandWindow::g_className = L"CommandWindow";
-
+const UINT CommandWindow::g_showWindowMessageId = WM_USER + 64;
 
 enum
 {
@@ -1177,7 +1176,7 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
             return 0;
         }
 
-        case g_oneInstanceMessage:
+        case CommandWindow::g_showWindowMessageId:
         {
             showWindow();
             return 0;

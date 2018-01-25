@@ -9,7 +9,7 @@
 #include "os_utils.h"
 #include "allocators.h"
 #include "command_engine.h"
-#include "one_instance.h"
+#include "single_instance.h"
 #include "basic_commands.h"
 #include "command_loader.h"
 #include "string_type.h"
@@ -20,11 +20,16 @@
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
 processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
+
+SingleInstance g_singleInstanceGuard;
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmdLine, int nCmdShow)
 {
 #ifndef _DEBUG
-	if (!checkOrInitInstanceLock()) {
-		if (!postMessageToOtherInstance(g_oneInstanceMessage, 0, 0)) {
+	if (!g_singleInstanceGuard.checkOrInitInstanceLock(L"CommandBarSingleInstanceGuard"))
+    {
+		if (!g_singleInstanceGuard.postMessageToOtherInstance(CommandWindow::g_showWindowMessageId, 0, 0))
+        {
 			MessageBoxW(0, L"Already running.", L"Command Bar", MB_OK);
 		}
 
