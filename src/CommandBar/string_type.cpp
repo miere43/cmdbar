@@ -305,7 +305,7 @@ int String::lastIndexOf(uint32_t codepoint) const
 
     assert(!unicode::isSurrogatePair(codepoint));
 
-    for (uint32_t i = count - 1; i >= 0; --i)
+    for (uint32_t i = count - 1; i > 0; --i)
     {
         if (data[i] == codepoint)
             return (int)i;

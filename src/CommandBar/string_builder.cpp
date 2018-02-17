@@ -41,6 +41,7 @@ void StringBuilder::appendString(const wchar_t* newstr, uint32_t count)
     
     reserve2(str.count + count);
     wmemcpy(&str.data[str.count], newstr, count);
+    str.count += count;
 }
 
 void StringBuilder::appendString(const wchar_t* newstr)

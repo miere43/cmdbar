@@ -68,6 +68,12 @@ void TempAllocator::dealloc(void * ptr)
 	// I don't care :P
 }
 
+void* TempAllocator::realloc(void * block, uintptr_t size)
+{
+    assert(false);
+    return nullptr;
+}
+
 void TempAllocator::clear()
 {
 	if (start != nullptr)
@@ -112,7 +118,7 @@ void TempAllocator::addUnfit(UnfitAllocation * unfit)
 
 void* StandardAllocator::alloc(uintptr_t size)
 {
-    void* block = malloc(size);
+    void* block = ::malloc(size);
     if (block == nullptr) return nullptr;
 
     allocated += size;
@@ -127,5 +133,16 @@ void StandardAllocator::dealloc(void* block)
     assert(allocated >= blockSize);
     allocated -= blockSize;
 
-    free(block);
+    ::free(block);
+}
+
+void* StandardAllocator::realloc(void* block, uintptr_t size)
+{
+    uintptr_t oldSize = block ? static_cast<uintptr_t>(_msize(block)) : 0;
+    block = ::realloc(block, size);
+    if (block == nullptr)  return nullptr;
+    uintptr_t newSize = static_cast<uintptr_t>(_msize(block));
+
+    allocated = allocated - oldSize + newSize;
+    return block;
 }

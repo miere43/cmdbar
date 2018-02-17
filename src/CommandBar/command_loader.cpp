@@ -5,9 +5,11 @@
 #include "parse_ini.h"
 
 
-Array<Command*> CommandLoader::loadFromFile(String filePath)
+Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
 {
-    source = OSUtils::readAllText(filePath, Encoding::UTF8);
+    // @TODO
+    Newstring interopSource = OSUtils::ReadAllText(filePath, Encoding::UTF8);
+    source = String { interopSource.data, interopSource.count };
 
     INIParser p;
     Array<Command*> cmds;

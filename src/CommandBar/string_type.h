@@ -72,3 +72,4 @@ enum class Encoding
     ASCII,
     MAX_VALUE
 };
+

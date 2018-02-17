@@ -14,7 +14,11 @@
 #include "string_type.h"
 #include "unicode.h"
 #include "hint_window.h"
+#include "string_builder.h"
+#include "newstring.h"
+#include "newstring_builder.h"
 #include "command_window_style_loader.h"
+
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
@@ -24,6 +28,8 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 SingleInstance g_singleInstanceGuard;
 
 void initDefaultStyle(CommandWindowStyle* style);
+String getCommandsFilePath();
+Newstring GetCommandsFilePath();
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmdLine, int nCmdShow)
 {
@@ -81,7 +87,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     CommandLoader commandLoader;
     registerBasicCommands(&commandLoader);
 
-    Array<Command*> commands = commandLoader.loadFromFile(L"D:/Vlad/cb/cmds.ini");
+    Array<Command*> commands = commandLoader.LoadFromFile(GetCommandsFilePath());
     for (uint32_t i = 0; i < commandLoader.commandInfoArray.count; ++i)
         commandEngine.registerCommandInfo(commandLoader.commandInfoArray.data[i]);
     for (uint32_t i = 0; i < commands.count; ++i)
@@ -93,11 +99,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 	String commandLine{ lpCmdLine };
 	if (commandLine.indexOf(String(L"/noshow")) == -1)
 		commandWindow.showAfterAllEventsProcessed(); // Make sure all controls are initialized.
-
-    LOGFONTW font = {};
-    lstrcpyW(font.lfFaceName, L"Segoe UI");
-
-    HFONT hfont = CreateFontIndirectW(&font);
 
     MSG msg;
     uint32_t ret;
@@ -138,3 +139,122 @@ void initDefaultStyle(CommandWindowStyle* windowStyle)
     windowStyle->borderColor = D2D1::ColorF(D2D1::ColorF::Black);
     windowStyle->borderSize = 5;
 }
+
+#include "parse_ini.h"
+
+Newstring AskUserForCmdsFilePath()
+{
+    HRESULT hr;
+    Newstring result;
+
+    IFileOpenDialog* dialog = nullptr;
+    IShellItem* selection = nullptr;
+    wchar_t* selectionTitle = nullptr;
+
+    hr = CoCreateInstance(
+        CLSID_FileOpenDialog,
+        nullptr,
+        CLSCTX_ALL,
+        IID_IFileOpenDialog,
+        reinterpret_cast<void**>(&dialog));
+    if (FAILED(hr))  goto exitError;
+
+    dialog->SetTitle(L"Select cmds.ini");
+
+    hr = dialog->Show(0); // @TODO: Handle user cancellation case.
+    if (FAILED(hr))  goto exitError;
+
+    hr = dialog->GetResult(&selection);  
+    if (FAILED(hr))  goto exitError;
+
+    hr = selection->GetDisplayName(SIGDN_FILESYSPATH, &selectionTitle);
+    if (FAILED(hr) || selectionTitle == nullptr)  goto exitError;
+
+    result = Newstring::WrapConstWChar(selectionTitle);
+    result.count += 1; // Count terminating zero.
+
+    if (!OSUtils::FileExists(result))
+        goto exitError;
+
+    result = result.Clone();
+    goto exitSuccess;
+
+exitError:
+    // @TODO: Log error.
+exitSuccess:
+    if (selectionTitle)
+    {
+        CoTaskMemFree(selectionTitle);
+    }
+    SafeRelease(selection);
+    SafeRelease(dialog);
+    return result;
+}
+
+Newstring GetCommandsFilePath()
+{
+#ifdef _DEBUG
+    static Newstring SettingsPath = Newstring::WrapConstWChar(L"settings_debug.ini");
+#else
+    static Newstring SettingsPath = Newstring::WrapConstWChar(L"settings.ini");
+#endif
+
+    NewstringBuilder settingsPath;
+    OSUtils::GetApplicationDirectory(&settingsPath);
+    settingsPath.Append(SettingsPath);
+    settingsPath.ZeroTerminate();
+
+    Newstring cmdsFile;
+    Newstring settingsText = OSUtils::ReadAllText(settingsPath.string);
+    if (Newstring::IsNullOrEmpty(settingsText))
+    {
+        cmdsFile = AskUserForCmdsFilePath();
+        if (Newstring::IsNullOrEmpty(cmdsFile))
+        {
+            settingsPath.Dispose();
+            return Newstring::Empty();
+        }
+
+        Newstring settingsNewText = Newstring::Join({
+            Newstring::WrapConstWChar(L"cmds_path="),
+            Newstring{ cmdsFile.data, cmdsFile.count - 1 } // Don't count terminating zero. 
+        }); 
+        assert(!Newstring::IsNullOrEmpty(settingsNewText));
+
+        bool result = OSUtils::WriteAllText(settingsPath.string, settingsNewText);
+        assert(result);
+   
+        settingsNewText.Dispose();
+    }
+    else
+    {
+        INIParser ps;
+        ps.init(String{ settingsText.data, settingsText.count });
+
+        while (ps.next())
+        {
+            if (ps.type == INIValueType::KeyValuePair && ps.key.equals(L"cmds_path"))
+            {
+                cmdsFile = Newstring::NewFromWChar(ps.value.data, ps.value.count);
+                break;
+            }
+        }
+    }
+
+    settingsPath.Dispose();
+    settingsText.Dispose();
+
+    return cmdsFile;
+}
+
+//String getCommandsFilePath()
+//{
+//    StringBuilder sb;
+//    sb.allocator = &g_standardAllocator;
+//
+//    OSUtils::getApplicationDirectory(&sb);
+//    sb.appendString(L"\\cmds.ini");
+//    sb.appendChar(L'\0');
+//
+//    return sb.str;
+//}

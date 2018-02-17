@@ -9,6 +9,7 @@ struct IAllocator
 {
 	virtual void* alloc(uintptr_t size) = 0;
 	virtual void  dealloc(void* block) = 0;
+    virtual void* realloc(void* block, uintptr_t size) = 0;
 };
 
 struct StandardAllocator : public IAllocator
@@ -17,6 +18,7 @@ struct StandardAllocator : public IAllocator
 
 	virtual void* alloc(uintptr_t size) override;
 	virtual void  dealloc(void* block) override;
+    virtual void* realloc(void* block, uintptr_t size) override;
 };
 
 struct TempAllocator : public IAllocator
@@ -35,6 +37,7 @@ struct TempAllocator : public IAllocator
 
 	virtual void* alloc(uintptr_t size) override;
 	virtual void  dealloc(void* ptr) override;
+    virtual void* realloc(void* block, uintptr_t size) override;
 
 	void clear();
 	void dispose();
