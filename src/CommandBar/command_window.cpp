@@ -1028,6 +1028,12 @@ bool CommandWindow::init(int windowWidth, int windowHeight)
     quitcmd->commandWindow = this;
     commandEngine->registerCommand(quitcmd);
 
+    QuitCommand* exitcmd = stdNew<QuitCommand>();
+    quitcmd->name = String::clone(L"exit");
+    quitcmd->info = nullptr;
+    quitcmd->commandWindow = this;
+    commandEngine->registerCommand(quitcmd);
+    
     //EditCommandsWindow* edit = new EditCommandsWindow();
     //edit->init(hwnd, commandEngine);
 

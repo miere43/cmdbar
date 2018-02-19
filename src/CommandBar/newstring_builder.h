@@ -23,11 +23,11 @@ struct NewstringBuilder
     void Append(const wchar_t* string);
     void Append(const wchar_t* string, uint32_t count);
     void Append(const Newstring& string);
+    //void Insert(uint32_t pos, wchar_t c);
     void ZeroTerminate();
 
     uint32_t GetRemainingCapacity() const;
 
     bool Reserve(uint32_t newCapacity);
     Newstring TransferToString();
-    Newstring& GetStringRef();
 };

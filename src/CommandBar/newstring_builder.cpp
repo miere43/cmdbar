@@ -100,8 +100,3 @@ Newstring NewstringBuilder::TransferToString()
     capacity = 0;
     return ns;
 }
-
-Newstring& NewstringBuilder::GetStringRef()
-{
-    return string;
-}

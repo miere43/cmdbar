@@ -18,7 +18,7 @@
 #include "newstring.h"
 #include "newstring_builder.h"
 #include "command_window_style_loader.h"
-
+#include "defer.h"
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
@@ -28,7 +28,7 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 SingleInstance g_singleInstanceGuard;
 
 void initDefaultStyle(CommandWindowStyle* style);
-String getCommandsFilePath();
+bool InitializeLibraries();
 Newstring GetCommandsFilePath();
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmdLine, int nCmdShow)
@@ -47,23 +47,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     CloseClipboard();
 #endif
 
-    HRESULT hr;
-	
-    INITCOMMONCONTROLSEX icc;
-    icc.dwSize = sizeof(icc);
-    icc.dwICC = ICC_STANDARD_CLASSES;
-	if (!InitCommonControlsEx(&icc)) 
-    {
-        MessageBoxW(0, L"Failed to initialize common controls.", L"Error", MB_OK | MB_ICONERROR);
+    if (!InitializeLibraries())
         return 1;
-    }
-
-	hr = CoInitialize(nullptr);
-    if (FAILED(hr))
-    {
-        MessageBoxW(0, L"Failed to initialize COM.", L"Error", MB_OK | MB_ICONERROR);
-        return 1;
-    }
 
 	CommandEngine commandEngine;
 
@@ -148,8 +133,7 @@ Newstring AskUserForCmdsFilePath()
     Newstring result;
 
     IFileOpenDialog* dialog = nullptr;
-    IShellItem* selection = nullptr;
-    wchar_t* selectionTitle = nullptr;
+    defer(SafeRelease(dialog));
 
     hr = CoCreateInstance(
         CLSID_FileOpenDialog,
@@ -157,37 +141,38 @@ Newstring AskUserForCmdsFilePath()
         CLSCTX_ALL,
         IID_IFileOpenDialog,
         reinterpret_cast<void**>(&dialog));
-    if (FAILED(hr))  goto exitError;
+    if (FAILED(hr))  return result;
 
     dialog->SetTitle(L"Select cmds.ini");
 
     hr = dialog->Show(0); // @TODO: Handle user cancellation case.
-    if (FAILED(hr))  goto exitError;
+    if (FAILED(hr))  return result;
+
+    IShellItem* selection = nullptr;
+    defer(SafeRelease(selection));
 
     hr = dialog->GetResult(&selection);  
-    if (FAILED(hr))  goto exitError;
+    if (FAILED(hr))  return result;
+
+    wchar_t* selectionTitle = nullptr;
+    defer(
+        if (selectionTitle)
+        {
+            CoTaskMemFree(selectionTitle);
+            selectionTitle = nullptr;
+        }
+    );
 
     hr = selection->GetDisplayName(SIGDN_FILESYSPATH, &selectionTitle);
-    if (FAILED(hr) || selectionTitle == nullptr)  goto exitError;
+    if (FAILED(hr) || !selectionTitle)  return result;
 
     result = Newstring::WrapConstWChar(selectionTitle);
     result.count += 1; // Count terminating zero.
 
     if (!OSUtils::FileExists(result))
-        goto exitError;
+        return result;
 
     result = result.Clone();
-    goto exitSuccess;
-
-exitError:
-    // @TODO: Log error.
-exitSuccess:
-    if (selectionTitle)
-    {
-        CoTaskMemFree(selectionTitle);
-    }
-    SafeRelease(selection);
-    SafeRelease(dialog);
     return result;
 }
 
@@ -200,12 +185,16 @@ Newstring GetCommandsFilePath()
 #endif
 
     NewstringBuilder settingsPath;
+    defer(settingsPath.Dispose());
+
     OSUtils::GetApplicationDirectory(&settingsPath);
     settingsPath.Append(SettingsPath);
     settingsPath.ZeroTerminate();
 
     Newstring cmdsFile;
     Newstring settingsText = OSUtils::ReadAllText(settingsPath.string);
+    defer(settingsText.Dispose());
+
     if (Newstring::IsNullOrEmpty(settingsText))
     {
         cmdsFile = AskUserForCmdsFilePath();
@@ -219,12 +208,11 @@ Newstring GetCommandsFilePath()
             Newstring::WrapConstWChar(L"cmds_path="),
             Newstring{ cmdsFile.data, cmdsFile.count - 1 } // Don't count terminating zero. 
         }); 
+        defer(settingsNewText.Dispose());
         assert(!Newstring::IsNullOrEmpty(settingsNewText));
 
         bool result = OSUtils::WriteAllText(settingsPath.string, settingsNewText);
         assert(result);
-   
-        settingsNewText.Dispose();
     }
     else
     {
@@ -241,9 +229,6 @@ Newstring GetCommandsFilePath()
         }
     }
 
-    settingsPath.Dispose();
-    settingsText.Dispose();
-
     return cmdsFile;
 }
 
@@ -258,3 +243,26 @@ Newstring GetCommandsFilePath()
 //
 //    return sb.str;
 //}
+
+bool InitializeLibraries()
+{
+    HRESULT hr;
+
+    INITCOMMONCONTROLSEX icc;
+    icc.dwSize = sizeof(icc);
+    icc.dwICC = ICC_STANDARD_CLASSES;
+    if (!InitCommonControlsEx(&icc))
+    {
+        MessageBoxW(0, L"Failed to initialize common controls.", L"Error", MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    hr = CoInitialize(nullptr);
+    if (FAILED(hr))
+    {
+        MessageBoxW(0, L"Failed to initialize COM.", L"Error", MB_OK | MB_ICONERROR);
+        return false;
+    }
+
+    return true;
+}
