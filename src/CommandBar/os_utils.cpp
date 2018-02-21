@@ -234,7 +234,11 @@ bool OSUtils::WriteAllText(const Newstring& fileName, const Newstring& text, Enc
     void* data = unicode::EncodeString(text, &nsize, encoding);
     if (!data)  return false;
     
-    return WriteFileContents(fileName, data, nsize);
+    bool result = WriteFileContents(fileName, data, nsize);
+
+    g_standardAllocator.dealloc(data);
+
+    return result;
 }
 
 void OSUtils::truncateFileNameToDirectory(String* fileName)
