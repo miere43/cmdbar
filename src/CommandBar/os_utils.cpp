@@ -11,14 +11,14 @@ String OSUtils::formatErrorCode(DWORD errorCode, DWORD languageID, IAllocator* a
 
     assert(allocator);
 
-	String msg = String::alloc(maxMessageSize, allocator);
+	String msg = String::Allocate(maxMessageSize, allocator);
 	if (msg.data == nullptr)
 		return String::null;
 
 	DWORD count = FormatMessageW(flags, 0, errorCode, languageID, msg.data, msg.count, nullptr);
 	if (count == 0)
     {
-		allocator->dealloc(msg.data);
+		allocator->Deallocate(msg.data);
 		return String::null;
 	}
 
@@ -98,7 +98,7 @@ void* OSUtils::ReadFileContents(const Newstring& fileName, uint32_t* fileSize, I
     if (!GetFileSizeEx(handle, &size) || size.LowPart == 0)
         goto exitCloseHandle;
 
-    data = allocator->alloc(size.LowPart);
+    data = allocator->Allocate(size.LowPart);
     if (data == nullptr)
         goto exitCloseHandle;
 
@@ -111,7 +111,7 @@ void* OSUtils::ReadFileContents(const Newstring& fileName, uint32_t* fileSize, I
     goto exitCloseHandle;
 
 exitFreeData:
-    allocator->dealloc(data);
+    allocator->Deallocate(data);
     data = nullptr;
 exitCloseHandle:
     CloseHandle(handle);
@@ -166,7 +166,7 @@ Newstring OSUtils::ReadAllText(const Newstring& fileName, Encoding encoding, IAl
         return Newstring::Empty();
 
     Newstring result = unicode::DecodeString(data, fileSize, encoding, allocator);
-    allocator->dealloc(data);
+    allocator->Deallocate(data);
 
     return result;
 }
@@ -183,7 +183,7 @@ bool OSUtils::WriteAllText(const Newstring& fileName, const Newstring& text, Enc
     
     bool result = WriteFileContents(fileName, data, nsize);
 
-    g_standardAllocator.dealloc(data);
+    g_standardAllocator.Deallocate(data);
 
     return result;
 }

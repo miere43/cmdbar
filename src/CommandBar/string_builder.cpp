@@ -14,13 +14,13 @@ void StringBuilder::reserve(uint32_t newCapacity)
 
     const size_t newSize = sizeof(wchar_t) * newCapacity;
 
-    wchar_t* newData = (wchar_t*)allocator->alloc(newSize);
+    wchar_t* newData = (wchar_t*)allocator->Allocate(newSize);
     assert(newData != nullptr);
 
     if (str.data != nullptr && str.count > 0)
         wmemcpy(newData, str.data, str.count);
 
-    allocator->dealloc(str.data);
+    allocator->Deallocate(str.data);
     str.data = newData;
     capacity = newCapacity;
 }

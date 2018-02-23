@@ -133,7 +133,7 @@
 //
 //wchar_t* CB_AllocateWideString(char* src, size_t length)
 //{
-//	wchar_t* name = (wchar_t*)malloc(sizeof(wchar_t) * (length + 1));
+//	wchar_t* name = (wchar_t*)::malloc(sizeof(wchar_t) * (length + 1));
 //	CB_StringToWide(name, src, length);
 //	name[length] = '\0';
 //	return name;

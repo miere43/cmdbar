@@ -22,7 +22,6 @@ struct CommandWindow
 
 	void exit();
 
-	int enterEventLoop();
 	LRESULT wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam);
 	void beforeCommandRun();
 

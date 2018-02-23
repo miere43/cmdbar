@@ -50,12 +50,31 @@ struct Newstring
 
     static Newstring Join(std::initializer_list<Newstring> strings, IAllocator* allocator = &g_standardAllocator);
 
+    // Formats a message using standard allocator.
+    static Newstring Format(const wchar_t* format, ...);
+
+    // Formats a message using standard allocator. Message is null-terminated.
+    static Newstring FormatCString(const wchar_t* format, ...);
+
+    // Formats a message using standard allocator. If formatting fails, fallback message is used.
+    static Newstring FormatCStringWithFallback(const wchar_t* format, const wchar_t* fallback, ...);
+
+    // Formats a message using temporary allocator.
+    static Newstring FormatTemp(const wchar_t* format, ...);
+
+    // Formats a message using temporary allocator. Message is null-terminated.
+    static Newstring FormatTempCString(const wchar_t* format, ...);
+
+    // Formats a message using temporary allocator. If formatting fails, fallback message is used. Message is null-terminated.
+    static Newstring FormatTempCStringWithFallback(const wchar_t* format, const wchar_t* fallback...);
+
+    static Newstring FormatWithAllocator(IAllocator* allocator, const wchar_t* format, ...);
+    static Newstring FormatWithAllocator(IAllocator* allocator, const wchar_t* format, va_list args, bool includeTerminatingNull);
+
     static Newstring WrapWChar(wchar_t* string);
     static Newstring WrapWChar(wchar_t* string, uint32_t count);
-
     static const Newstring WrapConstWChar(const wchar_t* string);
     static const Newstring WrapConstWChar(const wchar_t* string, uint32_t count);
-
 
     static Newstring Empty();
 };

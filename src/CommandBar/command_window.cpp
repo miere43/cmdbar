@@ -1054,36 +1054,6 @@ void CommandWindow::exit()
     PostQuitMessage(0);
 }
 
-int CommandWindow::enterEventLoop()
-{
-    MSG msg;
-    uint32_t ret;
-
-    while ((ret = GetMessageW(&msg, NULL, 0, 0)) != 0)
-    {
-        if (ret == -1)
-        {
-            if (shouldCatchInvalidUsageErrors)
-            {
-                String error = OSUtils::formatErrorCode(GetLastError());
-                __debugbreak();
-                g_standardAllocator.dealloc(error.data);
-            }
-            else
-            {
-                continue;
-            }
-        }
-
-        TranslateMessage(&msg);
-        DispatchMessageW(&msg);
-    }
-
-    dispose();
-
-    return static_cast<int>(msg.wParam);
-}
-
 void CommandWindow::evaluate()
 {
     if (!commandEngine->evaluate(String(textBuffer.string.data, textBuffer.string.count)))

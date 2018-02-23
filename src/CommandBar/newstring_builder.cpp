@@ -11,7 +11,7 @@ NewstringBuilder::NewstringBuilder()
 void NewstringBuilder::Dispose()
 {
     assert(allocator);
-    allocator->dealloc(data);
+    allocator->Deallocate(data);
     data = nullptr;
     count = 0;
     capacity = 0;
@@ -126,7 +126,7 @@ bool NewstringBuilder::Reserve(uint32_t newCapacity)
     if (newCapacity < 32) newCapacity = 32;
     if (data && capacity >= newCapacity)  return true;
 
-    wchar_t* newData = (wchar_t*)allocator->realloc(data, newCapacity);
+    wchar_t* newData = (wchar_t*)allocator->Reallocate(data, newCapacity);
     if (!newData)  return false;
 
     data = newData;

@@ -65,7 +65,7 @@ void HintWindow::setText(const String& text)
 {
     if (this->text.data != nullptr)
     {
-        g_standardAllocator.dealloc(this->text.data);
+        g_standardAllocator.Deallocate(this->text.data);
         this->text.data  = nullptr;
         this->text.count = 0;
     }
@@ -176,7 +176,7 @@ void HintWindow::destroy()
 
     if (text.data != nullptr)
     {
-        g_standardAllocator.dealloc(text.data);
+        g_standardAllocator.Deallocate(text.data);
         text.data = nullptr;
         text.count = 0;
     }

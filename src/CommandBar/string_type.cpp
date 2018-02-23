@@ -119,7 +119,7 @@ String join(const String& seperator, const String* strings[], int stringsArrayLe
 		totalCount += string->count + seperator.count;
 	}
 
-	String result = String::alloc(totalCount + 1, allocator); // +1 for '\0'
+	String result = String::Allocate(totalCount + 1, allocator); // +1 for '\0'
 	if (result.data == nullptr)
 		return String::null;
 
@@ -354,7 +354,7 @@ bool String::startsWith(const String& rhs, uint32_t numChars, StringComparison c
     return compareProc(this->data, rhs.data, numChars) == 0;
 }
 
-String String::alloc(uint32_t count, IAllocator* allocator)
+String String::Allocate(uint32_t count, IAllocator* allocator)
 {
     assert(count >= 0);
     assert(allocator);
@@ -363,7 +363,7 @@ String String::alloc(uint32_t count, IAllocator* allocator)
         return String::null;
 
     String result;
-    result.data  = static_cast<wchar_t*>(allocator->alloc(sizeof(wchar_t) * (1 + count)));
+    result.data  = static_cast<wchar_t*>(allocator->Allocate(sizeof(wchar_t) * (1 + count)));
     result.count = result.data != nullptr ? count : 0;
 
     return result;
@@ -375,7 +375,7 @@ String String::clone(const char* string, uint32_t count, IAllocator* allocator)
     if (string == nullptr)
         return String::null;
 
-    String result = String::alloc(count, allocator);
+    String result = String::Allocate(count, allocator);
     if (result.data == nullptr) return String::null;
 
     for (uint32_t i = 0; i < count; ++i)
@@ -400,7 +400,7 @@ String String::clone(const wchar_t* string, uint32_t count, IAllocator* allocato
     if (string == nullptr)
         return String::null;
 
-    String result = String::alloc(count, allocator);
+    String result = String::Allocate(count, allocator);
     if (result.data == nullptr) return String::null;
 
     wmemcpy(result.data, string, count);

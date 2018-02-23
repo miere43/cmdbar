@@ -18,7 +18,7 @@ String unicode::decodeString(const void* data, uint32_t dataSize, Encoding encod
         {
             const uint32_t bufCount = (dataSize);
             const uint32_t bufSize  = (dataSize + 1) * sizeof(wchar_t);
-            wchar_t* buf = static_cast<wchar_t*>(allocator->alloc(bufSize));
+            wchar_t* buf = static_cast<wchar_t*>(allocator->Allocate(bufSize));
             if (buf == nullptr)
                 return String::null;
 
@@ -52,7 +52,7 @@ String unicode::decodeString(const void* data, uint32_t dataSize, Encoding encod
                 {
                     if (!buf.reserve(buf.count + 3))
                     {
-                        buf.dealloc();
+                        buf.Deallocate();
                         return String::null;
                     }
 
@@ -84,7 +84,7 @@ Newstring unicode::DecodeString(const void* data, uint32_t dataSize, Encoding en
         {
             const uint32_t bufCount = (dataSize);
             const uint32_t bufSize  = (dataSize + 1) * sizeof(wchar_t);
-            wchar_t* buf = static_cast<wchar_t*>(allocator->alloc(bufSize));
+            wchar_t* buf = static_cast<wchar_t*>(allocator->Allocate(bufSize));
             if (buf == nullptr)
                 return Newstring::Empty();
 
@@ -118,7 +118,7 @@ Newstring unicode::DecodeString(const void* data, uint32_t dataSize, Encoding en
                 {
                     if (!buf.reserve(buf.count + 3))
                     {
-                        buf.dealloc();
+                        buf.Deallocate();
                         return Newstring::Empty();
                     }
 
@@ -150,7 +150,7 @@ void* unicode::EncodeString(const Newstring& string, uint32_t* encodedStringByte
     {
         case Encoding::ASCII:
         {
-            char* data = (char*)allocator->alloc(string.count * sizeof(char));
+            char* data = (char*)allocator->Allocate(string.count * sizeof(char));
             if (!data)  return nullptr;
 
             for (uint32_t i = 0; i < string.count; ++i)
@@ -164,7 +164,7 @@ void* unicode::EncodeString(const Newstring& string, uint32_t* encodedStringByte
         case Encoding::UTF8:
         {
             const uintptr_t dataSize = string.count * 4;
-            char* data = (char*)allocator->alloc(dataSize);
+            char* data = (char*)allocator->Allocate(dataSize);
             if (!data)  return nullptr;
 
             int nwritten = WideCharToMultiByte(

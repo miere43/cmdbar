@@ -54,7 +54,7 @@ bool OpenDirCommand::onExecute(Array<String>& args)
     if (folder.isEmpty())
         return false;
 
-    wchar_t* data = (wchar_t*)g_standardAllocator.alloc((folder.count + 1) * sizeof(wchar_t));
+    wchar_t* data = (wchar_t*)g_standardAllocator.Allocate((folder.count + 1) * sizeof(wchar_t));
     if (data == nullptr)
         return false;
 
@@ -69,7 +69,7 @@ bool OpenDirCommand::onExecute(Array<String>& args)
 
     ILFree(itemID);
 
-    g_standardAllocator.dealloc(data);
+    g_standardAllocator.Deallocate(data);
 
     return true;
 }
@@ -174,7 +174,7 @@ bool RunAppCommand::onExecute(Array<String>& args)
 
         assert(dataSize >= 1);
         
-        execAppParamsStr = static_cast<wchar_t*>(g_standardAllocator.alloc(dataSize));
+        execAppParamsStr = static_cast<wchar_t*>(g_standardAllocator.Allocate(dataSize));
         assert(execAppParamsStr);
         shouldDeallocateAppParams = true;
 
@@ -221,7 +221,7 @@ bool RunAppCommand::onExecute(Array<String>& args)
     }
 
     if (shouldDeallocateAppParams)
-        g_standardAllocator.dealloc(execAppParamsStr);
+        g_standardAllocator.Deallocate(execAppParamsStr);
 
     return result;
 }
@@ -303,7 +303,7 @@ static bool shellExecute(const wchar_t* path, const wchar_t* verb, const wchar_t
 //    for (int i = 1; i < args.count; ++i)
 //        paramsCount += args.data[i]->count + 1;
 //
-//    wchar_t* params = paramsCount > 0 ? (wchar_t*)g_standardAllocator.alloc(paramsCount * sizeof(wchar_t)) : nullptr;
+//    wchar_t* params = paramsCount > 0 ? (wchar_t*)g_standardAllocator.Allocate(paramsCount * sizeof(wchar_t)) : nullptr;
 //    if (params != nullptr)
 //    {
 //        wchar_t* paramsCurrent = params;
@@ -329,7 +329,7 @@ static bool shellExecute(const wchar_t* path, const wchar_t* verb, const wchar_t
 //    info.nShow = SW_NORMAL;
 //
 //    bool success = 0 != ShellExecuteExW(&info);
-//    g_standardAllocator.dealloc(params);
+//    g_standardAllocator.Deallocate(params);
 //
 //    //STARTUPINFOW startupInfo = { sizeof(startupInfo), 0 };
 //    //PROCESS_INFORMATION processInfo = { 0 };

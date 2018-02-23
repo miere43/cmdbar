@@ -28,11 +28,19 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 SingleInstance g_singleInstanceGuard;
 
 void initDefaultStyle(CommandWindowStyle* style);
+bool InitializeAllocators();
 bool InitializeLibraries();
 Newstring GetCommandsFilePath();
+Newstring AskUserForCmdsFilePath();
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmdLine, int nCmdShow)
 {
+    if (!InitializeAllocators())
+        return 1;
+
+    if (!InitializeLibraries())
+        return 1;
+
 #ifndef _DEBUG
 	if (!g_singleInstanceGuard.checkOrInitInstanceLock(L"CommandBarSingleInstanceGuard"))
     {
@@ -47,8 +55,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     CloseClipboard();
 #endif
 
-    if (!InitializeLibraries())
-        return 1;
+    //AskUserForCmdsFilePath();
 
 	CommandEngine commandEngine;
 
@@ -95,13 +102,15 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 #ifdef _DEBUG
             String error = OSUtils::formatErrorCode(GetLastError());
             __debugbreak();
-            g_standardAllocator.dealloc(error.data);
+            g_standardAllocator.Deallocate(error.data);
 #endif
             continue;
         }
 
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
+
+        g_tempAllocator.Reset();
     }
 
     commandWindow.dispose();
@@ -129,7 +138,15 @@ void initDefaultStyle(CommandWindowStyle* windowStyle)
 
 Newstring AskUserForCmdsFilePath()
 {
-    HRESULT hr;
+    HRESULT hr = E_UNEXPECTED;
+    defer(
+        if (FAILED(hr))
+        {
+            auto msg = Newstring::FormatCString(L"Error: 0x%08X.", hr);
+            MessageBoxW(0, msg.data, L"Error", MB_ICONERROR);
+        }
+    );
+
     Newstring result;
 
     IFileOpenDialog* dialog = nullptr;
@@ -241,14 +258,34 @@ bool InitializeLibraries()
     icc.dwICC = ICC_STANDARD_CLASSES;
     if (!InitCommonControlsEx(&icc))
     {
-        MessageBoxW(0, L"Failed to initialize common controls.", L"Error", MB_OK | MB_ICONERROR);
+        auto msg = Newstring::FormatCStringWithFallback(
+            L"Failed to initialize common controls.\n\nError code was 0x%08X.",
+            L"Failed to initialize common controls.",
+            GetLastError());
+
+        MessageBoxW(0, msg.data, L"Error", MB_ICONERROR);
         return false;
     }
 
-    hr = CoInitialize(nullptr);
+    hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
     if (FAILED(hr))
     {
-        MessageBoxW(0, L"Failed to initialize COM.", L"Error", MB_OK | MB_ICONERROR);
+        auto msg = Newstring::FormatCStringWithFallback(
+            L"Failed to initialize COM.\n\nError code was 0x%08X.",
+            L"Failed to initialize COM.",
+            hr);
+
+        return false;
+    }
+
+    return true;
+}
+
+bool InitializeAllocators()
+{
+    if (!g_tempAllocator.SetSize(1024))
+    {
+        MessageBoxW(0, L"Unable to initialize temporary allocator.", L"Error", MB_ICONERROR);
         return false;
     }
 

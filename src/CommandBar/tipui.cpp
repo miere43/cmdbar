@@ -147,7 +147,7 @@
 //	}
 //	else
 //	{
-//		data->currCommandText = (wchar_t*)malloc(sizeof(wchar_t) * (textLength + 1));
+//		data->currCommandText = (wchar_t*)::malloc(sizeof(wchar_t) * (textLength + 1));
 //		memcpy(data->currCommandText, text, sizeof(wchar_t) * textLength);
 //		data->currCommandText[textLength] = L'\0';
 //		data->currCommandLength = textLength;

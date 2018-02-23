@@ -42,7 +42,7 @@ struct String
     bool startsWith(const String& rhs, uint32_t numChars, StringComparison cmpmode = StringComparison::CaseSensitive) const;
 
 
-    static String alloc(uint32_t count, IAllocator* allocator = &g_standardAllocator);
+    static String Allocate(uint32_t count, IAllocator* allocator = &g_standardAllocator);
     static String clone(const char* string, uint32_t count, IAllocator* allocator = &g_standardAllocator);
     static String clone(const char* string, IAllocator* allocator = &g_standardAllocator);
     static String clone(const wchar_t* string, uint32_t count, IAllocator* allocator = &g_standardAllocator);

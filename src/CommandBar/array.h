@@ -66,10 +66,10 @@ struct Array {
 		count = 0;
 	}
 
-	void dealloc()
+	void Deallocate()
 	{
 		if (data != nullptr) {
-			allocator->dealloc(data);
+			allocator->Deallocate(data);
 			data = nullptr;
 		}
 	
@@ -81,7 +81,7 @@ struct Array {
 	{
 		if (data == nullptr)
 		{
-			data = static_cast<T*>(allocator->alloc(sizeof(T) * newCapacity));
+			data = static_cast<T*>(allocator->Allocate(sizeof(T) * newCapacity));
 			if (data == nullptr)
 				return false;
 			
@@ -92,14 +92,14 @@ struct Array {
 		}
 		else
 		{
-			T* newData = static_cast<T*>(allocator->alloc(sizeof(T) * newCapacity));
+			T* newData = static_cast<T*>(allocator->Allocate(sizeof(T) * newCapacity));
 			if (newData == nullptr)
 				return false;
 
 			if (data != nullptr && count > 0) {
 				// If newCapacity < count, this wouldn't work.
 				memcpy_s(newData, sizeof(T) * newCapacity, data, sizeof(T) * count);
-				allocator->dealloc(data);
+				allocator->Deallocate(data);
 			}
 			
 			capacity = newCapacity;

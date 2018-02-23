@@ -1,6 +1,6 @@
 #include "newstring.h"
 #include <wchar.h>
-
+#include <stdarg.h>
 
 Newstring::Newstring()
 { }
@@ -138,7 +138,7 @@ Newstring Newstring::Trimmed() const
 void Newstring::Dispose(IAllocator* allocator)
 {
     assert(allocator);
-    allocator->dealloc(data);
+    allocator->Deallocate(data);
     data  = nullptr;
     count = 0;
 }
@@ -164,7 +164,7 @@ Newstring Newstring::New(uint32_t count, IAllocator* allocator)
     assert(allocator);
     if (count == 0)  return Empty();
 
-    wchar_t* data = (wchar_t*)allocator->alloc(count * sizeof(wchar_t));
+    wchar_t* data = (wchar_t*)allocator->Allocate(count * sizeof(wchar_t));
     if (!data)  return Empty();
 
     data[0] = L'\0';
@@ -244,6 +244,146 @@ Newstring Newstring::Join(std::initializer_list<Newstring> strings, IAllocator* 
     }
 
     return ns;
+}
+
+Newstring Newstring::Format(const wchar_t* format, ...)
+{
+    assert(format);
+
+    va_list args;
+    va_start(args, format);
+
+    Newstring result = FormatWithAllocator(&g_standardAllocator, format, args, false);
+
+    va_end(args);
+
+    return result;
+}
+
+Newstring Newstring::FormatCString(const wchar_t* format, ...)
+{
+    assert(format);
+
+    va_list args;
+    va_start(args, format);
+
+    Newstring result = FormatWithAllocator(&g_standardAllocator, format, args, true);
+
+    va_end(args);
+
+    return result;
+}
+
+Newstring Newstring::FormatCStringWithFallback(const wchar_t* format, const wchar_t* fallback, ...)
+{
+    assert(fallback);
+    assert(format);
+
+    va_list args;
+    va_start(args, fallback);
+
+    Newstring result = FormatWithAllocator(&g_standardAllocator, format, args, true);
+    
+    va_end(args);
+
+    if (Newstring::IsNullOrEmpty(result))
+    {
+        result = Newstring::WrapConstWChar(fallback);
+        result.count += 1;  // Count terminating null.
+    }
+
+    return result;
+}
+
+Newstring Newstring::FormatTemp(const wchar_t * format, ...)
+{
+    assert(format);
+
+    va_list args;
+    va_start(args, format);
+
+    Newstring result = FormatWithAllocator(&g_tempAllocator, format, args, false);
+
+    va_end(args);
+
+    return result;
+}
+
+Newstring Newstring::FormatTempCString(const wchar_t * format, ...)
+{
+    assert(format);
+
+    va_list args;
+    va_start(args, format);
+
+    Newstring result = FormatWithAllocator(&g_tempAllocator, format, args, true);
+
+    va_end(args);
+
+    return result;
+}
+
+Newstring Newstring::FormatTempCStringWithFallback(const wchar_t* format, const wchar_t* fallback ...)
+{
+    assert(fallback);
+    assert(format);
+
+    va_list args;
+    va_start(args, fallback);
+
+    Newstring result = FormatWithAllocator(&g_tempAllocator, format, args, true);
+
+    va_end(args);
+
+    if (Newstring::IsNullOrEmpty(result))
+    {
+        result = Newstring::WrapConstWChar(fallback);
+        result.count += 1;  // Count terminating null.
+    }
+
+    return result;
+}
+
+Newstring Newstring::FormatWithAllocator(IAllocator* allocator, const wchar_t* format, ...)
+{
+    assert(allocator);
+    assert(format);
+
+    va_list args;
+    va_start(args, format);
+
+    Newstring result = FormatWithAllocator(allocator, format, args, false);
+
+    va_end(args);
+
+    return result;
+}
+
+Newstring Newstring::FormatWithAllocator(IAllocator* allocator, const wchar_t* format, va_list args, bool includeTerminatingNull)
+{
+    assert(allocator);
+    assert(format);
+
+    va_list argsCopy;
+    va_copy(argsCopy, args);
+
+    // Number of characters required to format specified string, **without terminating null**.
+    int charCount = _vscwprintf(format, argsCopy);
+
+    va_end(argsCopy);
+
+    assert(charCount != -1);
+
+    int allocCount = charCount + (includeTerminatingNull ? 1 : 0);
+
+    Newstring result = New(allocCount, allocator);
+    if (Newstring::IsNullOrEmpty(result))  return Empty();
+
+    int written = _vsnwprintf(result.data, allocCount, format, args);
+    assert(written == charCount);
+
+    result.count = written;
+    return result;
 }
 
 Newstring Newstring::WrapWChar(wchar_t* string)

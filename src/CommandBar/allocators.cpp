@@ -21,14 +21,14 @@ inline void* addBytesToPointer(void* pointer, uintptr_t size)
 	return (void*)((uintptr_t)pointer + size);
 }
 
-bool TempAllocator::setSize(uintptr_t size)
+bool TempAllocator::SetSize(uintptr_t size)
 {
 	dispose();
 
 	if (size == 0)
 		return true;
 
-	start = malloc(size);
+	start = ::malloc(size);
 	if (start == nullptr)
 		return false;
 
@@ -38,7 +38,7 @@ bool TempAllocator::setSize(uintptr_t size)
 	return true;
 }
 
-void* TempAllocator::alloc(uintptr_t size)
+void* TempAllocator::Allocate(uintptr_t size)
 {
 	if (start == nullptr)
 		return nullptr;
@@ -47,7 +47,7 @@ void* TempAllocator::alloc(uintptr_t size)
 	void* alignedPointer = addBytesToPointer(current, requiredAlignment);
 	if ((uintptr_t)alignedPointer + size > (uintptr_t)end)
 	{
-		UnfitAllocation* unfit = (UnfitAllocation*)malloc(sizeof(UnfitAllocation) + size + sizeof(void*));
+		UnfitAllocation* unfit = (UnfitAllocation*)::malloc(sizeof(UnfitAllocation) + size + sizeof(void*));
 
 		if (unfit == nullptr)
 			return nullptr;
@@ -63,18 +63,18 @@ void* TempAllocator::alloc(uintptr_t size)
 	}
 }
 
-void TempAllocator::dealloc(void * ptr)
+void TempAllocator::Deallocate(void * ptr)
 {
 	// I don't care :P
 }
 
-void* TempAllocator::realloc(void * block, uintptr_t size)
+void* TempAllocator::Reallocate(void * block, uintptr_t size)
 {
     assert(false);
     return nullptr;
 }
 
-void TempAllocator::clear()
+void TempAllocator::Reset()
 {
 	if (start != nullptr)
 		current = start;
@@ -82,7 +82,7 @@ void TempAllocator::clear()
 
 void TempAllocator::dispose()
 {
-	clear();
+	Reset();
 
     free(start);
 	start = current = end = nullptr;
@@ -116,7 +116,7 @@ void TempAllocator::addUnfit(UnfitAllocation * unfit)
 	}
 }
 
-void* StandardAllocator::alloc(uintptr_t size)
+void* StandardAllocator::Allocate(uintptr_t size)
 {
     void* block = ::malloc(size);
     if (block == nullptr) return nullptr;
@@ -125,7 +125,7 @@ void* StandardAllocator::alloc(uintptr_t size)
     return block;
 }
 
-void StandardAllocator::dealloc(void* block)
+void StandardAllocator::Deallocate(void* block)
 {
     if (block == nullptr) return;
 
@@ -136,7 +136,7 @@ void StandardAllocator::dealloc(void* block)
     ::free(block);
 }
 
-void* StandardAllocator::realloc(void* block, uintptr_t size)
+void* StandardAllocator::Reallocate(void* block, uintptr_t size)
 {
     uintptr_t oldSize = block ? static_cast<uintptr_t>(_msize(block)) : 0;
     block = ::realloc(block, size);
@@ -145,4 +145,18 @@ void* StandardAllocator::realloc(void* block, uintptr_t size)
 
     allocated = allocated - oldSize + newSize;
     return block;
+}
+
+void* operator new(size_t size, IAllocator * allocator)
+{
+    assert(allocator);
+
+    return allocator->Allocate(size);
+}
+
+void operator delete(void* block, IAllocator * allocator)
+{
+    assert(allocator);
+
+    allocator->Deallocate(block);
 }
