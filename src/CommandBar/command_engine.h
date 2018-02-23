@@ -24,6 +24,9 @@ struct CommandInfo
     CommandInfoFlags flags = CI_None;
 
     CommandInfo_CreateCommand createCommand = 0;
+
+	CommandInfo();
+	CommandInfo(String dataName, CommandInfoFlags flags, CommandInfo_CreateCommand command);
 };
 
 struct Command

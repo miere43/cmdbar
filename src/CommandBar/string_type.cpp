@@ -177,10 +177,10 @@ bool charToWideChar(const char* source, size_t sourceLength, wchar_t* destinatio
 
 int stringFindCharIndex(const wchar_t* str, uint32_t count, wchar_t c)
 {
-    for (int i = 0; i < count; ++i)
+    for (uint32_t i = 0; i < count; ++i)
     {
         if (str[i] == c)
-            return i;
+            return (int)i;
     }
 
     return -1;

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <windowsx.h>
+#include <math.h>
 
 #include "command_window.h"
 #include "CommandBar.h"

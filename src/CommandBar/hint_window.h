@@ -54,7 +54,7 @@ private:
     void setTimer(bool enabled);
 
     LRESULT wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-    static LRESULT staticWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    static LRESULT CALLBACK staticWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     static ATOM g_classAtom;
 };

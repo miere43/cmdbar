@@ -345,7 +345,7 @@ LRESULT HintWindow::wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
-LRESULT HintWindow::staticWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+LRESULT CALLBACK HintWindow::staticWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     HintWindow* window = nullptr;
 

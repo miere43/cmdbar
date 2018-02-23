@@ -70,7 +70,7 @@ bool Clipboard::getText(String* result)
 
 bool Clipboard::close()
 {
-    return CloseClipboard();
+    return !!CloseClipboard();
 }
 
 void Clipboard::debugDumpClipboardFormats()

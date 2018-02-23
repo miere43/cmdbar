@@ -206,7 +206,7 @@ Newstring GetCommandsFilePath()
 
         Newstring settingsNewText = Newstring::Join({
             Newstring::WrapConstWChar(L"cmds_path="),
-            Newstring{ cmdsFile.data, cmdsFile.count - 1 } // Don't count terminating zero. 
+            Newstring(cmdsFile.data, cmdsFile.count - 1) // Don't count terminating zero. 
         }); 
         defer(settingsNewText.Dispose());
         assert(!Newstring::IsNullOrEmpty(settingsNewText));

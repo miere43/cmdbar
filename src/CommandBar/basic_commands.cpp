@@ -81,8 +81,8 @@ void registerBasicCommands(CommandLoader* loader)
     Array<CommandInfo*>& cmds = loader->commandInfoArray;
 
     static CommandInfo bc[] = {
-        { CB_STRING_LITERAL(L"open_dir"), CI_None, openDir_createCommand },
-        { CB_STRING_LITERAL(L"run_app"), CI_None, runApp_createCommand }
+        CommandInfo(CB_STRING_LITERAL(L"open_dir"), CI_None, openDir_createCommand),
+        CommandInfo(CB_STRING_LITERAL(L"run_app"), CI_None, runApp_createCommand)
     };
 
     for (int i = 0; i < ARRAYSIZE(bc); ++i)

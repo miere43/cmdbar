@@ -94,7 +94,7 @@ Newstring unicode::DecodeString(const void* data, uint32_t dataSize, Encoding en
                 *buf++ = static_cast<wchar_t>(*strData++);
             *buf = L'\0';
 
-            return Newstring{ buf, bufCount };
+            return Newstring(buf, bufCount);
         }
         case Encoding::UTF8:
         {
@@ -130,7 +130,7 @@ Newstring unicode::DecodeString(const void* data, uint32_t dataSize, Encoding en
                 bufData = newBufData;
             }
 
-            return Newstring{ buf.data, buf.count };
+            return Newstring(buf.data, buf.count);
         }
     }
 

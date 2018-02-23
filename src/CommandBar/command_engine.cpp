@@ -119,3 +119,11 @@ bool CommandEngine::registerCommandInfo(CommandInfo* info)
     return knownCommandInfoArray.add(info);
 }
 
+CommandInfo::CommandInfo()
+{ }
+
+CommandInfo::CommandInfo(String dataName, CommandInfoFlags flags, CommandInfo_CreateCommand command)
+	: dataName(dataName)
+	, flags(flags)
+	, createCommand(command)
+{ }

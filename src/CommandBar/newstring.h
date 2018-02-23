@@ -8,6 +8,9 @@ struct Newstring
     wchar_t* data  = nullptr;
     uint32_t count = 0;
 
+	explicit Newstring();
+	explicit Newstring(wchar_t* data, uint32_t count);
+
     bool operator==(const Newstring& rhs) const;
     bool operator!=(const Newstring& rhs) const;
 

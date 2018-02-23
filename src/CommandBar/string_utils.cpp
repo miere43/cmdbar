@@ -40,7 +40,7 @@ bool StringUtils::parseInt(const String& text, int* result, int defaultValue)
     if (result == nullptr)
         return false;
 
-    if (text.isEmpty() || 1 != _snwscanf(text.data, text.count, L"%i", result))
+    if (text.isEmpty() || 1 != _snwscanf_s(text.data, text.count, L"%i", result))
     {
         *result = defaultValue;
         return false;

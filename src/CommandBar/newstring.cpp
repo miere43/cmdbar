@@ -2,6 +2,14 @@
 #include <wchar.h>
 
 
+Newstring::Newstring()
+{ }
+
+Newstring::Newstring(wchar_t* data, uint32_t count)
+	: data(data)
+	, count(count)
+{ }
+
 bool Newstring::operator==(const Newstring& rhs) const
 {
     if (IsNullOrEmpty(this) && IsNullOrEmpty(rhs))  return true;
@@ -117,7 +125,7 @@ Newstring Newstring::New(uint32_t count, IAllocator* allocator)
 
     data[0] = L'\0';
 
-    return { data, count };
+    return Newstring(data, count);
 }
 
 Newstring Newstring::NewFromWChar(const wchar_t* string, IAllocator* allocator)
@@ -205,7 +213,7 @@ Newstring Newstring::WrapWChar(wchar_t* string, uint32_t count)
 {
     if (!string || count == 0)  return Empty();
 
-    return { string, count };
+    return Newstring(string, count);
 }
 
 const Newstring Newstring::WrapConstWChar(const wchar_t* string)
@@ -219,10 +227,10 @@ const Newstring Newstring::WrapConstWChar(const wchar_t* string, uint32_t count)
 {
     if (!string || count == 0)  return Empty();
 
-    return { (wchar_t*)string, count };
+    return Newstring((wchar_t*)string, count);
 }
 
 Newstring Newstring::Empty()
 {
-    return { nullptr, 0 };
+    return Newstring(nullptr, 0);
 }
