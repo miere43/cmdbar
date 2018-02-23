@@ -1,13 +1,11 @@
 #pragma once
-struct String;
+#include "newstring.h"
 
 
 struct Clipboard
 {
-    static bool open(HWND owner);
-    static bool copyText(const wchar_t* str, int count);
-    static bool getText(String* result);
-    static bool close();
-
-    static void debugDumpClipboardFormats();
+    static bool Open(HWND owner);
+    static bool CopyText(const Newstring& text);
+    static bool GetText(Newstring* text);
+    static bool Close();
 };

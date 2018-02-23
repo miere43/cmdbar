@@ -25,59 +25,6 @@ String OSUtils::formatErrorCode(DWORD errorCode, DWORD languageID, IAllocator* a
 	return msg;
 }
 
-void* OSUtils::readFileContents(const String& fileName, uint32_t* fileSize, IAllocator* allocator)
-{
-	if (allocator == nullptr || fileSize == nullptr)
-		return nullptr;
-
-	HANDLE handle = CreateFileW(fileName.data, FILE_READ_ACCESS, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-	if (handle == INVALID_HANDLE_VALUE)
-		return nullptr;
-
-	LARGE_INTEGER size;
-	if (!GetFileSizeEx(handle, &size) || size.LowPart == 0)
-		goto exitCloseHandle;
-
-	void* data = allocator->alloc(size.LowPart);
-	if (data == nullptr)
-		goto exitCloseHandle;
-
-	DWORD abcd;
-	if (!ReadFile(handle, data, size.LowPart, &abcd, nullptr) || abcd != size.LowPart)
-		goto exitFreeData;
-
-	CloseHandle(handle);
-	*fileSize = size.LowPart;
-
-	return data;
-
-exitFreeData:
-	allocator->dealloc(data);
-exitCloseHandle:
-	CloseHandle(handle);
-	return nullptr;
-}
-
-String OSUtils::readAllText(const String& fileName, Encoding encoding, IAllocator* allocator)
-{
-    assert(allocator);
-
-	encoding = normalizeEncoding(encoding);
-	if (encoding == Encoding::Unknown)
-		return String::null;
-
-	uint32_t fileSize = 0;
-	void* data = readFileContents(fileName, &fileSize, allocator);
-
-	if (data == nullptr)
-		return String::null;
-
-    String result = unicode::decodeString(data, fileSize, encoding, allocator);
-	allocator->dealloc(data);
-
-    return result;
-}
-
 String OSUtils::getDirectoryFromFileName(const String& fileName, IAllocator* allocator)
 {
     assert(allocator != nullptr);
@@ -241,22 +188,6 @@ bool OSUtils::WriteAllText(const Newstring& fileName, const Newstring& text, Enc
     return result;
 }
 
-void OSUtils::truncateFileNameToDirectory(String* fileName)
-{
-    assert(fileName != nullptr);
-
-    if (fileName->isEmpty())
-        return;
-
-    int backSlash    = fileName->lastIndexOf(L'\\');
-    int forwardSlash = fileName->lastIndexOf(L'/');
-
-    int slash = math::max(backSlash, forwardSlash);
-
-    if (slash != -1)
-        *fileName = fileName->substring(0, slash);
-}
-
 Newstring OSUtils::MaybeReallocAsZeroTerminated(const Newstring & fileName)
 {
     return fileName.IsZeroTerminated() ? fileName : fileName.CloneAsCString();
@@ -266,28 +197,6 @@ void OSUtils::MaybeDisposeZeroTerminated(const Newstring& originalFileName, News
 {
     if (originalFileName.data != actualFileName->data)
         actualFileName->Dispose();
-}
-
-void OSUtils::getApplicationDirectory(StringBuilder* builder)
-{
-    assert(builder != nullptr);
-    assert(builder->allocator != nullptr);
-
-    const DWORD count = MAX_PATH + 1;
-    builder->reserve(builder->str.count + count);
-
-    DWORD actualCount = GetModuleFileNameW(
-        GetModuleHandleW(0), 
-        &builder->str.data[builder->str.count],
-        builder->capacity - builder->str.count);
-    if (actualCount >= count)
-    {
-        // @TODO
-        assert(false);
-    }
-
-    builder->str.count = actualCount - 1;
-    truncateFileNameToDirectory(&builder->str);
 }
 
 void OSUtils::GetApplicationDirectory(NewstringBuilder* sb)
@@ -338,12 +247,5 @@ bool OSUtils::FileExists(const Newstring& fileName)
     MaybeDisposeZeroTerminated(fileName, &actualFileName);
 
     return result;
-}
-
-bool OSUtils::fileExists(const String & fileName)
-{
-    DWORD attrs = GetFileAttributesW(fileName.data);
-
-    return attrs != 0 && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
 }
 

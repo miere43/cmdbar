@@ -55,10 +55,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 	CommandWindowStyle windowStyle;
     initDefaultStyle(&windowStyle);
 
-    String styleFilePath = String(L"D:/Vlad/cb/style.ini");
-    if (OSUtils::fileExists(styleFilePath))
+    Newstring styleFilePath = Newstring::WrapConstWChar(L"D:/Vlad/cb/style.ini");
+    if (OSUtils::FileExists(styleFilePath))
     {
-        if (!CommandWindowStyleLoader::loadFromFile(styleFilePath, &windowStyle))
+        if (!CommandWindowStyleLoader::LoadFromFile(styleFilePath, &windowStyle))
         {
             initDefaultStyle(&windowStyle);
             MessageBoxW(0, L"Failed to load style.", L"Error", MB_OK | MB_ICONERROR);
@@ -217,11 +217,11 @@ Newstring GetCommandsFilePath()
     else
     {
         INIParser ps;
-        ps.init(String{ settingsText.data, settingsText.count });
+        ps.Initialize(settingsText);
 
-        while (ps.next())
+        while (ps.Next())
         {
-            if (ps.type == INIValueType::KeyValuePair && ps.key.equals(L"cmds_path"))
+            if (ps.type == INIValueType::KeyValuePair && ps.key == L"cmds_path")
             {
                 cmdsFile = Newstring::NewFromWChar(ps.value.data, ps.value.count);
                 break;
@@ -231,18 +231,6 @@ Newstring GetCommandsFilePath()
 
     return cmdsFile;
 }
-
-//String getCommandsFilePath()
-//{
-//    StringBuilder sb;
-//    sb.allocator = &g_standardAllocator;
-//
-//    OSUtils::getApplicationDirectory(&sb);
-//    sb.appendString(L"\\cmds.ini");
-//    sb.appendChar(L'\0');
-//
-//    return sb.str;
-//}
 
 bool InitializeLibraries()
 {

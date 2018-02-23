@@ -1,6 +1,6 @@
 #pragma once
 #include "string_type.h"
-
+#include "newstring.h"
 
 enum class INIValueType
 {
@@ -17,22 +17,21 @@ struct INIParser
     {
         struct
         {
-            String key;
-            String value;
+            Newstring key;
+            Newstring value;
         };
         struct
         {
-            String group;
+            Newstring group;
         };
     };
 
     INIParser();
 
-    String source;
+    Newstring source;
     uint32_t sourceIndex;
-    
     uint32_t currentLine;
-    void init(String source);
 
-    bool next();
+    void Initialize(Newstring source);
+    bool Next();
 };

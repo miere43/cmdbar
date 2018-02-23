@@ -14,6 +14,9 @@ struct Newstring
     bool operator==(const Newstring& rhs) const;
     bool operator!=(const Newstring& rhs) const;
 
+    bool operator==(const wchar_t* rhs) const;
+    bool operator!=(const wchar_t* rhs) const;
+
     int IndexOf(wchar_t c) const;
     int LastIndexOf(wchar_t c) const;
 
@@ -24,8 +27,12 @@ struct Newstring
     // Returns number of characters copied.
     uint32_t CopyTo(Newstring* dest, uint32_t fromIndex = 0, uint32_t destIndex = 0, uint32_t copyCount = UINT32_MAX) const;
 
+    Newstring RefSubstring(uint32_t index, uint32_t count = 0xFFFFFFFF) const;
+
     Newstring Clone(IAllocator* allocator = &g_standardAllocator);
     Newstring CloneAsCString(IAllocator* allocator = &g_standardAllocator) const;
+
+    Newstring Trimmed() const;
 
     void Dispose(IAllocator* allocator = &g_standardAllocator);
 

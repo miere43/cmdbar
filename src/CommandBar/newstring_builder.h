@@ -26,6 +26,11 @@ struct NewstringBuilder
     //void Insert(uint32_t pos, wchar_t c);
     void ZeroTerminate();
 
+    void Insert(uint32_t pos, const Newstring& string);
+    void Insert(uint32_t pos, wchar_t c);
+
+    void Remove(uint32_t pos, uint32_t count);
+
     uint32_t GetRemainingCapacity() const;
 
     bool Reserve(uint32_t newCapacity);

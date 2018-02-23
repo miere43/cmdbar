@@ -25,25 +25,12 @@ struct OSUtils
 
     static bool FileExists(const Newstring& fileName);
 
-	static inline Encoding normalizeEncoding(Encoding encoding) {
+	static inline Encoding normalizeEncoding(Encoding encoding)
+    {
 		if (encoding < (Encoding)0 || encoding >= Encoding::MAX_VALUE)
 			return Encoding::Unknown;
 		return encoding;
 	}
-
-
-
-
-
-
-
-
-    static bool fileExists(const String& fileName); // @Deprecated
-    static void*  readFileContents(const String& fileName, uint32_t* fileSize, IAllocator* allocator = &g_standardAllocator); // @Deprecated
-    static String readAllText(const String& fileName, Encoding encoding = Encoding::UTF8, IAllocator* allocator = &g_standardAllocator); // @Deprecated
-    static void getApplicationDirectory(StringBuilder* builder); // @Deprecated
-    static void truncateFileNameToDirectory(String* fileName); // @Deprecated
-
 private:
     static Newstring MaybeReallocAsZeroTerminated(const Newstring& fileName);
     static void MaybeDisposeZeroTerminated(const Newstring& originalFileName, Newstring* actualFileName);

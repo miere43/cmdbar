@@ -8,19 +8,22 @@
 Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
 {
     // @TODO
-    Newstring interopSource = OSUtils::ReadAllText(filePath, Encoding::UTF8);
-    source = String { interopSource.data, interopSource.count };
+    Newstring source = OSUtils::ReadAllText(filePath, Encoding::UTF8);
+    if (Newstring::IsNullOrEmpty(source))
+    {
+        MessageBoxW(0, L"Unable to load source file.", L"Error", MB_ICONERROR);
+    }
 
     INIParser p;
     Array<Command*> cmds;
     Array<String> keys;
     Array<String> values;
     CommandInfo* currCmdInfo = nullptr;
-    String currCmdName;
+    Newstring currCmdName;
 
-    p.init(source);
+    p.Initialize(source);
 
-    while (p.next())
+    while (p.Next())
     {
         switch (p.type)
         {
@@ -28,31 +31,31 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
                 if (currCmdInfo != nullptr)
                 {
                     Command* cmd = currCmdInfo->createCommand(keys, values);
-                    assert(!currCmdName.isEmpty());
-                    cmd->name = String::clone(currCmdName);
+                    assert(!Newstring::IsNullOrEmpty(currCmdName));
+                    cmd->name = String::clone(String(currCmdName.data, currCmdName.count));
                     cmd->info = currCmdInfo;
                     assert(cmd);
                     cmds.add(cmd);
-                    currCmdName = String{ 0 , 0 };
+                    currCmdName = Newstring::Empty();
                 }
 
                 keys.clear();
                 values.clear();
-                currCmdInfo = findCommandInfoByName(p.group);
+                currCmdInfo = findCommandInfoByName(String(p.group.data, p.group.count));
                 assert(currCmdInfo);
 
                 break;
             case INIValueType::KeyValuePair:
-                if (p.key.equals(L"name"))
+                if (p.key == L"name")
                 {
-                    assert(!p.value.isEmpty());
-                    assert(currCmdName.isEmpty());
+                    assert(!Newstring::IsNullOrEmpty(p.value));
+                    assert(Newstring::IsNullOrEmpty(currCmdName));
                     currCmdName = p.value;
                 }
                 else
                 {
-                    keys.add(p.key);
-                    values.add(p.value);
+                    keys.add(String(p.key.data, p.key.count));
+                    values.add(String(p.value.data, p.value.count));
                 }
 
                 break;
@@ -65,12 +68,12 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
     if (currCmdInfo != nullptr)
     {
         Command* cmd = currCmdInfo->createCommand(keys, values);
-        assert(!currCmdName.isEmpty());
-        cmd->name = String::clone(currCmdName);
+        assert(!Newstring::IsNullOrEmpty(currCmdName));
+        cmd->name = String::clone(String(currCmdName.data, currCmdName.count));
         cmd->info = currCmdInfo;
         assert(cmd);
         cmds.add(cmd);
-        currCmdName = String{ 0 , 0 };
+        currCmdName = Newstring::Empty();
     }
 
     return cmds;

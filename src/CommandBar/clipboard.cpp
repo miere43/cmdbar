@@ -6,32 +6,32 @@
 #include "string_type.h"
 
 
-bool Clipboard::open(HWND owner)
+bool Clipboard::Open(HWND owner)
 {
     return !!OpenClipboard(owner);
 }
 
-bool Clipboard::copyText(const wchar_t* str, int count)
+bool Clipboard::CopyText(const Newstring& text)
 {
-    assert(!!EmptyClipboard());
-    assert(count >= 0);
-    if (count == 0)
-        return true;
+    ::EmptyClipboard();
+    if (Newstring::IsNullOrEmpty(text))  return true;
 
-    const size_t strSize = (count + 1) * sizeof(wchar_t);
+    const size_t strSize = (text.count + 1) * sizeof(wchar_t);
 
     HGLOBAL mem = GlobalAlloc(GMEM_MOVEABLE, strSize);
     if (mem == 0) return false;
 
     void* block = GlobalLock(mem);
-    wmemcpy((wchar_t*)block, str, strSize);
+    wmemcpy((wchar_t*)block, text.data, strSize);
     GlobalUnlock(mem);
 
     return 0 != SetClipboardData(CF_UNICODETEXT, mem);
 }
 
-bool Clipboard::getText(String* result)
+bool Clipboard::GetText(Newstring* result)
 {
+    assert(result);
+
     HGLOBAL mem = GetClipboardData(CF_UNICODETEXT);
     if (mem == 0)
         return false;
@@ -47,19 +47,21 @@ bool Clipboard::getText(String* result)
         return false;
     }
     
-    int maxCount = static_cast<int>((memSize - 1) / sizeof(wchar_t)); // Don't count terminating null.
-    *result = String::alloc(maxCount);
-    assert(!result->isEmpty());
+    uint32_t maxCount = (memSize - 1) / sizeof(wchar_t); // Don't count terminating null.
+    *result = Newstring::New(maxCount + 1);
+    assert(!Newstring::IsNullOrEmpty(result));
 
-    int i = 0;
+    uint32_t i = 0;
+    uint32_t actual = 0;
     for (; i < maxCount; ++i)
     {
         wchar_t c = text[i];
         if (c == '\r' || c == '\n') continue;
         if (c == '\0') break;
         result->data[i] = c;
+        ++actual;
     }
-    result->count = i;
+    result->count = actual;
     result->data[result->count] = L'\0';
 
     GlobalUnlock(mem);
@@ -68,41 +70,7 @@ bool Clipboard::getText(String* result)
     return true;
 }
 
-bool Clipboard::close()
+bool Clipboard::Close()
 {
     return !!CloseClipboard();
-}
-
-void Clipboard::debugDumpClipboardFormats()
-{
-    int count = CountClipboardFormats();
-    if (count == 0)
-    {
-        DWORD err = GetLastError();
-        if (err != NO_ERROR)
-            __debugbreak();
-        else
-            OutputDebugStringW(L"no clipboard formats\n");
-        return;
-    }
-
-    wchar_t buf[512];
-    wchar_t* bufCurr = buf;
-    
-    UINT format = 0;
-    do
-    {
-        format = EnumClipboardFormats(format);
-        bufCurr += wsprintfW(bufCurr, L"%d ", format);
-
-    } while (format != 0);
-
-    if (GetLastError() == ERROR_SUCCESS)
-    {
-        *bufCurr++ = L'\n';
-        *bufCurr++ = L'\0';
-        OutputDebugStringW(buf);
-    }
-    else
-        __debugbreak();
 }

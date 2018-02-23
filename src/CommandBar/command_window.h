@@ -6,7 +6,8 @@
 
 #include "taskbar_icon.h"
 #include "command_engine.h"
-
+#include "newstring.h"
+#include "newstring_builder.h"
 
 struct CommandWindowStyle;
 
@@ -64,8 +65,7 @@ public:
     void clearSelection();
     bool getSelectionRange(int* rangeStart, int* rangeLength);
 
-    String textBuffer;
-    uint32_t textBufferMaxLength = 512;
+    NewstringBuilder textBuffer;
     uint32_t cursorPos = 0;
     Command* autocompletionCandidate = nullptr;
 
@@ -106,9 +106,9 @@ public:
 
     void updateAutocompletion();
 
-    inline bool isTextBufferFilled()
+    inline bool isTextBufferFilled() // @Deprecated
     {
-        return textBuffer.count >= textBufferMaxLength;
+        return textBuffer.count >= textBuffer.capacity;
     }
     inline bool isTextSelected()
     {

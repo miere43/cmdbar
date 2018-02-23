@@ -70,6 +70,49 @@ void NewstringBuilder::ZeroTerminate()
     }
 }
 
+void NewstringBuilder::Insert(uint32_t pos, const Newstring& string)
+{
+    if (Newstring::IsNullOrEmpty(string))  return;
+    if (!Reserve(count + string.count))  return;
+
+    // Move right string builder part.
+    uint32_t moveIndex = pos + string.count;
+    uint32_t moveCount = this->count - pos;
+
+    wmemmove(&data[moveIndex], &data[pos], moveCount);
+
+    // Insert.
+    wmemmove(&data[pos], string.data, string.count);
+
+    this->count += string.count;
+}
+
+void NewstringBuilder::Insert(uint32_t pos, wchar_t c)
+{
+    wchar_t copy = c;
+    Newstring ns(&copy, 1);
+    return Insert(pos, ns);
+}
+
+void NewstringBuilder::Remove(uint32_t pos, uint32_t count)
+{
+    assert(pos + count <= this->count);
+
+    if (pos == this->count - count)
+    {
+        this->count -= count;
+        return;
+    }
+
+    uint32_t moveIndex = pos + count;
+    uint32_t moveCount = this->count - pos - count;
+    if (moveCount == 0)  return;
+
+    wmemmove(&data[pos], &data[moveIndex], moveCount);
+
+    this->count -= count;
+}
+
 uint32_t NewstringBuilder::GetRemainingCapacity() const
 {
     if (!data || capacity == 0)  return 0;

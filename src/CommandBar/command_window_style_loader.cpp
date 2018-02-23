@@ -2,29 +2,30 @@
 #include "parse_ini.h"
 #include "os_utils.h"
 #include "string_utils.h"
+#include "newstring.h"
 
-bool CommandWindowStyleLoader::loadFromFile(const String& filePath, CommandWindowStyle* style)
+bool CommandWindowStyleLoader::LoadFromFile(const Newstring& filePath, CommandWindowStyle* style)
 {
-    if (filePath.isEmpty() || style == nullptr)
+    if (Newstring::IsNullOrEmpty(filePath) || style == nullptr)
         return false;
 
-    String text = OSUtils::readAllText(filePath);
-    if (text.isEmpty())
+    Newstring text = OSUtils::ReadAllText(filePath);
+    if (Newstring::IsNullOrEmpty(text))
         return false;
 
     INIParser p;
-    p.init(text);
+    p.Initialize(text);
 
-    while (p.next())
+    while (p.Next())
     {
         switch (p.type)
         {
             case INIValueType::KeyValuePair:
             {
-                if (p.key.equals(L"borderSize", StringComparison::CaseInsensitive))
+                if (p.key == L"borderSize")
                 {
                     int borderSize;
-                    if (!StringUtils::parseInt(p.value, &borderSize, 0))
+                    if (!StringUtils::ParseInt32(p.value, &borderSize, 0))
                         return false;
                     style->borderSize = borderSize;
                 }

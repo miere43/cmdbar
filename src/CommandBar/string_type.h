@@ -54,12 +54,7 @@ struct String
 
 
 bool split(const String& string, Array<String>* splits, uint32_t maxSplits = UINT32_MAX);
-bool removeCharAt(wchar_t* string, size_t stringLength, size_t pos);
-bool removeRange(wchar_t* string, size_t stringLength, size_t rangeStart, size_t rangeLength);
-bool insertCharAt(wchar_t* string, size_t stringLength, size_t stringMaxLength, size_t pos, wchar_t charToAdd);
-String join(const String& seperator, const String* strings[], uint32_t stringsArrayLength, IAllocator* allocator = &g_standardAllocator);
 bool charToWideChar(const char* source, size_t sourceLength, wchar_t* destination, size_t destinationLength);
-
 
 int stringFindCharIndex(const wchar_t* str, uint32_t count, wchar_t c);
 bool stringStartsWith(const wchar_t* str, uint32_t strCount, const wchar_t* substr, uint32_t substrCount, bool caseSensitive);

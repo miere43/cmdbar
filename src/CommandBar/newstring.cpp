@@ -13,10 +13,21 @@ Newstring::Newstring(wchar_t* data, uint32_t count)
 bool Newstring::operator==(const Newstring& rhs) const
 {
     if (IsNullOrEmpty(this) && IsNullOrEmpty(rhs))  return true;
-    return count == rhs.count && wcsncmp(data, rhs.data, count);
+    return count == rhs.count && wcsncmp(data, rhs.data, count) == 0;
 }
 
 bool Newstring::operator!=(const Newstring & rhs) const
+{
+    return !operator==(rhs);
+}
+
+bool Newstring::operator==(const wchar_t* rhs) const
+{
+    Newstring wrapper = Newstring::WrapConstWChar(rhs);
+    return operator==(wrapper);
+}
+
+bool Newstring::operator!=(const wchar_t * rhs) const
 {
     return !operator==(rhs);
 }
@@ -71,6 +82,22 @@ uint32_t Newstring::CopyTo(Newstring* dest, uint32_t fromIndex, uint32_t destInd
     return copyCount;
 }
 
+Newstring Newstring::RefSubstring(uint32_t index, uint32_t count) const
+{
+    if (IsNullOrEmpty(this))  return Empty();
+
+    if (index > this->count - 1)
+        index = this->count - 1;
+    if (count > this->count) 
+        count = this->count - index;
+
+    Newstring result;
+    result.data  = this->data + index;
+    result.count = count;
+
+    return result;
+}
+
 Newstring Newstring::Clone(IAllocator* allocator)
 {
     assert(allocator);
@@ -89,6 +116,23 @@ Newstring Newstring::CloneAsCString(IAllocator* allocator) const
     ns.data[ns.count - 1] = L'\0';
 
     return ns;
+}
+
+Newstring Newstring::Trimmed() const
+{
+    if (Newstring::IsNullOrEmpty(this))  return Empty();
+
+    uint32_t i;
+    for (i = 0; i < count; ++i)
+        if (!(data[i] == L' ' || data[i] == L'\t'))
+            break;
+
+    uint32_t j;
+    for (j = count; j > i; --j)
+        if (!(data[j - 1] == L' ' || data[j - 1] == L'\t'))
+            break;
+
+    return Newstring(data + i, j);
 }
 
 void Newstring::Dispose(IAllocator* allocator)

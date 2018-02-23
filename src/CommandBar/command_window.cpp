@@ -11,6 +11,7 @@
 #include "string_utils.h"
 #include "string_builder.h"
 #include "edit_commands_window.h"
+#include "defer.h"
 
 
 LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -127,7 +128,7 @@ void CommandWindow::updateTextLayout(bool forced)
 
         HRESULT hr;
 
-        int spaceIndex = textBuffer.indexOf(L' ');
+        int spaceIndex = textBuffer.string.IndexOf(L' ');
 
         hr = dwrite->CreateTextLayout(
             textBuffer.data,
@@ -189,17 +190,8 @@ LRESULT CommandWindow::onChar(wchar_t c)
 
     if (isTextSelected())
     {
-        bool s = removeRange(textBuffer.data, textBuffer.count, selectionPos, selectionLength);
-        if (s)
-            textBuffer.count -= selectionLength;
-        else
-            return 0;
-
-        s = insertCharAt(textBuffer.data, textBuffer.count, textBufferMaxLength, selectionPos, c);
-        if (s)
-            ++textBuffer.count;
-        else
-            return 0;
+        textBuffer.Remove(selectionPos, selectionLength);
+        textBuffer.Insert(selectionPos, c);
 
         cursorPos = selectionPos + 1;
         clearSelection();
@@ -212,10 +204,7 @@ LRESULT CommandWindow::onChar(wchar_t c)
     }
     else
     {
-        if (!insertCharAt(textBuffer.data, textBuffer.count, textBufferMaxLength, cursorPos, c))
-            return 0;
-
-        ++textBuffer.count;
+        textBuffer.Insert(cursorPos, c);
         ++cursorPos;
 
         onTextChanged();
@@ -250,35 +239,8 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
             break;
         }
         // Backspace
+        // Delete
         case VK_BACK:
-        {
-            shouldDrawCursor = true;
-            setCursorTimer();
-
-            if (selectionLength != 0)
-            {
-                if (removeRange(textBuffer.data, textBuffer.count, selectionPos, selectionLength))
-                {
-                    textBuffer.count -= selectionLength;
-                    textBuffer.data[textBuffer.count] = L'\0';
-                    if (selectionInitialPos <= cursorPos)
-                        cursorPos -= selectionLength;
-                    selectionLength = 0;
-                }
-            }
-            else if (cursorPos != 0 && removeCharAt(textBuffer.data, textBuffer.count, cursorPos - 1))
-            {
-                --textBuffer.count;
-                textBuffer.data[textBuffer.count] = L'\0';
-                --cursorPos;
-            }
-
-            onTextChanged();
-            redraw();
-
-            break;
-        }
-
         case VK_DELETE:
         {
             shouldDrawCursor = true;
@@ -286,19 +248,22 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
 
             if (selectionLength != 0)
             {
-                if (removeRange(textBuffer.data, textBuffer.count, selectionPos, selectionLength))
-                {
-                    textBuffer.count -= selectionLength;
-                    textBuffer.data[textBuffer.count] = L'\0';
-                    if (selectionInitialPos <= cursorPos)
-                        cursorPos -= selectionLength;
-                    selectionLength = 0;
-                }
+                textBuffer.Remove(selectionPos, selectionLength);
+                if (selectionInitialPos <= cursorPos)
+                    cursorPos -= selectionLength;
+                selectionLength = 0;
             }
-            else if (removeCharAt(textBuffer.data, textBuffer.count, cursorPos))
+            else
             {
-                textBuffer.data[textBuffer.count] = '\0';
-                --textBuffer.count;
+                if (vk == VK_BACK && cursorPos != 0)
+                {
+                    textBuffer.Remove(cursorPos - 1, 1);
+                    --cursorPos;
+                }
+                else if (vk == VK_DELETE && cursorPos < textBuffer.count)
+                {
+                    textBuffer.Remove(cursorPos, 1);
+                }
             }
 
             onTextChanged();
@@ -416,14 +381,14 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
     {
         if (!isTextSelected())
             return 0;
-        if (!Clipboard::open(hwnd))
+        if (!Clipboard::Open(hwnd))
             assert(false);
 
-        String copyStr = textBuffer.substring(selectionPos, selectionLength);
-        bool copied = Clipboard::copyText(copyStr.data, copyStr.count);
+        Newstring copyStr = textBuffer.string.RefSubstring(selectionPos, selectionLength);
+        bool copied = Clipboard::CopyText(copyStr);
         assert(copied);
 
-        Clipboard::close();
+        Clipboard::Close();
 
         onTextChanged();
         shouldDrawCursor = true;
@@ -433,32 +398,26 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
     }
     else if (ctrlPressed && vk == L'V')
     {
-        if (!Clipboard::open(hwnd))
+        if (!Clipboard::Open(hwnd))
             assert(false);
 
-        String textToCopy = { 0, 0 };
-        bool copied = Clipboard::getText(&textToCopy);
+        Newstring textToCopy;
+        bool copied = Clipboard::GetText(&textToCopy);
         assert(copied);
 
-        Clipboard::close();
+        defer(textToCopy.Dispose());
 
-        if (textToCopy.isEmpty())
+        Clipboard::Close();
+
+        if (Newstring::IsNullOrEmpty(textToCopy))
         {
-            g_standardAllocator.dealloc(textToCopy.data);
             return 0;
         }
 
         if (isTextSelected())
         {
-            bool s = removeRange(textBuffer.data, textBuffer.count, selectionPos, selectionLength);
-            assert(s);
-
-            textBuffer.count -= selectionLength;
-
-            s = StringUtils::insertChars(textBuffer.data, textBuffer.count, textBufferMaxLength, textToCopy.data, textToCopy.count, selectionPos);
-            assert(s);
-
-            textBuffer.count += textToCopy.count;
+            textBuffer.Remove(selectionPos, selectionLength);
+            textBuffer.Insert(selectionPos, textToCopy);
 
             cursorPos = selectionPos + textToCopy.count;
             clearSelection();
@@ -471,11 +430,8 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
         }
         else
         {
-            bool s = StringUtils::insertChars(textBuffer.data, textBuffer.count, textBufferMaxLength, textToCopy.data, textToCopy.count, cursorPos);
-            assert(s);
+            textBuffer.Insert(cursorPos, textToCopy);
 
-            textBuffer.count += textToCopy.count;
-            
             cursorPos += textToCopy.count;
 
             onTextChanged();
@@ -485,7 +441,6 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
             redraw();
         }
 
-        g_standardAllocator.dealloc(textToCopy.data);
         return 0;
     }
 
@@ -973,11 +928,7 @@ bool CommandWindow::init(int windowWidth, int windowHeight)
 
     commandEngine->setBeforeRunCallback(beforeRunCallback, this);
 
-    textBufferMaxLength = 512;
-    textBuffer.count = 0;
-    textBuffer.data = static_cast<wchar_t*>(malloc(textBufferMaxLength * sizeof(textBuffer.data[0])));
-    if (textBuffer.data == nullptr)
-        return false;
+    assert(textBuffer.Reserve(512));
 
     setCursorTimer();
 
@@ -1135,7 +1086,7 @@ int CommandWindow::enterEventLoop()
 
 void CommandWindow::evaluate()
 {
-    if (!commandEngine->evaluate(textBuffer))
+    if (!commandEngine->evaluate(String(textBuffer.string.data, textBuffer.string.count)))
     {
         MessageBoxW(hwnd, L"Unknown command", L"Error", MB_OK | MB_ICONERROR);
         SetFocus(hwnd); // We lose focus after MessageBox.s

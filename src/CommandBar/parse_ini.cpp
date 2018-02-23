@@ -7,30 +7,30 @@ INIParser::INIParser()
 {
 }
 
-void INIParser::init(String source)
+void INIParser::Initialize(Newstring source)
 {
     this->source = source;
     this->currentLine = 0;
     this->sourceIndex = 0;
 }
 
-bool INIParser::next()
+bool INIParser::Next()
 {
     if (sourceIndex >= source.count)
         return false;
     if (source.data == nullptr)
         return false;
 
-    String currSource = source.substring(sourceIndex);
-    String line;
+    Newstring currSource = source.RefSubstring(sourceIndex);
+    Newstring line;
     int lineBreakLength;
 
-    ParseUtils::getLine(currSource, &line, &lineBreakLength);
+    ParseUtils::GetLine(currSource, &line, &lineBreakLength);
     sourceIndex += line.count + lineBreakLength;
 
-    line = line.trimmed();
+    line = line.Trimmed();
 
-    if (line.isEmpty())
+    if (Newstring::IsNullOrEmpty(line))
     {
         this->type = INIValueType::None;
     }
@@ -44,11 +44,11 @@ bool INIParser::next()
         }
 
         this->type = INIValueType::Group;
-        this->group = line.substring(1, line.count - 2);
+        this->group = line.RefSubstring(1, line.count - 2);
     }
     else
     {
-        int sepIndex = line.indexOf(L'=');
+        int sepIndex = line.IndexOf(L'=');
         if (sepIndex == -1)
         {
             // No value present for key-value pair.
@@ -56,9 +56,9 @@ bool INIParser::next()
             return true;
         }
 
-        this->type = INIValueType::KeyValuePair;
-        this->key = line.substring(0, sepIndex).trimmed();
-        this->value = line.substring(sepIndex + 1).trimmed();
+        this->type  = INIValueType::KeyValuePair;
+        this->key   = line.RefSubstring(0,  sepIndex).Trimmed();
+        this->value = line.RefSubstring(sepIndex + 1).Trimmed();
     }
 
     return true;
