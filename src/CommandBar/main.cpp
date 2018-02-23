@@ -85,12 +85,13 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     for (uint32_t i = 0; i < commands.count; ++i)
         commandEngine.registerCommand(commands.data[i]);
 
-    bool initialized = commandWindow.Initialize(400, 40);
-    assert(initialized);
+    if (wcscmp(lpCmdLine, L"/noshow") == 0)
+        nCmdShow = 0;
+    else
+        nCmdShow = SW_SHOW;
 
-	String commandLine{ lpCmdLine };
-	if (commandLine.indexOf(String(L"/noshow")) == -1)
-		commandWindow.showAfterAllEventsProcessed(); // Make sure all controls are initialized.
+    bool initialized = commandWindow.Initialize(400, 40, nCmdShow);
+    assert(initialized);
 
     MSG msg;
     uint32_t ret;

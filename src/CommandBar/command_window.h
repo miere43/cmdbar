@@ -13,11 +13,10 @@ struct CommandWindowStyle;
 
 struct CommandWindow
 {
-	bool Initialize(int windowWidth, int windowHeight);
+	bool Initialize(int windowWidth, int windowHeight, int nCmdShow);
 
-	void showWindow();
-	void showAfterAllEventsProcessed();
-	void hideWindow();
+	void ShowWindow();
+	void HideWindow();
 	void toggleVisibility();
 
 	void exit();
@@ -125,7 +124,7 @@ private:
     };
 
     // This function blocks!
-    void animateWindow(WindowAnimation animation);
+    void AnimateWindow(WindowAnimation animation);
 };
 
 struct CommandWindowStyle

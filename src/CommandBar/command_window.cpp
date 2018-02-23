@@ -31,11 +31,6 @@ enum
     CURSOR_BLINK_TIMER_ID = 0
 };
 
-enum class CustomMessage
-{
-    ShowAfterAllEventsProcessed = WM_USER + 14
-};
-
 bool CommandWindow::initGlobalResources(HINSTANCE hInstance)
 {
     if (g_globalResourcesInitialized)
@@ -216,7 +211,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
         {
             if (IsWindowVisible(hwnd))
             {
-                hideWindow();
+                HideWindow();
             }
 
             break;
@@ -508,7 +503,7 @@ LRESULT CommandWindow::onFocusLost()
     //ActivateKeyboardLayout(originalKeyboardLayout, KLF_REORDER);
     //OutputDebugStringA("lost focus.\n");
     //InvalidateRect(hwnd, nullptr, true);
-    hideWindow();
+    HideWindow();
     
     // @TODO: use built-in CreateCaret/ShowCaret/etc. stuff!
 
@@ -658,7 +653,7 @@ void CommandWindow::killCursorTimer()
     KillTimer(hwnd, CURSOR_BLINK_TIMER_ID);
 }
 
-void CommandWindow::animateWindow(WindowAnimation animation)
+void CommandWindow::AnimateWindow(WindowAnimation animation)
 {
     uint64_t clockFrequency;
     uint64_t clockCurrTick;
@@ -782,11 +777,11 @@ LRESULT CommandWindow::onHotkey(LPARAM lParam, WPARAM wParam)
     {
         if (IsWindowVisible(hwnd))
         {
-            hideWindow();
+            HideWindow();
         }
         else
         {
-            showWindow();
+            ShowWindow();
         }
     }
 
@@ -843,7 +838,7 @@ LRESULT CommandWindow::onCursorBlinkTimerElapsed()
     return 0;
 }
 
-bool CommandWindow::Initialize(int windowWidth, int windowHeight)
+bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
 {
     if (isInitialized)
         return true;
@@ -973,11 +968,13 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight)
     //EditCommandsWindow* edit = new EditCommandsWindow();
     //edit->init(hwnd, commandEngine);
 
+    if (nCmdShow != 0) ShowWindow();
+
     isInitialized = true;
     return isInitialized;
 }
 
-void CommandWindow::showWindow()
+void CommandWindow::ShowWindow()
 {
     if (IsWindowVisible(hwnd))
         return;
@@ -1004,33 +1001,23 @@ void CommandWindow::showWindow()
     SetForegroundWindow(hwnd);
     SetFocus(hwnd);
 
-    animateWindow(WindowAnimation::Show);
+    AnimateWindow(WindowAnimation::Show);
 }
 
-void CommandWindow::showAfterAllEventsProcessed()
+void CommandWindow::HideWindow()
 {
-    // Why we want to do this:
-    // when we show window for the first time and there are no messages
-    // processed by event loop (GetMessage function), we don't display
-    // textbox widget because it's message is not yet processed.
-    // This leads to textbox 'popping up' after main window has initialized.
-    PostMessageW(hwnd, (UINT)CustomMessage::ShowAfterAllEventsProcessed, 0, 0);
-}
+    AnimateWindow(WindowAnimation::Hide);
 
-void CommandWindow::hideWindow()
-{
-    animateWindow(WindowAnimation::Hide);
-
-    ShowWindow(hwnd, SW_HIDE);
+    ::ShowWindow(hwnd, SW_HIDE);
     ClearText();
 }
 
 void CommandWindow::toggleVisibility()
 {
     if (IsWindowVisible(hwnd))
-        hideWindow();
+        HideWindow();
     else
-        showWindow();
+        ShowWindow();
 }
 
 void CommandWindow::exit()
@@ -1043,15 +1030,14 @@ void CommandWindow::evaluate()
     if (!commandEngine->evaluate(String(textBuffer.string.data, textBuffer.string.count)))
     {
         MessageBoxW(hwnd, L"Unknown command", L"Error", MB_OK | MB_ICONERROR);
-        SetFocus(hwnd); // We lose focus after MessageBox.s
+        SetFocus(hwnd); // We lose focus after MessageBox
         redraw();
 
         return;
     }
 
     ClearText();
-
-    this->hideWindow();
+    HideWindow();
     //CB_TipHideWindow(&ui.tip);
 }
 
@@ -1080,15 +1066,9 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
         case WM_QUIT:           return this->onQuit();
         case WM_ACTIVATE:       return this->onActivate();
 
-        case (UINT)CustomMessage::ShowAfterAllEventsProcessed:
-        {
-            showWindow();
-            return 0;
-        }
-
         case CommandWindow::g_showWindowMessageId:
         {
-            showWindow();
+            ShowWindow();
             return 0;
         }
     }
@@ -1098,7 +1078,7 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
     {
         switch (action)
         {
-            case TrayMenuAction::Show: showWindow(); break;
+            case TrayMenuAction::Show: ShowWindow(); break;
             case TrayMenuAction::Exit: exit(); break;
             default:                 break;
         }
@@ -1109,7 +1089,7 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
 
 void CommandWindow::beforeCommandRun()
 {
-    hideWindow();
+    HideWindow();
 }
 
 LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
