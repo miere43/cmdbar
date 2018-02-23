@@ -12,7 +12,7 @@
 #include "string_builder.h"
 #include "edit_commands_window.h"
 #include "defer.h"
-
+#include "command_window_tray.h"
 
 LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void beforeRunCallback(CommandEngine* engine, void* userdata);
@@ -34,13 +34,6 @@ enum
 enum class CustomMessage
 {
     ShowAfterAllEventsProcessed = WM_USER + 14
-};
-
-enum class TrayMenuItem
-{
-    None = 0,
-    Show = 1,
-    Exit = 2,
 };
 
 bool CommandWindow::initGlobalResources(HINSTANCE hInstance)
@@ -74,32 +67,34 @@ bool CommandWindow::initGlobalResources(HINSTANCE hInstance)
     return true;
 }
 
-void CommandWindow::clearText()
+void CommandWindow::ClearText()
 {
-    textBuffer.data[0] = L'\0';
     textBuffer.count = 0;
-
     cursorPos = 0;
-    clearSelection();
 
     autocompletionCandidate = nullptr;
 
+    clearSelection();
     redraw();
 }
 
-bool CommandWindow::setText(const String & text)
+bool CommandWindow::SetText(const Newstring& text)
 {
-    if (text.data == nullptr)
-        return false;
+    textBuffer.count = 0;
+    
+    if (Newstring::IsNullOrEmpty(text))
+    {
+        ClearText();
+        return true;
+    }
+    else
+    {
+        textBuffer.Append(text);
+    }
+    
+    autocompletionCandidate = nullptr;
 
-    uint32_t length = text.count;
-    if (length > textBuffer.count) return false;
-
-    wmemcpy(textBuffer.data, text.data, length);
-    textBuffer.count = length;
-    cursorPos = length;
     clearSelection();
-
     redraw();
 
     return true;
@@ -186,33 +181,26 @@ LRESULT CommandWindow::onChar(wchar_t c)
 {
     // Skip if not printable.
     if (!iswprint(c)) return 0;
-    if (isTextBufferFilled()) return 0;
 
-    if (isTextSelected())
+    if (IsTextSelected())
     {
         textBuffer.Remove(selectionPos, selectionLength);
         textBuffer.Insert(selectionPos, c);
 
         cursorPos = selectionPos + 1;
         clearSelection();
-    
-        onTextChanged();
-        shouldDrawCursor = true;
-        setCursorTimer();
-
-        redraw();
     }
     else
     {
         textBuffer.Insert(cursorPos, c);
         ++cursorPos;
-
-        onTextChanged();
-        shouldDrawCursor = true;
-        setCursorTimer();
-
-        redraw();
     }
+
+    onTextChanged();
+    shouldDrawCursor = true;
+    setCursorTimer();
+
+    redraw();
 
     return 0;
 }
@@ -246,7 +234,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
             shouldDrawCursor = true;
             setCursorTimer();
 
-            if (selectionLength != 0)
+            if (IsTextSelected())
             {
                 textBuffer.Remove(selectionPos, selectionLength);
                 if (selectionInitialPos <= cursorPos)
@@ -288,7 +276,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
             {
                 if (shiftPressed) // High-order bit == 1 => key down
                 {
-                    if (selectionLength == 0)
+                    if (!IsTextSelected())
                     {
                         selectionInitialPos = selectionPos = cursorPos;
                         selectionLength = 1;
@@ -313,7 +301,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
 
             if (!shiftPressed)
             {
-                if (selectionLength != 0)
+                if (IsTextSelected())
                 {
                     cursorPos = selectionPos + selectionLength;
                 }
@@ -337,7 +325,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
 
                 if (shiftPressed)
                 {
-                    if (selectionLength == 0)
+                    if (!IsTextSelected())
                     {
                         selectionInitialPos = selectionPos = cursorPos;
                         selectionLength = 1;
@@ -346,7 +334,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
                     {
                         if (cursorPos >= selectionInitialPos)
                         {
-                            OutputDebugStringW(L"hello!\n");
+                            //OutputDebugStringW(L"hello!\n");
                             //selectionPos = cursorPos;
                             --selectionLength;
                         }
@@ -379,7 +367,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
 
     if (ctrlPressed && vk == L'C')
     {
-        if (!isTextSelected())
+        if (!IsTextSelected())
             return 0;
         if (!Clipboard::Open(hwnd))
             assert(false);
@@ -414,7 +402,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
             return 0;
         }
 
-        if (isTextSelected())
+        if (IsTextSelected())
         {
             textBuffer.Remove(selectionPos, selectionLength);
             textBuffer.Insert(selectionPos, textToCopy);
@@ -752,7 +740,7 @@ LRESULT CommandWindow::onPaint()
     textLayout->HitTestTextPosition(cursorPos, false, &cursorRelativeX, &cursorRelativeY, &metrics);
 
     // Draw selection background
-    if (isTextSelected())
+    if (IsTextSelected())
     {
         float unused;
         float selectionRelativeStartX = 0.0f;
@@ -775,7 +763,7 @@ LRESULT CommandWindow::onPaint()
     // Draw actual user text
     rt->DrawTextLayout(D2D1::Point2F(marginX, textDrawY), textLayout, textForegroundBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
-    if (shouldDrawCursor && !isTextSelected())
+    if (shouldDrawCursor && !IsTextSelected())
     {
         // Center cursor X at pixel center to disable anti-aliasing.
         float cursorActualX = floorf(marginX + cursorRelativeX) + 0.5f;
@@ -855,7 +843,7 @@ LRESULT CommandWindow::onCursorBlinkTimerElapsed()
     return 0;
 }
 
-bool CommandWindow::init(int windowWidth, int windowHeight)
+bool CommandWindow::Initialize(int windowWidth, int windowHeight)
 {
     if (isInitialized)
         return true;
@@ -911,19 +899,15 @@ bool CommandWindow::init(int windowWidth, int windowHeight)
 
     SetWindowLongPtrW(hwnd, GWL_EXSTYLE, GetWindowLongPtrW(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 
-    if (!taskbarIcon.enable(hwnd, g_appIcon, 1, WM_USER + 15))
-    {
-        // We can live without it.
-    }
-
     if (!RegisterHotKey(hwnd, SHOW_APP_WINDOW_HOTKEY_ID, MOD_ALT | MOD_NOREPEAT, 0x51))
         MessageBoxW(hwnd, L"Hotkey Alt+Q is already claimed.", L"Command Bar", MB_ICONINFORMATION);
 
-    if ((trayMenu = CreatePopupMenu()) != 0)
+    Newstring trayFailureReason;
+    tray.Initialize(hwnd, g_appIcon, &trayFailureReason);
+
+    if (!Newstring::IsNullOrEmpty(trayFailureReason))
     {
-        AppendMenuW(trayMenu, MF_STRING, (UINT_PTR)TrayMenuItem::Show, L"Show");
-        AppendMenuW(trayMenu, MF_SEPARATOR, (UINT_PTR)TrayMenuItem::None, nullptr);
-        AppendMenuW(trayMenu, MF_STRING, (UINT_PTR)TrayMenuItem::Exit, L"Exit");
+        MessageBoxW(hwnd, trayFailureReason.data, L"Error", MB_ICONERROR);
     }
 
     commandEngine->setBeforeRunCallback(beforeRunCallback, this);
@@ -1038,7 +1022,7 @@ void CommandWindow::hideWindow()
     animateWindow(WindowAnimation::Hide);
 
     ShowWindow(hwnd, SW_HIDE);
-    clearText();
+    ClearText();
 }
 
 void CommandWindow::toggleVisibility()
@@ -1065,18 +1049,15 @@ void CommandWindow::evaluate()
         return;
     }
 
-    clearText();
+    ClearText();
 
     this->hideWindow();
     //CB_TipHideWindow(&ui.tip);
 }
 
-void CommandWindow::dispose()
+void CommandWindow::Dispose()
 {
-    taskbarIcon.disable();
-
-    DeleteMenu(trayMenu, 0, 0);
-    trayMenu = 0;
+    tray.Dispose();
 }
 
 LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam)
@@ -1112,37 +1093,15 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
         }
     }
 
-    // Handle tray icon context menu.
-    if (taskbarIcon.isContextMenuRequested(hwnd, msg, lParam, wParam))
+    TrayMenuAction action = TrayMenuAction::None;
+    if (tray.ProcessEvent(hwnd, msg, lParam, wParam, &action))
     {
-        int x, y;
-        if (!taskbarIcon.getMousePosition(hwnd, msg, lParam, wParam, &x, &y))
-            return 0;
-
-        DWORD flags = TPM_NONOTIFY | TPM_RETURNCMD;
-
-        bool isLeftAligned = GetSystemMetrics(SM_MENUDROPALIGNMENT) == 0;
-        flags = flags | (isLeftAligned ? TPM_LEFTALIGN | TPM_HORPOSANIMATION : TPM_RIGHTALIGN | TPM_HORNEGANIMATION);
-
-        // MSDN: To display a context menu for a notification icon, the current window must be the
-        // foreground window before the application calls TrackPopupMenu or TrackPopupMenuEx
-        SetForegroundWindow(hwnd);
-        TrayMenuItem item = (TrayMenuItem)TrackPopupMenuEx(trayMenu, flags, x, y, hwnd, nullptr);
-
-        switch (item)
+        switch (action)
         {
-            case TrayMenuItem::Show: showWindow(); break;
-            case TrayMenuItem::Exit: exit(); break;
+            case TrayMenuAction::Show: showWindow(); break;
+            case TrayMenuAction::Exit: exit(); break;
             default:                 break;
         }
-
-        return 0;
-    }
-    else if (taskbarIcon.isClicked(hwnd, msg, lParam, wParam))
-    {
-        OutputDebugStringW(L"clicked\n");
-        toggleVisibility();
-        return 0;
     }
 
     return DefWindowProcW(hwnd, msg, wParam, lParam);

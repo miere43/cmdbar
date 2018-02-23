@@ -7,9 +7,7 @@
 
 struct OSUtils
 {
-	static String formatErrorCode(DWORD errorCode, DWORD languageID = 0, IAllocator* allocator = &g_standardAllocator);
-    // 'fileName' must be null-terminated
-    // 'fileName' must be null-terminated
+    static Newstring FormatErrorCode(DWORD errorCode, DWORD languageID = 0, IAllocator* allocator = &g_standardAllocator);
 
 	static String getDirectoryFromFileName(const String& fileName, IAllocator* allocator = &g_standardAllocator);
 	static String buildCommandLine(const String* strings[], size_t stringsArrayLength, IAllocator* allocator = &g_standardAllocator);

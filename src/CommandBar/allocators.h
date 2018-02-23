@@ -40,7 +40,8 @@ struct TempAllocator : public IAllocator
     virtual void* Reallocate(void* block, uintptr_t size) override;
 
 	void Reset();
-	void dispose();
+	void Dispose();
+
 	uintptr_t size() const { return (uintptr_t)end - (uintptr_t)start; }
 private:
 

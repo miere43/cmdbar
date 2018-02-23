@@ -4,25 +4,26 @@
 #include "unicode.h"
 
 
-String OSUtils::formatErrorCode(DWORD errorCode, DWORD languageID, IAllocator* allocator)
+Newstring OSUtils::FormatErrorCode(DWORD errorCode, DWORD languageID, IAllocator* allocator)
 {
-	static const DWORD flags = FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_MAX_WIDTH_MASK;
-	static const uint32_t maxMessageSize = 256;
+    static const DWORD flags = FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_MAX_WIDTH_MASK;
+    static const uint32_t maxMessageSize = 256;
 
     assert(allocator);
 
-	String msg = String::Allocate(maxMessageSize, allocator);
-	if (msg.data == nullptr)
-		return String::null;
+    Newstring msg = Newstring::New(maxMessageSize, allocator);
+    if (Newstring::IsNullOrEmpty(msg))
+        return Newstring::Empty();
 
-	DWORD count = FormatMessageW(flags, 0, errorCode, languageID, msg.data, msg.count, nullptr);
-	if (count == 0)
+    DWORD count = FormatMessageW(flags, 0, errorCode, languageID, msg.data, msg.count, nullptr);
+    if (count == 0)
     {
-		allocator->Deallocate(msg.data);
-		return String::null;
-	}
+        allocator->Deallocate(msg.data);
+        return Newstring::Empty();
+    }
 
-	return msg;
+    msg.count = count;
+    return msg;
 }
 
 String OSUtils::getDirectoryFromFileName(const String& fileName, IAllocator* allocator)

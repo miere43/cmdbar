@@ -23,7 +23,7 @@ inline void* addBytesToPointer(void* pointer, uintptr_t size)
 
 bool TempAllocator::SetSize(uintptr_t size)
 {
-	dispose();
+	Dispose();
 
 	if (size == 0)
 		return true;
@@ -80,7 +80,7 @@ void TempAllocator::Reset()
 		current = start;
 }
 
-void TempAllocator::dispose()
+void TempAllocator::Dispose()
 {
 	Reset();
 

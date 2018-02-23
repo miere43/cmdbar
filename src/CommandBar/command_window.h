@@ -4,16 +4,16 @@
 #include <d2d1.h>
 #include <dwrite.h>
 
-#include "taskbar_icon.h"
 #include "command_engine.h"
 #include "newstring.h"
 #include "newstring_builder.h"
+#include "command_window_tray.h"
 
 struct CommandWindowStyle;
 
 struct CommandWindow
 {
-	bool init(int windowWidth, int windowHeight);
+	bool Initialize(int windowWidth, int windowHeight);
 
 	void showWindow();
 	void showAfterAllEventsProcessed();
@@ -31,13 +31,9 @@ struct CommandWindow
     IDWriteFactory* dwrite = nullptr;
 
 	const CommandWindowStyle* style = nullptr;
-	TaskbarIcon taskbarIcon;
 	CommandEngine* commandEngine = nullptr;
 
-    // Tray Menu
-    HMENU trayMenu = 0;
-
-    void dispose();
+    void Dispose();
 
 	static const wchar_t* g_className;
 	static const wchar_t* g_windowName;
@@ -55,10 +51,9 @@ private:
 	static bool g_globalResourcesInitialized;
 	static ATOM g_windowClass;
 	static HICON g_appIcon;
-
 public:
-    void clearText();
-    bool setText(const String& text);
+    void ClearText();
+    bool SetText(const Newstring& text);
     void redraw();
     void updateTextLayout(bool forced = false);
     void clearSelection();
@@ -67,6 +62,8 @@ public:
     NewstringBuilder textBuffer;
     uint32_t cursorPos = 0;
     Command* autocompletionCandidate = nullptr;
+
+    CommandWindowTray tray;
 
     int selectionInitialPos = 0;
     int selectionPos = 0;
@@ -105,11 +102,7 @@ public:
 
     void updateAutocompletion();
 
-    inline bool isTextBufferFilled() // @Deprecated
-    {
-        return textBuffer.count >= textBuffer.capacity;
-    }
-    inline bool isTextSelected()
+    inline bool IsTextSelected()
     {
         return selectionLength != 0;
     }
@@ -143,7 +136,7 @@ struct CommandWindowStyle
     D2D1_COLOR_F autocompletionTextColor;
     D2D1_COLOR_F selectedTextBackgroundColor;
     D2D1_COLOR_F textboxBackgroundColor;
-    String fontFamily = { 0 };
+    Newstring fontFamily;
     float fontHeight = 0.0f;
     DWRITE_FONT_WEIGHT fontWeight = DWRITE_FONT_WEIGHT_REGULAR;
     DWRITE_FONT_STYLE fontStyle = DWRITE_FONT_STYLE_NORMAL;

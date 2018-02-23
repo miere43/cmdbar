@@ -379,7 +379,7 @@ Newstring Newstring::FormatWithAllocator(IAllocator* allocator, const wchar_t* f
     Newstring result = New(allocCount, allocator);
     if (Newstring::IsNullOrEmpty(result))  return Empty();
 
-    int written = _vsnwprintf(result.data, allocCount, format, args);
+    int written = _vsnwprintf_s(result.data, allocCount, allocCount, format, args);
     assert(written == charCount);
 
     result.count = written;
