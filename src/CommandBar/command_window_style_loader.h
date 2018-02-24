@@ -1,5 +1,4 @@
 #pragma once
-#include "string_type.h"
 #include "command_window.h"
 #include "newstring.h"
 

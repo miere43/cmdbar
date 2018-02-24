@@ -3,6 +3,21 @@
 #include <initializer_list>
 #include "allocators.h"
 
+
+enum class Encoding
+{
+    Unknown = 0,
+    UTF8,
+    ASCII,
+    MAX_VALUE
+};
+
+enum class StringComparison
+{
+    CaseSensitive = 0,
+    CaseInsensitive
+};
+
 struct Newstring
 {
     wchar_t* data  = nullptr;
@@ -19,6 +34,7 @@ struct Newstring
 
     int IndexOf(wchar_t c) const;
     int LastIndexOf(wchar_t c) const;
+    bool StartsWith(const Newstring& string, StringComparison comparison = StringComparison::CaseSensitive) const;
 
     // Copies characters from this string to another.
     // 'fromIndex': index in this string which specified start index to copy characters from

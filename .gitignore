@@ -8,3 +8,5 @@ src/CommandBar/CommandBarTextCSharpPlugin/
 src/CommandBarTestPlugin
 .vs/
 *.aps
+
+count.bat

@@ -66,35 +66,3 @@ setFalse:
     *value = false;
     return true;
 }
-
-bool ParseUtils::stringToBool(const String & str, bool * value)
-{
-    assert(value);
-
-    if (str.isEmpty())  return false;
-
-    switch (str.count)
-    {
-        case 1:
-            switch (towlower(str.data[0]))
-            {
-                case L'0': goto setFalse;
-                case L'1': goto setTrue;
-                case L'n': goto setFalse;
-                case L'y': goto setTrue;
-            }
-            break;
-        case 2: if (0 == wcsncmp(str.data, L"no", 2)) goto setFalse;
-        case 3: if (0 == wcsncmp(str.data, L"yes", 3)) goto setTrue;
-        case 4: if (0 == wcsncmp(str.data, L"true", 4)) goto setTrue;
-        case 5: if (0 == wcsncmp(str.data, L"false", 5)) goto setFalse;
-    }
-
-    return false;
-setTrue:
-    *value = true;
-    return true;
-setFalse:
-    *value = false;
-    return true;
-}

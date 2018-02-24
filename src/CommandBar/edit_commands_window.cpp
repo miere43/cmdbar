@@ -161,7 +161,7 @@ LRESULT WINAPI EditCommandsWindow::wndProc(HWND hwnd, UINT msg, WPARAM wParam, L
                     {
                         case LBN_SELCHANGE:
                         {
-                            int selection = SendMessageW(listHwnd, LB_GETCURSEL, 0, 0);
+                            int selection = (int)SendMessageW(listHwnd, LB_GETCURSEL, 0, 0);
                             if (selection == -1)
                                 return 0;
                             return 0; // @TODO

@@ -1,5 +1,4 @@
 #pragma once
-#include "string_type.h"
 #include "newstring.h"
 
 enum class INIValueType

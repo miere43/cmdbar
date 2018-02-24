@@ -58,6 +58,19 @@ int Newstring::LastIndexOf(wchar_t c) const
     return -1;
 }
 
+bool Newstring::StartsWith(const Newstring& string, StringComparison comparison) const
+{
+    if (Newstring::IsNullOrEmpty(string))
+        return false;
+
+    if (string.count > this->count)
+        return false;
+
+    auto compareProc = comparison == StringComparison::CaseSensitive ? wcsncmp : _wcsnicmp;
+
+    return compareProc(this->data, string.data, string.count) == 0;
+}
+
 uint32_t Newstring::CopyTo(Newstring* dest, uint32_t fromIndex, uint32_t destIndex, uint32_t copyCount) const
 {
     if (IsNullOrEmpty(this))  return 0;

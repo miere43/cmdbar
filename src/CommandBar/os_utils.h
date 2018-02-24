@@ -1,6 +1,5 @@
 #pragma once
-#include "string_type.h"
-#include "string_builder.h"
+#include "newstring.h"
 #include "newstring_builder.h"
 #define NOMINMAX
 #include <Windows.h>
@@ -9,8 +8,8 @@ struct OSUtils
 {
     static Newstring FormatErrorCode(DWORD errorCode, DWORD languageID = 0, IAllocator* allocator = &g_standardAllocator);
 
-	static String getDirectoryFromFileName(const String& fileName, IAllocator* allocator = &g_standardAllocator);
-	static String buildCommandLine(const String* strings[], size_t stringsArrayLength, IAllocator* allocator = &g_standardAllocator);
+	static Newstring GetDirectoryFromFileName(const Newstring& fileName, IAllocator* allocator = &g_standardAllocator);
+	static Newstring BuildCommandLine(const Newstring* strings[], size_t stringsArrayLength, IAllocator* allocator = &g_standardAllocator);
 
     static void* ReadFileContents(const Newstring& fileName, uint32_t* fileSize, IAllocator* allocator = &g_standardAllocator);
     static bool WriteFileContents(const Newstring& fileName, void* contents, uint32_t contentsSize);

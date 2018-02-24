@@ -3,7 +3,6 @@
 #include <wchar.h>
 
 #include "clipboard.h"
-#include "string_type.h"
 
 
 bool Clipboard::Open(HWND owner)
@@ -41,13 +40,13 @@ bool Clipboard::GetText(Newstring* result)
         return false;
 
     size_t memSize = GlobalSize(mem);
-    if (memSize == 0)
+    if (memSize == 0 || memSize > UINT32_MAX)
     {
         GlobalUnlock(mem);
         return false;
     }
     
-    uint32_t maxCount = (memSize - 1) / sizeof(wchar_t); // Don't count terminating null.
+    uint32_t maxCount = static_cast<uint32_t>((memSize - 1) / sizeof(wchar_t)); // Don't count terminating null.
     *result = Newstring::New(maxCount + 1);
     assert(!Newstring::IsNullOrEmpty(result));
 

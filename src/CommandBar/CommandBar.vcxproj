@@ -232,7 +232,6 @@
     <ClCompile Include="line_reader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="command_window.cpp" />
-    <ClCompile Include="config.cpp" />
     <ClCompile Include="newstring.cpp" />
     <ClCompile Include="newstring_builder.cpp" />
     <ClCompile Include="single_instance.cpp" />
@@ -241,8 +240,6 @@
     <ClCompile Include="parse_utils.cpp" />
     <ClCompile Include="plugin.cpp" />
     <ClCompile Include="run_application.cpp" />
-    <ClCompile Include="string_builder.cpp" />
-    <ClCompile Include="string_type.cpp" />
     <ClCompile Include="string_utils.cpp" />
     <ClCompile Include="text_edit.cpp" />
     <ClCompile Include="tipui.cpp" />
@@ -259,7 +256,6 @@
     <ClInclude Include="command_window_style_loader.h" />
     <ClInclude Include="command_window_tray.h" />
     <ClInclude Include="common.h" />
-    <ClInclude Include="config.h" />
     <ClInclude Include="context.h" />
     <ClInclude Include="defer.h" />
     <ClInclude Include="edit_commands_window.h" />
@@ -276,8 +272,6 @@
     <ClInclude Include="parse_utils.h" />
     <ClInclude Include="plugin.h" />
     <ClInclude Include="run_application.h" />
-    <ClInclude Include="string_builder.h" />
-    <ClInclude Include="string_type.h" />
     <ClInclude Include="string_utils.h" />
     <ClInclude Include="text_edit.h" />
     <ClInclude Include="tinyutf.h" />

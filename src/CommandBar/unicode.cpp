@@ -5,72 +5,7 @@
 #define TINY_UTF_IMPLEMENTATION
 #include "tinyutf.h"
 
-
-String unicode::decodeString(const void* data, uint32_t dataSize, Encoding encoding, IAllocator* allocator)
-{
-    assert(data != nullptr);
-    assert(dataSize >= 0);
-    assert(allocator != nullptr);
-
-    switch (encoding)
-    {
-        case Encoding::ASCII:
-        {
-            const uint32_t bufCount = (dataSize);
-            const uint32_t bufSize  = (dataSize + 1) * sizeof(wchar_t);
-            wchar_t* buf = static_cast<wchar_t*>(allocator->Allocate(bufSize));
-            if (buf == nullptr)
-                return String::null;
-
-            const char* strData = reinterpret_cast<const char*>(data);
-
-            for (uint32_t i = 0; i < bufCount; ++i)
-                *buf++ = static_cast<wchar_t>(*strData++);
-            *buf = L'\0';
-
-            return String{ buf, bufCount };
-        }
-        case Encoding::UTF8:
-        {
-            Array<wchar_t> buf{ allocator };
-
-            const uint32_t bestCaseCount = dataSize + 2 + 1;
-            if (!buf.reserve(bestCaseCount))
-                return false;
-
-            const char* strData = reinterpret_cast<const char*>(data);
-            const char* strDataEnd = strData + dataSize;
-            wchar_t* bufData = buf.data;
-
-            int codepoint;
-            while (strData < strDataEnd)
-            {
-                strData = tuDecode8(strData, &codepoint);
-                if (codepoint == 0xFFFD) continue;
-
-                if (buf.capacity < buf.count + 3)
-                {
-                    if (!buf.reserve(buf.count + 3))
-                    {
-                        buf.Deallocate();
-                        return String::null;
-                    }
-
-                    bufData = buf.data + buf.count;
-                }
-
-                wchar_t* newBufData = tuEncode16(bufData, codepoint);
-                buf.count += static_cast<uint32_t>(newBufData - bufData);
-                bufData = newBufData;
-            }
-
-            return String{ buf.data, buf.count };
-        }
-    }
-
-    assert(false);
-    return nullptr;
-}
+#include "array.h"
 
 Newstring unicode::DecodeString(const void* data, uint32_t dataSize, Encoding encoding, IAllocator* allocator)
 {
@@ -174,8 +109,8 @@ void* unicode::EncodeString(const Newstring& string, uint32_t* encodedStringByte
                 string.count,
                 data,
                 dataSize,
-                nullptr,
-                nullptr);
+                0,
+                0);
 
             assert(nwritten != 0); // @TODO
             

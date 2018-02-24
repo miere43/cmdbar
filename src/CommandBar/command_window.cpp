@@ -9,7 +9,6 @@
 #include "basic_commands.h"
 #include "clipboard.h"
 #include "string_utils.h"
-#include "string_builder.h"
 #include "edit_commands_window.h"
 #include "defer.h"
 #include "command_window_tray.h"
@@ -586,9 +585,9 @@ Command* CommandWindow::findAutocompletionCandidate()
     if (textBuffer.count == 0)
         return nullptr;
 
-    int index = stringFindCharIndex(textBuffer.data, textBuffer.count, L' ');
+    int index = textBuffer.string.IndexOf(L' ');
 
-    String command;
+    Newstring command;
     command.data  = textBuffer.data;
     command.count = index == -1 ? textBuffer.count : index;
 
@@ -598,13 +597,7 @@ Command* CommandWindow::findAutocompletionCandidate()
     for (uint32_t i = 0; i < commandEngine->commands.count; ++i)
     {
         Command* candidate = commandEngine->commands.data[i];
-        bool isMatchingCandidate = stringStartsWith(
-            candidate->name.data,
-            candidate->name.count,
-            command.data,
-            command.count,
-            false
-        );
+        bool isMatchingCandidate = candidate->name.StartsWith(command, StringComparison::CaseInsensitive);
 
         if (isMatchingCandidate)
             return candidate;

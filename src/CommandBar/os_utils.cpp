@@ -2,7 +2,7 @@
 #include "math_utils.h"
 #include "parse_utils.h"
 #include "unicode.h"
-
+#include "array.h"
 
 Newstring OSUtils::FormatErrorCode(DWORD errorCode, DWORD languageID, IAllocator* allocator)
 {
@@ -26,41 +26,41 @@ Newstring OSUtils::FormatErrorCode(DWORD errorCode, DWORD languageID, IAllocator
     return msg;
 }
 
-String OSUtils::getDirectoryFromFileName(const String& fileName, IAllocator* allocator)
+Newstring OSUtils::GetDirectoryFromFileName(const Newstring& fileName, IAllocator* allocator)
 {
     assert(allocator != nullptr);
 
-	if (fileName.isEmpty())
-		return String::null;
+    if (Newstring::IsNullOrEmpty(fileName))
+        return Newstring::Empty();
 
-	int backSlash    = fileName.lastIndexOf(L'\\');
-	int forwardSlash = fileName.lastIndexOf(L'/');
+	int backSlash    = fileName.LastIndexOf(L'\\');
+	int forwardSlash = fileName.LastIndexOf(L'/');
 
 	int slash = math::max(backSlash, forwardSlash);
 
 	if (slash == -1)
-		return String::clone(fileName, allocator);
+		return Newstring::Clone(fileName, allocator);
 
-	return String::clone(fileName.substring(0, slash));
+	return Newstring::Clone(fileName.RefSubstring(0, slash), allocator);
 }
 
-String OSUtils::buildCommandLine(const String* strings[], size_t stringsArrayLength, IAllocator* allocator)
+Newstring OSUtils::BuildCommandLine(const Newstring* strings[], size_t stringsArrayLength, IAllocator* allocator)
 {
     assert(allocator != nullptr);
 
 	if (strings == nullptr || stringsArrayLength == 0)
-		return String::null;
+		return Newstring::Empty();
 
 	Array<wchar_t> result { allocator };
 	result.reserve(64);
 
 	for (size_t i = 0; i < stringsArrayLength; ++i)
 	{
-		const String* arg = strings[i];
-		if (arg == nullptr || arg->isEmpty())
+		const Newstring* arg = strings[i];
+		if (Newstring::IsNullOrEmpty(arg))
 			continue;
 
-		bool hasSpaces = arg->indexOf(L' ') != -1;
+		bool hasSpaces = arg->IndexOf(L' ') != -1;
 		if (hasSpaces)
 		{
 			result.reserve(result.count + arg->count + 2);
@@ -80,7 +80,7 @@ String OSUtils::buildCommandLine(const String* strings[], size_t stringsArrayLen
 
 	result.add('\0');
 
-	return String { result.data, result.count - 1 };
+	return Newstring(result.data, result.count - 1);
 }
 
 void* OSUtils::ReadFileContents(const Newstring& fileName, uint32_t* fileSize, IAllocator* allocator)
