@@ -16,8 +16,8 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
 
     INIParser p;
     Array<Command*> cmds;
-    Array<String> keys;
-    Array<String> values;
+    Array<Newstring> keys;
+    Array<Newstring> values;
     CommandInfo* currCmdInfo = nullptr;
     Newstring currCmdName;
 
@@ -32,7 +32,7 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
                 {
                     Command* cmd = currCmdInfo->createCommand(keys, values);
                     assert(!Newstring::IsNullOrEmpty(currCmdName));
-                    cmd->name = String::clone(String(currCmdName.data, currCmdName.count));
+                    cmd->name = currCmdName.Clone();
                     cmd->info = currCmdInfo;
                     assert(cmd);
                     cmds.add(cmd);
@@ -41,7 +41,7 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
 
                 keys.clear();
                 values.clear();
-                currCmdInfo = findCommandInfoByName(String(p.group.data, p.group.count));
+                currCmdInfo = FindCommandInfoByName(p.group);
                 assert(currCmdInfo);
 
                 break;
@@ -54,8 +54,8 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
                 }
                 else
                 {
-                    keys.add(String(p.key.data, p.key.count));
-                    values.add(String(p.value.data, p.value.count));
+                    keys.add(p.key);
+                    values.add(p.value);
                 }
 
                 break;
@@ -69,7 +69,7 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
     {
         Command* cmd = currCmdInfo->createCommand(keys, values);
         assert(!Newstring::IsNullOrEmpty(currCmdName));
-        cmd->name = String::clone(String(currCmdName.data, currCmdName.count));
+        cmd->name = currCmdName.Clone();
         cmd->info = currCmdInfo;
         assert(cmd);
         cmds.add(cmd);
@@ -79,12 +79,12 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
     return cmds;
 }
 
-CommandInfo* CommandLoader::findCommandInfoByName(const String& name)
+CommandInfo* CommandLoader::FindCommandInfoByName(const Newstring& name)
 {
     for (uint32_t i = 0; i < commandInfoArray.count; ++i)
     {
         CommandInfo* info = commandInfoArray.data[i];
-        if (name.equals(info->dataName))
+        if (name == info->dataName)
             return info;
     }
 

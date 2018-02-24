@@ -69,8 +69,8 @@ void CommandWindow::ClearText()
 
     autocompletionCandidate = nullptr;
 
-    clearSelection();
-    redraw();
+    ClearSelection();
+    Redraw();
 }
 
 bool CommandWindow::SetText(const Newstring& text)
@@ -89,19 +89,19 @@ bool CommandWindow::SetText(const Newstring& text)
     
     autocompletionCandidate = nullptr;
 
-    clearSelection();
-    redraw();
+    ClearSelection();
+    Redraw();
 
     return true;
 }
 
-void CommandWindow::redraw()
+void CommandWindow::Redraw()
 {
     isTextLayoutDirty = true;
     InvalidateRect(hwnd, nullptr, true);
 }
 
-void CommandWindow::updateTextLayout(bool forced)
+void CommandWindow::UpdateTextLayout(bool forced)
 {
     if (textLayout == nullptr || isTextLayoutDirty || forced)
     {
@@ -152,27 +152,13 @@ void CommandWindow::updateTextLayout(bool forced)
     }
 }
 
-void CommandWindow::clearSelection()
+void CommandWindow::ClearSelection()
 {
     selectionPos = 0;
     selectionLength = 0;
 }
 
-bool CommandWindow::getSelectionRange(int * rangeStart, int * rangeLength)
-{
-    assert(rangeStart);
-    assert(rangeLength);
-
-    if (selectionLength == 0)
-        return false;
-
-    *rangeStart  = selectionPos;
-    *rangeLength = selectionLength;
-
-    return true;
-}
-
-LRESULT CommandWindow::onChar(wchar_t c)
+LRESULT CommandWindow::OnChar(wchar_t c)
 {
     // Skip if not printable.
     if (!iswprint(c)) return 0;
@@ -183,7 +169,7 @@ LRESULT CommandWindow::onChar(wchar_t c)
         textBuffer.Insert(selectionPos, c);
 
         cursorPos = selectionPos + 1;
-        clearSelection();
+        ClearSelection();
     }
     else
     {
@@ -195,12 +181,12 @@ LRESULT CommandWindow::onChar(wchar_t c)
     shouldDrawCursor = true;
     setCursorTimer();
 
-    redraw();
+    Redraw();
 
     return 0;
 }
 
-LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
+LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
 {
     BOOL shiftPressed = GetKeyState(VK_LSHIFT) & 0x8000;
     BOOL ctrlPressed = GetKeyState(VK_LCONTROL) & 0x8000;
@@ -250,14 +236,14 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
             }
 
             onTextChanged();
-            redraw();
+            Redraw();
 
             break;
         }
 
         case VK_RETURN:
         {
-            evaluate();
+            Evaluate();
 
             break;
         }
@@ -291,7 +277,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
                 }
 
                 ++cursorPos;
-                redraw();
+                Redraw();
             }
 
             if (!shiftPressed)
@@ -303,7 +289,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
 
                 selectionLength = 0;
 
-                redraw();
+                Redraw();
             }
 
             break;
@@ -341,7 +327,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
                     }
                 }
 
-                redraw();
+                Redraw();
             }
 
             if (!shiftPressed)
@@ -353,7 +339,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
 
                 selectionLength = 0;
 
-                redraw();
+                Redraw();
             }
         }
 
@@ -377,7 +363,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
         shouldDrawCursor = true;
         setCursorTimer();
 
-        redraw();
+        Redraw();
     }
     else if (ctrlPressed && vk == L'V')
     {
@@ -403,13 +389,13 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
             textBuffer.Insert(selectionPos, textToCopy);
 
             cursorPos = selectionPos + textToCopy.count;
-            clearSelection();
+            ClearSelection();
 
             onTextChanged();
             shouldDrawCursor = true;
             setCursorTimer();
 
-            redraw();
+            Redraw();
         }
         else
         {
@@ -421,7 +407,7 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
             shouldDrawCursor = true;
             setCursorTimer();
 
-            redraw();
+            Redraw();
         }
 
         return 0;
@@ -430,24 +416,24 @@ LRESULT CommandWindow::onKeyDown(LPARAM lParam, WPARAM vk)
     return 0;
 }
 
-LRESULT CommandWindow::onMouseActivate()
+LRESULT CommandWindow::OnMouseActivate()
 {
     if (GetFocus() != hwnd)
     {
         SetFocus(hwnd);
-        redraw();
+        Redraw();
     }
 
     return MA_ACTIVATE;
 }
 
-LRESULT CommandWindow::onLeftMouseButtonDown(LPARAM lParam, WPARAM wParam)
+LRESULT CommandWindow::OnLeftMouseButtonDown(LPARAM lParam, WPARAM wParam)
 {
     float mouseX = static_cast<float>(GET_X_LPARAM(lParam));
     float mouseY = static_cast<float>(GET_Y_LPARAM(lParam));
     const float borderSize = static_cast<float>(style->borderSize);
 
-    updateTextLayout();
+    UpdateTextLayout();
     shouldDrawCursor = true;
     setCursorTimer();
 
@@ -470,13 +456,13 @@ LRESULT CommandWindow::onLeftMouseButtonDown(LPARAM lParam, WPARAM wParam)
 
     selectionStartCursorPos = cursorPos;
 
-    clearSelection();
-    redraw();
+    ClearSelection();
+    Redraw();
 
     return 0;
 }
 
-LRESULT CommandWindow::onLeftMouseButtonUp()
+LRESULT CommandWindow::OnLeftMouseButtonUp()
 {
     selectionStartCursorPos = -1;
 
@@ -486,7 +472,7 @@ LRESULT CommandWindow::onLeftMouseButtonUp()
     return 0;
 }
 
-LRESULT CommandWindow::onFocusAcquired()
+LRESULT CommandWindow::OnFocusAcquired()
 {
     //originalKeyboardLayout = GetKeyboardLayout(GetCurrentThreadId());
     
@@ -498,7 +484,7 @@ LRESULT CommandWindow::onFocusAcquired()
     return 0;
 }
 
-LRESULT CommandWindow::onFocusLost()
+LRESULT CommandWindow::OnFocusLost()
 {
     //ActivateKeyboardLayout(originalKeyboardLayout, KLF_REORDER);
     //OutputDebugStringA("lost focus.\n");
@@ -518,7 +504,7 @@ void CommandWindow::onTextChanged()
     updateAutocompletion();
 }
 
-LRESULT CommandWindow::onMouseMove(LPARAM lParam, WPARAM wParam)
+LRESULT CommandWindow::OnMouseMove(LPARAM lParam, WPARAM wParam)
 {
     bool isLeftMouseDown = static_cast<bool>(wParam & 0x0001);
 
@@ -531,7 +517,7 @@ LRESULT CommandWindow::onMouseMove(LPARAM lParam, WPARAM wParam)
     float mouseY = static_cast<float>(GET_Y_LPARAM(lParam));
     const float borderSize = static_cast<float>(style->borderSize);
 
-    updateTextLayout();
+    UpdateTextLayout();
 
     BOOL isInside = false;
     BOOL isTrailingHit = false;
@@ -557,7 +543,7 @@ LRESULT CommandWindow::onMouseMove(LPARAM lParam, WPARAM wParam)
         int calcSelectionLength = abs(oldCursorPos - (int)cursorPos);
         if (calcSelectionLength == 0)
         {
-            clearSelection();
+            ClearSelection();
         }
         else
         {
@@ -567,7 +553,7 @@ LRESULT CommandWindow::onMouseMove(LPARAM lParam, WPARAM wParam)
         }
     }
 
-    redraw();
+    Redraw();
 
     return 0;
 }
@@ -587,10 +573,10 @@ void CommandWindow::onUserRequestedAutocompletion()
     textBuffer.data[textBuffer.count] = L' ';
     textBuffer.count += 1;
 
-    clearSelection();
+    ClearSelection();
     cursorPos = textBuffer.count;
 
-    redraw();
+    Redraw();
 
     return;
 }
@@ -633,7 +619,7 @@ void CommandWindow::updateAutocompletion()
     if (autocompletionCandidate != newCandidate)
     {
         autocompletionCandidate = newCandidate;
-        redraw();
+        Redraw();
     }
 }
 
@@ -698,7 +684,7 @@ void CommandWindow::AnimateWindow(WindowAnimation animation)
 //
 //}
 
-LRESULT CommandWindow::onPaint()
+LRESULT CommandWindow::OnPaint()
 {
     ID2D1HwndRenderTarget* rt = this->hwndRenderTarget;
     assert(rt);
@@ -714,7 +700,7 @@ LRESULT CommandWindow::onPaint()
 
     float marginX = style->textMarginLeft + style->borderSize;
 
-    updateTextLayout();
+    UpdateTextLayout();
 
     D2D1_RECT_F textboxRect = D2D1::RectF(
         borderSize,
@@ -771,7 +757,7 @@ LRESULT CommandWindow::onPaint()
     return 0;
 }
 
-LRESULT CommandWindow::onHotkey(LPARAM lParam, WPARAM wParam)
+LRESULT CommandWindow::OnHotkey(LPARAM lParam, WPARAM wParam)
 {
     if (wParam == SHOW_APP_WINDOW_HOTKEY_ID)
     {
@@ -788,11 +774,11 @@ LRESULT CommandWindow::onHotkey(LPARAM lParam, WPARAM wParam)
     return 0;
 }
 
-LRESULT CommandWindow::onTimer(LPARAM lParam, WPARAM timerID)
+LRESULT CommandWindow::OnTimer(LPARAM lParam, WPARAM timerID)
 {
     switch (timerID)
     {
-        case CURSOR_BLINK_TIMER_ID: return onCursorBlinkTimerElapsed();
+        case CURSOR_BLINK_TIMER_ID: return OnCursorBlinkTimerElapsed();
         default:
             __debugbreak(); // Unknown timer.
     }
@@ -800,7 +786,7 @@ LRESULT CommandWindow::onTimer(LPARAM lParam, WPARAM timerID)
     return 0;
 }
 
-LRESULT CommandWindow::onShowWindow(LPARAM lParam, WPARAM wParam)
+LRESULT CommandWindow::OnShowWindow(LPARAM lParam, WPARAM wParam)
 {
     // @TODO: this function is weird and called only when window is about to be hidden.
 
@@ -818,22 +804,22 @@ LRESULT CommandWindow::onShowWindow(LPARAM lParam, WPARAM wParam)
     return 0;
 }
 
-LRESULT CommandWindow::onQuit()
+LRESULT CommandWindow::OnQuit()
 {
     DestroyWindow(hwnd);
 
     return 0;
 }
 
-LRESULT CommandWindow::onActivate()
+LRESULT CommandWindow::OnActivate()
 {
     return 0;
 }
 
-LRESULT CommandWindow::onCursorBlinkTimerElapsed()
+LRESULT CommandWindow::OnCursorBlinkTimerElapsed()
 {
     shouldDrawCursor = !shouldDrawCursor;
-    redraw();
+    Redraw();
 
     return 0;
 }
@@ -905,7 +891,7 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
         MessageBoxW(hwnd, trayFailureReason.data, L"Error", MB_ICONERROR);
     }
 
-    commandEngine->setBeforeRunCallback(beforeRunCallback, this);
+    commandEngine->SetBeforeRunCallback(beforeRunCallback, this);
 
     assert(textBuffer.Reserve(512));
 
@@ -954,16 +940,16 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
     }
 
     QuitCommand* quitcmd = stdNew<QuitCommand>();
-    quitcmd->name = String::clone(L"quit");
+    quitcmd->name = Newstring::NewFromWChar(L"quit");
     quitcmd->info = nullptr;
     quitcmd->commandWindow = this;
-    commandEngine->registerCommand(quitcmd);
+    commandEngine->RegisterCommand(quitcmd);
 
     QuitCommand* exitcmd = stdNew<QuitCommand>();
-    exitcmd->name = String::clone(L"exit");
+    exitcmd->name = Newstring::NewFromWChar(L"exit");
     exitcmd->info = nullptr;
     exitcmd->commandWindow = this;
-    commandEngine->registerCommand(exitcmd);
+    commandEngine->RegisterCommand(exitcmd);
     
     //EditCommandsWindow* edit = new EditCommandsWindow();
     //edit->init(hwnd, commandEngine);
@@ -1012,26 +998,23 @@ void CommandWindow::HideWindow()
     ClearText();
 }
 
-void CommandWindow::toggleVisibility()
+void CommandWindow::ToggleVisibility()
 {
-    if (IsWindowVisible(hwnd))
-        HideWindow();
-    else
-        ShowWindow();
+    IsWindowVisible(hwnd) ? HideWindow() : ShowWindow();
 }
 
-void CommandWindow::exit()
+void CommandWindow::Exit()
 {
     PostQuitMessage(0);
 }
 
-void CommandWindow::evaluate()
+void CommandWindow::Evaluate()
 {
-    if (!commandEngine->evaluate(String(textBuffer.string.data, textBuffer.string.count)))
+    if (!commandEngine->Evaluate(textBuffer.string))
     {
         MessageBoxW(hwnd, L"Unknown command", L"Error", MB_OK | MB_ICONERROR);
         SetFocus(hwnd); // We lose focus after MessageBox
-        redraw();
+        Redraw();
 
         return;
     }
@@ -1046,25 +1029,25 @@ void CommandWindow::Dispose()
     tray.Dispose();
 }
 
-LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam)
+LRESULT CommandWindow::WindowProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam)
 {
     switch (msg)
     {
         case WM_ERASEBKGND:     return 1;
-        case WM_CHAR:           return this->onChar(static_cast<wchar_t>(wParam));
-        case WM_KEYDOWN:        return this->onKeyDown(lParam, wParam);
-        case WM_MOUSEMOVE:      return this->onMouseMove(lParam, wParam);
-        case WM_LBUTTONUP:      return this->onLeftMouseButtonUp();
-        case WM_LBUTTONDOWN:    return this->onLeftMouseButtonDown(lParam, wParam);
-        case WM_MOUSEACTIVATE:  return this->onMouseActivate();
-        case WM_SETFOCUS:       return this->onFocusAcquired();
-        case WM_KILLFOCUS:      return this->onFocusLost();
-        case WM_PAINT:          return this->onPaint();
-        case WM_HOTKEY:         return this->onHotkey(lParam, wParam);
-        case WM_TIMER:          return this->onTimer(lParam, wParam);
-        case WM_SHOWWINDOW:     return this->onShowWindow(lParam, wParam);
-        case WM_QUIT:           return this->onQuit();
-        case WM_ACTIVATE:       return this->onActivate();
+        case WM_CHAR:           return this->OnChar(static_cast<wchar_t>(wParam));
+        case WM_KEYDOWN:        return this->OnKeyDown(lParam, wParam);
+        case WM_MOUSEMOVE:      return this->OnMouseMove(lParam, wParam);
+        case WM_LBUTTONUP:      return this->OnLeftMouseButtonUp();
+        case WM_LBUTTONDOWN:    return this->OnLeftMouseButtonDown(lParam, wParam);
+        case WM_MOUSEACTIVATE:  return this->OnMouseActivate();
+        case WM_SETFOCUS:       return this->OnFocusAcquired();
+        case WM_KILLFOCUS:      return this->OnFocusLost();
+        case WM_PAINT:          return this->OnPaint();
+        case WM_HOTKEY:         return this->OnHotkey(lParam, wParam);
+        case WM_TIMER:          return this->OnTimer(lParam, wParam);
+        case WM_SHOWWINDOW:     return this->OnShowWindow(lParam, wParam);
+        case WM_QUIT:           return this->OnQuit();
+        case WM_ACTIVATE:       return this->OnActivate();
 
         case CommandWindow::g_showWindowMessageId:
         {
@@ -1079,7 +1062,7 @@ LRESULT CommandWindow::wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam
         switch (action)
         {
             case TrayMenuAction::Show: ShowWindow(); break;
-            case TrayMenuAction::Exit: exit(); break;
+            case TrayMenuAction::Exit: Exit(); break;
             default:                 break;
         }
     }
@@ -1111,7 +1094,7 @@ LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         window = reinterpret_cast<CommandWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     }
 
-    return window ? window->wndProc(hwnd, msg, lParam, wParam) : DefWindowProcW(hwnd, msg, wParam, lParam);
+    return window ? window->WindowProc(hwnd, msg, lParam, wParam) : DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 void beforeRunCallback(CommandEngine * engine, void * userdata)

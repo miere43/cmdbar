@@ -81,9 +81,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 
     Array<Command*> commands = commandLoader.LoadFromFile(GetCommandsFilePath());
     for (uint32_t i = 0; i < commandLoader.commandInfoArray.count; ++i)
-        commandEngine.registerCommandInfo(commandLoader.commandInfoArray.data[i]);
+        commandEngine.RegisterCommandInfo(commandLoader.commandInfoArray.data[i]);
     for (uint32_t i = 0; i < commands.count; ++i)
-        commandEngine.registerCommand(commands.data[i]);
+        commandEngine.RegisterCommand(commands.data[i]);
 
     if (wcscmp(lpCmdLine, L"/noshow") == 0)
         nCmdShow = 0;

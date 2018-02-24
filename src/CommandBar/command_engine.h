@@ -1,11 +1,11 @@
 #pragma once
 #include "array.h"
-#include "string_type.h"
+#include "newstring.h"
 
 struct Command;
 struct CommandWindow;
 struct CommandEngine;
-typedef void(*CommandCallback)(Command& command, const String* args, uint32_t numArgs);
+typedef void(*CommandCallback)(Command& command, const Newstring* args, uint32_t numArgs);
 typedef void(*CommandBeforeRunCallback)(CommandEngine* engine, void* userdata);
 
 
@@ -17,41 +17,41 @@ enum CommandInfoFlags
 };
 
 
-typedef Command*(*CommandInfo_CreateCommand)(Array<String>& keys, Array<String>& values);
+typedef Command*(*CommandInfo_CreateCommand)(Array<Newstring>& keys, Array<Newstring>& values);
 struct CommandInfo
 {
-    String dataName;
+    Newstring dataName;
     CommandInfoFlags flags = CI_None;
 
     CommandInfo_CreateCommand createCommand = 0;
 
 	CommandInfo();
-	CommandInfo(String dataName, CommandInfoFlags flags, CommandInfo_CreateCommand command);
+	CommandInfo(Newstring dataName, CommandInfoFlags flags, CommandInfo_CreateCommand command);
 };
 
 struct Command
 {
     CommandInfo* info = nullptr;
     CommandEngine* engine = nullptr;
-    String name;
+    Newstring name;
 
-    virtual bool onExecute(Array<String>& args) = 0;
+    virtual bool onExecute(Array<Newstring>& args) = 0;
 };
 
 struct CommandEngine
 {
     CommandWindow* window = nullptr;
     
-    bool evaluate(const String& expression);
+    bool Evaluate(const Newstring& expression);
 
-	void setBeforeRunCallback(CommandBeforeRunCallback callback, void* userdata);
-	Command* findCommandByName(const String& name);
+	void SetBeforeRunCallback(CommandBeforeRunCallback callback, void* userdata);
+	Command* FindCommandByName(const Newstring& name);
 
 	CommandBeforeRunCallback beforeRunCallback = nullptr;
 	void* beforeRunCallbackUserdata = nullptr;
 
     Array<CommandInfo*> knownCommandInfoArray;
     Array<Command*> commands;
-    bool registerCommand(Command* command);
-    bool registerCommandInfo(CommandInfo* info);
+    bool RegisterCommand(Command* command);
+    bool RegisterCommandInfo(CommandInfo* info);
 };

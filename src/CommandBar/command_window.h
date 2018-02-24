@@ -17,11 +17,11 @@ struct CommandWindow
 
 	void ShowWindow();
 	void HideWindow();
-	void toggleVisibility();
+	void ToggleVisibility();
 
-	void exit();
+	void Exit();
 
-	LRESULT wndProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam);
+	LRESULT WindowProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam);
 	void beforeCommandRun();
 
 	HWND hwnd = 0;
@@ -42,7 +42,7 @@ private:
 	bool shouldCatchInvalidUsageErrors = false;
 	float showWindowYRatio = 0.4f;
 
-	void evaluate();
+	void Evaluate();
 
 	static bool initGlobalResources(HINSTANCE hInstance);
 
@@ -53,10 +53,9 @@ private:
 public:
     void ClearText();
     bool SetText(const Newstring& text);
-    void redraw();
-    void updateTextLayout(bool forced = false);
-    void clearSelection();
-    bool getSelectionRange(int* rangeStart, int* rangeLength);
+    void Redraw();
+    void UpdateTextLayout(bool forced = false);
+    void ClearSelection();
 
     NewstringBuilder textBuffer;
     uint32_t cursorPos = 0;
@@ -78,22 +77,22 @@ public:
     ID2D1SolidColorBrush* autocompletionTextForegroundBrush = nullptr;
     ID2D1SolidColorBrush* selectedTextBrush = nullptr;
     
-    LRESULT onChar(wchar_t c);
-    LRESULT onKeyDown(LPARAM lParam, WPARAM wParam);
-    LRESULT onMouseActivate();
-    LRESULT onLeftMouseButtonDown(LPARAM lParam, WPARAM wParam);
-    LRESULT onLeftMouseButtonUp();
-    LRESULT onMouseMove(LPARAM lParam, WPARAM wParam);
-    LRESULT onFocusAcquired();
-    LRESULT onFocusLost();
-    LRESULT onPaint();
-    LRESULT onHotkey(LPARAM lParam, WPARAM wParam);
-    LRESULT onTimer(LPARAM lParam, WPARAM wParam);
-    LRESULT onShowWindow(LPARAM lParam, WPARAM wParam);
-    LRESULT onQuit();
-    LRESULT onActivate();
+    LRESULT OnChar(wchar_t c);
+    LRESULT OnKeyDown(LPARAM lParam, WPARAM wParam);
+    LRESULT OnMouseActivate();
+    LRESULT OnLeftMouseButtonDown(LPARAM lParam, WPARAM wParam);
+    LRESULT OnLeftMouseButtonUp();
+    LRESULT OnMouseMove(LPARAM lParam, WPARAM wParam);
+    LRESULT OnFocusAcquired();
+    LRESULT OnFocusLost();
+    LRESULT OnPaint();
+    LRESULT OnHotkey(LPARAM lParam, WPARAM wParam);
+    LRESULT OnTimer(LPARAM lParam, WPARAM wParam);
+    LRESULT OnShowWindow(LPARAM lParam, WPARAM wParam);
+    LRESULT OnQuit();
+    LRESULT OnActivate();
 
-    LRESULT onCursorBlinkTimerElapsed();
+    LRESULT OnCursorBlinkTimerElapsed();
 
     void onTextChanged();
     void onUserRequestedAutocompletion();

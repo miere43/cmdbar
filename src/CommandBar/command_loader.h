@@ -10,5 +10,5 @@ struct CommandLoader
 
     Array<Command*> LoadFromFile(const Newstring& filePath);
 private:
-    CommandInfo* findCommandInfoByName(const String& name);
+    CommandInfo* FindCommandInfoByName(const Newstring& name);
 };
