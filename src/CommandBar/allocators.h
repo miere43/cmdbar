@@ -51,29 +51,29 @@ private:
 
 extern StandardAllocator g_standardAllocator;
 extern TempAllocator g_tempAllocator;
-
-template<typename T>
-static inline T* stdNew()
-{
-    T* obj = (T*)g_standardAllocator.Allocate(sizeof(T));
-    if (obj) new (obj) T;
-
-    return obj;
-}
-
-template<typename T>
-static inline T* stdNewArr(int count)
-{
-    assert(count > 0);
-
-    T* obj = (T*)g_standardAllocator.Allocate(sizeof(T) * count);
-    if (obj == nullptr) return nullptr;
-    
-    for (int i = 0; i < count; ++i)
-        new (&obj[i]) T;
-
-    return obj;
-}
+//
+//template<typename T>
+//static inline T* stdNew()
+//{
+//    T* obj = (T*)g_standardAllocator.Allocate(sizeof(T));
+//    if (obj) new (obj) T;
+//
+//    return obj;
+//}
+//
+//template<typename T>
+//static inline T* stdNewArr(int count)
+//{
+//    assert(count > 0);
+//
+//    T* obj = (T*)g_standardAllocator.Allocate(sizeof(T) * count);
+//    if (obj == nullptr) return nullptr;
+//    
+//    for (int i = 0; i < count; ++i)
+//        new (&obj[i]) T;
+//
+//    return obj;
+//}
 
 void* operator new(size_t size, IAllocator* allocator);
 void  operator delete(void* block, IAllocator* allocator);

@@ -13,7 +13,7 @@ Command* quit_createCommand(Array<Newstring>& keys, Array<Newstring>& values);
 
 Command* openDir_createCommand(Array<Newstring>& keys, Array<Newstring>& values)
 {
-    OpenDirCommand* cmd = stdNew<OpenDirCommand>();
+    OpenDirCommand* cmd = Memnew(OpenDirCommand);
 
     for (uint32_t i = 0; i < keys.count; ++i)
     {
@@ -93,7 +93,7 @@ void registerBasicCommands(CommandLoader* loader)
 bool parseShowType(const Newstring& value, int* showType);
 Command * runApp_createCommand(Array<Newstring>& keys, Array<Newstring>& values)
 {
-    RunAppCommand* cmd = stdNew<RunAppCommand>();
+    RunAppCommand* cmd = Memnew(RunAppCommand);
     if (cmd == nullptr) return nullptr;
 
     for (uint32_t i = 0; i < keys.count; ++i)
@@ -312,81 +312,9 @@ static bool shellExecute(const wchar_t* path, const wchar_t* verb, const wchar_t
     return success;
 }
 
-//    assert(appPath);
-//    assert(&args);
-//
-//    //Newstring currentDirectory = OSUtils::getDirectoryFromFileName(Newstring((wchar_t*)appPath));
-//    //Newstring commandLine = OSUtils::buildCommandLine(args.data, args.count);
-//
-//    int paramsCount = 0;
-//    for (int i = 1; i < args.count; ++i)
-//        paramsCount += args.data[i]->count + 1;
-//
-//    wchar_t* params = paramsCount > 0 ? (wchar_t*)g_standardAllocator.Allocate(paramsCount * sizeof(wchar_t)) : nullptr;
-//    if (params != nullptr)
-//    {
-//        wchar_t* paramsCurrent = params;
-//        for (int i = 0; i < args.count; ++i)
-//        {
-//            wmemcpy(paramsCurrent, args.data[i]->data, args.data[i]->count);
-//            paramsCurrent += args.data[i]->count;
-//            *paramsCurrent++ = L' ';
-//        }
-//        params[paramsCount] = L'\0';
-//    }
-//
-//    Newstring fileName = clone(*args.data[0]);
-//    if (fileName.isEmpty())
-//        __debugbreak();
-//
-//    SHELLEXECUTEINFOW info = { 0 };
-//    info.cbSize = sizeof(info);
-//    //info.lpVerb = L"runas";
-//    info.lpFile = fileName.data;//s args.data[0]->data;
-//    info.hwnd = 0;
-//    info.lpParameters = params;
-//    info.nShow = SW_NORMAL;
-//
-//    bool success = 0 != ShellExecuteExW(&info);
-//    g_standardAllocator.Deallocate(params);
-//
-//    //STARTUPINFOW startupInfo = { sizeof(startupInfo), 0 };
-//    //PROCESS_INFORMATION processInfo = { 0 };
-//
-//    //bool success = 0 != CreateProcessW(
-//    //    appPath,//fileName->data,
-//    //    commandLine.data,//nullptr, //commandLine.data,
-//    //    nullptr,
-//    //    nullptr,
-//    //    true,
-//    //    NORMAL_PRIORITY_CLASS,
-//    //    nullptr,
-//    //    nullptr, //currentDirectory.data,
-//    //    &startupInfo,
-//    //    &processInfo);
-//
-//    DWORD lastError = 0;
-//    if (success)
-//    {
-//    }
-//    else
-//    {
-//        lastError = GetLastError();
-//        LPWSTR buffer = nullptr;
-//        DWORD msg = FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, 0, lastError, 0, (LPWSTR)&buffer, 0, 0);
-//
-//        if (msg == 0)
-//            MessageBoxW(0, L"Unable to execute application.", L"Error", MB_OK | MB_ICONERROR);
-//        else
-//            MessageBoxW(0, buffer, L"Error", MB_OK | MB_ICONERROR);
-//
-//        if (buffer != nullptr)
-//            LocalFree(buffer);
-//    }
-
 Command* quit_createCommand(Array<Newstring>& keys, Array<Newstring>& values)
 {
-    return stdNew<QuitCommand>();
+    return Memnew(QuitCommand);
 }
 
 bool QuitCommand::onExecute(Array<Newstring>& args)

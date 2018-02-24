@@ -73,7 +73,7 @@ struct Newstring
     static Newstring FormatCString(const wchar_t* format, ...);
 
     // Formats a message using standard allocator. If formatting fails, fallback message is used.
-    static Newstring FormatCStringWithFallback(const wchar_t* format, const wchar_t* fallback, ...);
+    static Newstring FormatCStringWithFallback(const wchar_t* format, ...);
 
     // Formats a message using temporary allocator.
     static Newstring FormatTemp(const wchar_t* format, ...);
@@ -82,7 +82,7 @@ struct Newstring
     static Newstring FormatTempCString(const wchar_t* format, ...);
 
     // Formats a message using temporary allocator. If formatting fails, fallback message is used. Message is null-terminated.
-    static Newstring FormatTempCStringWithFallback(const wchar_t* format, const wchar_t* fallback...);
+    static Newstring FormatTempCStringWithFallback(const wchar_t* format, ...);
 
     static Newstring FormatWithAllocator(IAllocator* allocator, const wchar_t* format, ...);
     static Newstring FormatWithAllocator(IAllocator* allocator, const wchar_t* format, va_list args, bool includeTerminatingNull);

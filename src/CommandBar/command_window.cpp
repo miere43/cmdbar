@@ -833,25 +833,6 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
     if (!initGlobalResources(hInstance))
         return false;
 
-    // Initialize Direct2D and DirectWrite
-    this->d2d1 = nullptr;
-    this->dwrite = nullptr;
-    {
-        if (FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2d1)))
-        {
-            // @TODO: better error message
-            MessageBoxW(0, L"Cannot initialize Direct2D.", L"Error", MB_OK | MB_ICONERROR);
-            return 1;
-        }
-
-        if (FAILED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&dwrite))))
-        {
-            // @TODO: better error message
-            MessageBoxW(0, L"Cannot initialize DirectWrite.", L"Error", MB_OK | MB_ICONERROR);
-            return false;
-        }
-    }
-
     const uint32_t mainWindowFlags = WS_POPUP;
     const uint32_t mainWindowExtendedFlags = WS_EX_TOOLWINDOW;
     hwnd = CreateWindowExW(
@@ -873,7 +854,7 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
 
     SetWindowLongPtrW(hwnd, GWL_EXSTYLE, GetWindowLongPtrW(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
 
-    if (!RegisterHotKey(hwnd, SHOW_APP_WINDOW_HOTKEY_ID, MOD_ALT | MOD_NOREPEAT, 0x51))
+    if (!RegisterHotKey(hwnd, SHOW_APP_WINDOW_HOTKEY_ID, MOD_ALT | MOD_NOREPEAT, 'Q'))
         MessageBoxW(hwnd, L"Hotkey Alt+Q is already claimed.", L"Command Bar", MB_ICONINFORMATION);
 
     Newstring trayFailureReason;
@@ -884,61 +865,22 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
         MessageBoxW(hwnd, trayFailureReason.data, L"Error", MB_ICONERROR);
     }
 
+    if (!CreateGraphicsResources())
+        return false;
+
     commandEngine->SetBeforeRunCallback(beforeRunCallback, this);
 
     assert(textBuffer.Reserve(512));
 
     setCursorTimer();
 
-    {
-        // Initialize Direct2D and DirectWrite resources.
-        HRESULT hr = 0;
-
-        hr = dwrite->CreateTextFormat(
-            style->fontFamily.data,
-            nullptr,
-            style->fontWeight,
-            style->fontStyle,
-            style->fontStretch,
-            style->fontHeight,
-            L"en-us",
-            &textFormat
-        );
-        assert(SUCCEEDED(hr));
-
-        textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
-        textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
-
-        RECT clientRect;
-        GetClientRect(hwnd, &clientRect);
-        D2D1_SIZE_U clientPixelSize = D2D1::SizeU(clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
-
-        hr = d2d1->CreateHwndRenderTarget(
-            D2D1::RenderTargetProperties(),
-            D2D1::HwndRenderTargetProperties(hwnd, clientPixelSize, D2D1_PRESENT_OPTIONS_IMMEDIATELY),
-            &hwndRenderTarget);
-        assert(SUCCEEDED(hr));
-
-        hr = hwndRenderTarget->CreateSolidColorBrush(style->textColor, &textForegroundBrush);
-        assert(SUCCEEDED(hr));
-
-        hr = hwndRenderTarget->CreateSolidColorBrush(style->autocompletionTextColor, &autocompletionTextForegroundBrush);
-        assert(SUCCEEDED(hr));
-
-        hr = hwndRenderTarget->CreateSolidColorBrush(style->selectedTextBackgroundColor, &selectedTextBrush);
-        assert(SUCCEEDED(hr));
-
-        hr = hwndRenderTarget->CreateSolidColorBrush(style->textboxBackgroundColor, &textboxBackgroundBrush);
-        assert(SUCCEEDED(hr));
-    }
-
-    QuitCommand* quitcmd = stdNew<QuitCommand>();
+    QuitCommand* quitcmd = Memnew(QuitCommand);
     quitcmd->name = Newstring::NewFromWChar(L"quit");
     quitcmd->info = nullptr;
     quitcmd->commandWindow = this;
     commandEngine->RegisterCommand(quitcmd);
 
-    QuitCommand* exitcmd = stdNew<QuitCommand>();
+    QuitCommand* exitcmd = Memnew(QuitCommand);
     exitcmd->name = Newstring::NewFromWChar(L"exit");
     exitcmd->info = nullptr;
     exitcmd->commandWindow = this;
@@ -1017,9 +959,119 @@ void CommandWindow::Evaluate()
     //CB_TipHideWindow(&ui.tip);
 }
 
+bool CommandWindow::CreateGraphicsResources()
+{
+    d2d1 = nullptr;
+    dwrite = nullptr;
+    const auto format = Newstring::FormatTempCStringWithFallback;
+
+    HRESULT hr = E_UNEXPECTED;
+    defer(
+        if (FAILED(hr))
+        {
+            DisposeGraphicsResources();
+        }
+    );
+    
+    hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2d1);
+    if (FAILED(hr))
+    {
+        return ShowErrorBox(format(L"Cannot initialize Direct2D.\n\nError code was 0x%08X.", hr));
+    }
+
+    hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&dwrite));
+    if (FAILED(hr))
+    {
+        return ShowErrorBox(format(L"Cannot initialize DirectWrite.\n\nError code was 0x%08X.", hr));
+    }
+
+    hr = dwrite->CreateTextFormat(
+        style->fontFamily.data,
+        nullptr,
+        style->fontWeight,
+        style->fontStyle,
+        style->fontStretch,
+        style->fontHeight,
+        L"en-us",
+        &textFormat
+    );
+    if (FAILED(hr))
+    {
+        return ShowErrorBox(format(L"Cannot create text format.\n\nError code was 0x%08X.", hr));
+    }
+
+    textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
+    textFormat->SetParagraphAlignment(DWRITE_PARAGRAPH_ALIGNMENT_NEAR);
+
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    D2D1_SIZE_U clientPixelSize = D2D1::SizeU(clientRect.right - clientRect.left, clientRect.bottom - clientRect.top);
+
+    hr = d2d1->CreateHwndRenderTarget(
+        D2D1::RenderTargetProperties(),
+        D2D1::HwndRenderTargetProperties(hwnd, clientPixelSize, D2D1_PRESENT_OPTIONS_IMMEDIATELY),
+        &hwndRenderTarget);
+    if (FAILED(hr))
+    {
+        return ShowErrorBox(format(L"Cannot create window render target.\n\nError code was 0x%08X.", hr));
+    }
+
+    HRESULT brushHr = S_OK;
+    hr = hwndRenderTarget->CreateSolidColorBrush(style->textColor, &textForegroundBrush);
+    if (FAILED(hr))  brushHr = hr;
+
+    hr = hwndRenderTarget->CreateSolidColorBrush(style->autocompletionTextColor, &autocompletionTextForegroundBrush);
+    if (FAILED(hr))  brushHr = hr;
+
+    hr = hwndRenderTarget->CreateSolidColorBrush(style->selectedTextBackgroundColor, &selectedTextBrush);
+    if (FAILED(hr))  brushHr = hr;
+
+    hr = hwndRenderTarget->CreateSolidColorBrush(style->textboxBackgroundColor, &textboxBackgroundBrush);
+    if (FAILED(hr))  brushHr = hr;
+
+    hr = brushHr;
+
+    if (FAILED(hr))
+    {
+        return ShowErrorBox(format(L"Cannot create brushes.\n\nError code was 0x%08X.", hr));
+    }
+
+    return true;
+}
+
+void CommandWindow::DisposeGraphicsResources()
+{
+    SafeRelease(textForegroundBrush);
+    SafeRelease(autocompletionTextForegroundBrush);
+    SafeRelease(selectedTextBrush);
+    SafeRelease(textboxBackgroundBrush);
+    SafeRelease(textFormat);
+    SafeRelease(hwndRenderTarget);
+    SafeRelease(d2d1);
+    SafeRelease(dwrite);
+}
+
+bool CommandWindow::ShowErrorBox(Newstring msg)
+{
+    if (Newstring::IsNullOrEmpty(msg))
+    {
+        // @TODO: Insert debug build debugbreak here.
+        msg = Newstring::WrapConstWChar(L"Unknown error.");
+    }
+
+    if (!msg.IsZeroTerminated())
+    {
+        msg = msg.CloneAsCString(&g_tempAllocator);
+    }
+
+    MessageBoxW(hwnd, msg.data, L"Error", MB_ICONERROR);
+    return false;
+}
+
 void CommandWindow::Dispose()
 {
     tray.Dispose();
+    DisposeGraphicsResources();
 }
 
 LRESULT CommandWindow::WindowProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam)

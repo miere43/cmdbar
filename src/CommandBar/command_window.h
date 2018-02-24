@@ -44,6 +44,11 @@ private:
 
 	void Evaluate();
 
+    bool CreateGraphicsResources();
+    void DisposeGraphicsResources();
+
+    bool ShowErrorBox(Newstring msg);
+
 	static bool initGlobalResources(HINSTANCE hInstance);
 
     static HKL g_englishKeyboardLayout;

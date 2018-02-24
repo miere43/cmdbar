@@ -287,22 +287,25 @@ Newstring Newstring::FormatCString(const wchar_t* format, ...)
     return result;
 }
 
-Newstring Newstring::FormatCStringWithFallback(const wchar_t* format, const wchar_t* fallback, ...)
+Newstring Newstring::FormatCStringWithFallback(const wchar_t* format, ...)
 {
-    assert(fallback);
     assert(format);
 
     va_list args;
-    va_start(args, fallback);
+    va_start(args, format);
 
     Newstring result = FormatWithAllocator(&g_standardAllocator, format, args, true);
-    
+
     va_end(args);
 
     if (Newstring::IsNullOrEmpty(result))
     {
-        result = Newstring::WrapConstWChar(fallback);
-        result.count += 1;  // Count terminating null.
+        result = Newstring::NewCStringFromWChar(format, &g_standardAllocator);
+        if (Newstring::IsNullOrEmpty(result))
+        {
+            result = Newstring::WrapConstWChar(format);
+            result.count -= 1; // Don't count terminating null.
+        }
     }
 
     return result;
@@ -336,13 +339,12 @@ Newstring Newstring::FormatTempCString(const wchar_t * format, ...)
     return result;
 }
 
-Newstring Newstring::FormatTempCStringWithFallback(const wchar_t* format, const wchar_t* fallback ...)
+Newstring Newstring::FormatTempCStringWithFallback(const wchar_t* format, ...)
 {
-    assert(fallback);
     assert(format);
 
     va_list args;
-    va_start(args, fallback);
+    va_start(args, format);
 
     Newstring result = FormatWithAllocator(&g_tempAllocator, format, args, true);
 
@@ -350,8 +352,12 @@ Newstring Newstring::FormatTempCStringWithFallback(const wchar_t* format, const 
 
     if (Newstring::IsNullOrEmpty(result))
     {
-        result = Newstring::WrapConstWChar(fallback);
-        result.count += 1;  // Count terminating null.
+        result = Newstring::NewCStringFromWChar(format, &g_tempAllocator);
+        if (Newstring::IsNullOrEmpty(result))
+        {
+            result = Newstring::WrapConstWChar(format);
+            result.count -= 1; // Don't count terminating null.
+        }
     }
 
     return result;
