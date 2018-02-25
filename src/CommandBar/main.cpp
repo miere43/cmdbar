@@ -18,6 +18,7 @@
 #include "command_window_style_loader.h"
 #include "defer.h"
 #include "parse_ini.h"
+#include "common.h"
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
@@ -26,9 +27,11 @@ processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 SingleInstance g_singleInstanceGuard;
 
-void InitializeDefaultStyle(CommandWindowStyle* style);
 bool InitializeAllocators();
 bool InitializeLibraries();
+void DisposeAllocators();
+void DisposeLibraries();
+
 Newstring GetCommandsFilePath();
 Newstring AskUserForCmdsFilePath();
 
@@ -36,8 +39,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 {
     if (!InitializeAllocators())
         return 1;
+    defer(DisposeAllocators());
+
     if (!InitializeLibraries())
         return 1;
+    defer(DisposeLibraries());
 
 #ifndef _DEBUG
 	if (!g_singleInstanceGuard.checkOrInitInstanceLock(L"CommandBarSingleInstanceGuard"))
@@ -53,24 +59,24 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     CloseClipboard();
 #endif
 
-    //AskUserForCmdsFilePath();
-
 	CommandEngine commandEngine;
+    defer(commandEngine.Dispose());
 
 	CommandWindowStyle windowStyle;
-    InitializeDefaultStyle(&windowStyle);
 
     Newstring styleFilePath = Newstring::WrapConstWChar(L"D:/Vlad/cb/style.ini");
     if (OSUtils::FileExists(styleFilePath))
     {
         if (!CommandWindowStyleLoader::LoadFromFile(styleFilePath, &windowStyle))
         {
-            InitializeDefaultStyle(&windowStyle);
+            windowStyle = CommandWindowStyle();
             MessageBoxW(0, L"Failed to load style.", L"Error", MB_OK | MB_ICONERROR);
         }
     }
 
 	CommandWindow commandWindow;
+    defer(commandWindow.Dispose());
+
     commandWindow.style = &windowStyle;
     commandWindow.commandEngine = &commandEngine;
 
@@ -83,13 +89,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     for (uint32_t i = 0; i < commands.count; ++i)
         commandEngine.RegisterCommand(commands.data[i]);
 
-    if (wcscmp(lpCmdLine, L"/noshow") == 0)
-        nCmdShow = 0;
-    else
-        nCmdShow = SW_SHOW;
+    nCmdShow =  wcscmp(lpCmdLine, L"/noshow") == 0 ? 0 : SW_SHOW;
 
     bool initialized = commandWindow.Initialize(400, 40, nCmdShow);
-    assert(initialized);
+    if (!initialized)  return -1;
 
     MSG msg;
     uint32_t ret;
@@ -107,25 +110,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
         g_tempAllocator.Reset();
     }
 
-    commandWindow.Dispose();
-    
     return static_cast<int>(msg.wParam);
-}
-
-void InitializeDefaultStyle(CommandWindowStyle* windowStyle)
-{
-    windowStyle->textMarginLeft = 4.0f;
-    windowStyle->textColor = D2D1::ColorF(D2D1::ColorF::Black);
-    windowStyle->autocompletionTextColor = D2D1::ColorF(D2D1::ColorF::Gray);
-    windowStyle->textboxBackgroundColor = D2D1::ColorF(D2D1::ColorF::White);
-    windowStyle->selectedTextBackgroundColor = D2D1::ColorF(D2D1::ColorF::Aqua);
-    windowStyle->fontFamily = Newstring::WrapConstWChar(L"Segoe UI");
-    windowStyle->fontHeight = 22.0f;
-    windowStyle->fontStyle = DWRITE_FONT_STYLE_NORMAL;
-    windowStyle->fontStretch = DWRITE_FONT_STRETCH_NORMAL;
-    windowStyle->fontWeight = DWRITE_FONT_WEIGHT_REGULAR;
-    windowStyle->borderColor = D2D1::ColorF(D2D1::ColorF::Black);
-    windowStyle->borderSize = 5;
 }
 
 Newstring AskUserForCmdsFilePath()
@@ -273,9 +258,21 @@ bool InitializeLibraries()
     return true;
 }
 
+void DisposeAllocators()
+{
+    OutputDebugStringW(Newstring::FormatTempCString(L"std allocator leftover: %d\n", (int)g_standardAllocator.allocated).data);
+
+    g_tempAllocator.Dispose();
+}
+
+void DisposeLibraries()
+{
+    CoUninitialize();
+}
+
 bool InitializeAllocators()
 {
-    if (!g_tempAllocator.SetSize(1024))
+    if (!g_tempAllocator.SetSize(4096))
     {
         MessageBoxW(0, L"Unable to initialize temporary allocator.", L"Error", MB_ICONERROR);
         return false;

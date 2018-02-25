@@ -54,4 +54,6 @@ struct CommandEngine
     Array<Command*> commands;
     bool RegisterCommand(Command* command);
     bool RegisterCommandInfo(CommandInfo* info);
+
+    void Dispose();
 };

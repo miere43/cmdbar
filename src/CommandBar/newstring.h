@@ -1,7 +1,6 @@
 #pragma once
-#include "common.h"
-#include <initializer_list>
 #include "allocators.h"
+#include <initializer_list>
 
 
 enum class Encoding

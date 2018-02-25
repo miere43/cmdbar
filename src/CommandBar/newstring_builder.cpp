@@ -126,7 +126,7 @@ bool NewstringBuilder::Reserve(uint32_t newCapacity)
     if (newCapacity < 32) newCapacity = 32;
     if (data && capacity >= newCapacity)  return true;
 
-    wchar_t* newData = (wchar_t*)allocator->Reallocate(data, newCapacity);
+    wchar_t* newData = (wchar_t*)allocator->Reallocate(data, sizeof(wchar_t) * newCapacity);
     if (!newData)  return false;
 
     data = newData;

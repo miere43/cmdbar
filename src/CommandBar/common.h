@@ -1,6 +1,7 @@
 #pragma once
 #define NOMINMAX
 #include <stdint.h>
+#include <Windows.h>
 
 template<typename T>
 void SafeRelease(T*& com_ptr)
@@ -11,3 +12,4 @@ void SafeRelease(T*& com_ptr)
         com_ptr = nullptr;
     }
 }
+

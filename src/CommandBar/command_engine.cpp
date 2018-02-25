@@ -119,6 +119,11 @@ bool CommandEngine::RegisterCommandInfo(CommandInfo* info)
     return knownCommandInfoArray.add(info);
 }
 
+void CommandEngine::Dispose()
+{
+    
+}
+
 CommandInfo::CommandInfo()
 { }
 

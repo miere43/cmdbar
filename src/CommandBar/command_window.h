@@ -47,8 +47,6 @@ private:
     bool CreateGraphicsResources();
     void DisposeGraphicsResources();
 
-    bool ShowErrorBox(Newstring msg);
-
 	static bool initGlobalResources(HINSTANCE hInstance);
 
     static HKL g_englishKeyboardLayout;
@@ -134,17 +132,17 @@ private:
 struct CommandWindowStyle
 {
     COLORREF marginColor = 0;
-    D2D1_COLOR_F borderColor;
-    D2D1_COLOR_F textColor;
-    D2D1_COLOR_F autocompletionTextColor;
-    D2D1_COLOR_F selectedTextBackgroundColor;
-    D2D1_COLOR_F textboxBackgroundColor;
-    Newstring fontFamily;
-    float fontHeight = 0.0f;
+    D2D1_COLOR_F borderColor = D2D1::ColorF(D2D1::ColorF::Black);
+    D2D1_COLOR_F textColor = D2D1::ColorF(D2D1::ColorF::Black);
+    D2D1_COLOR_F autocompletionTextColor = D2D1::ColorF(D2D1::ColorF::Gray);
+    D2D1_COLOR_F selectedTextBackgroundColor = D2D1::ColorF(D2D1::ColorF::Aqua);
+    D2D1_COLOR_F textboxBackgroundColor = D2D1::ColorF(D2D1::ColorF::White);
+    Newstring fontFamily = Newstring::WrapConstWChar(L"Segoe UI");
+    float fontHeight = 22.0f;
     DWRITE_FONT_WEIGHT fontWeight = DWRITE_FONT_WEIGHT_REGULAR;
     DWRITE_FONT_STYLE fontStyle = DWRITE_FONT_STYLE_NORMAL;
     DWRITE_FONT_STRETCH fontStretch = DWRITE_FONT_STRETCH_NORMAL;
-    float textMarginLeft = 0;
+    float textMarginLeft = 4.0f;
     int borderSize = 5;
     int textHeight = 0;
 };

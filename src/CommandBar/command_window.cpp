@@ -12,6 +12,8 @@
 #include "edit_commands_window.h"
 #include "defer.h"
 #include "command_window_tray.h"
+#include "utils.h"
+
 
 LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void beforeRunCallback(CommandEngine* engine, void* userdata);
@@ -870,7 +872,7 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
 
     commandEngine->SetBeforeRunCallback(beforeRunCallback, this);
 
-    assert(textBuffer.Reserve(512));
+    assert(textBuffer.Reserve(5));
 
     setCursorTimer();
 
@@ -976,13 +978,13 @@ bool CommandWindow::CreateGraphicsResources()
     hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2d1);
     if (FAILED(hr))
     {
-        return ShowErrorBox(format(L"Cannot initialize Direct2D.\n\nError code was 0x%08X.", hr));
+        return ShowErrorBox(hwnd, format(L"Cannot initialize Direct2D.\n\nError code was 0x%08X.", hr));
     }
 
     hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&dwrite));
     if (FAILED(hr))
     {
-        return ShowErrorBox(format(L"Cannot initialize DirectWrite.\n\nError code was 0x%08X.", hr));
+        return ShowErrorBox(hwnd, format(L"Cannot initialize DirectWrite.\n\nError code was 0x%08X.", hr));
     }
 
     hr = dwrite->CreateTextFormat(
@@ -997,7 +999,7 @@ bool CommandWindow::CreateGraphicsResources()
     );
     if (FAILED(hr))
     {
-        return ShowErrorBox(format(L"Cannot create text format.\n\nError code was 0x%08X.", hr));
+        return ShowErrorBox(hwnd, format(L"Cannot create text format.\n\nError code was 0x%08X.", hr));
     }
 
     textFormat->SetTextAlignment(DWRITE_TEXT_ALIGNMENT_LEADING);
@@ -1013,7 +1015,7 @@ bool CommandWindow::CreateGraphicsResources()
         &hwndRenderTarget);
     if (FAILED(hr))
     {
-        return ShowErrorBox(format(L"Cannot create window render target.\n\nError code was 0x%08X.", hr));
+        return ShowErrorBox(hwnd, format(L"Cannot create window render target.\n\nError code was 0x%08X.", hr));
     }
 
     HRESULT brushHr = S_OK;
@@ -1033,7 +1035,7 @@ bool CommandWindow::CreateGraphicsResources()
 
     if (FAILED(hr))
     {
-        return ShowErrorBox(format(L"Cannot create brushes.\n\nError code was 0x%08X.", hr));
+        return ShowErrorBox(hwnd, format(L"Cannot create brushes.\n\nError code was 0x%08X.", hr));
     }
 
     return true;
@@ -1051,27 +1053,16 @@ void CommandWindow::DisposeGraphicsResources()
     SafeRelease(dwrite);
 }
 
-bool CommandWindow::ShowErrorBox(Newstring msg)
-{
-    if (Newstring::IsNullOrEmpty(msg))
-    {
-        // @TODO: Insert debug build debugbreak here.
-        msg = Newstring::WrapConstWChar(L"Unknown error.");
-    }
-
-    if (!msg.IsZeroTerminated())
-    {
-        msg = msg.CloneAsCString(&g_tempAllocator);
-    }
-
-    MessageBoxW(hwnd, msg.data, L"Error", MB_ICONERROR);
-    return false;
-}
-
 void CommandWindow::Dispose()
 {
     tray.Dispose();
     DisposeGraphicsResources();
+
+    if (hwnd != 0)
+    {
+        DestroyWindow(hwnd);
+        hwnd = 0;
+    }
 }
 
 LRESULT CommandWindow::WindowProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam)

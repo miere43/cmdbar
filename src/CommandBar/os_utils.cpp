@@ -3,6 +3,8 @@
 #include "parse_utils.h"
 #include "unicode.h"
 #include "array.h"
+#include "defer.h"
+
 
 Newstring OSUtils::FormatErrorCode(DWORD errorCode, DWORD languageID, IAllocator* allocator)
 {
@@ -85,39 +87,37 @@ Newstring OSUtils::BuildCommandLine(const Newstring* strings[], size_t stringsAr
 
 void* OSUtils::ReadFileContents(const Newstring& fileName, uint32_t* fileSize, IAllocator* allocator)
 {
-    void* data = nullptr;
+    bool hasError = true;
     if (Newstring::IsNullOrEmpty(fileName) || fileSize == nullptr || allocator == nullptr)
         return nullptr;
 
     Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
+    defer(MaybeDisposeZeroTerminated(fileName, &actualFileName));
 
     HANDLE handle = CreateFileW(actualFileName.data, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-    if (handle == INVALID_HANDLE_VALUE)
-        goto exitFreeActualFileName;
+    defer(CloseHandle(handle));
 
     LARGE_INTEGER size;
     if (!GetFileSizeEx(handle, &size) || size.LowPart == 0)
-        goto exitCloseHandle;
+        return nullptr;
 
-    data = allocator->Allocate(size.LowPart);
-    if (data == nullptr)
-        goto exitCloseHandle;
+    void* data = allocator->Allocate(size.LowPart);
+    defer(
+        if (hasError) {
+            allocator->Deallocate(data);
+            data = nullptr;
+        }
+    );
+
+    if (!data)  return nullptr;
 
     DWORD abcd;
     if (!ReadFile(handle, data, size.LowPart, &abcd, nullptr) || abcd != size.LowPart)
-        goto exitFreeData;
+        return nullptr;
 
     *fileSize = size.LowPart;
 
-    goto exitCloseHandle;
-
-exitFreeData:
-    allocator->Deallocate(data);
-    data = nullptr;
-exitCloseHandle:
-    CloseHandle(handle);
-exitFreeActualFileName:
-    MaybeDisposeZeroTerminated(fileName, &actualFileName);
+    hasError = false;
     return data;
 }
 
@@ -125,28 +125,23 @@ bool OSUtils::WriteFileContents(const Newstring& fileName, void* contents, uint3
 {
     assert(contents);
 
-    bool result = false;
     if (Newstring::IsNullOrEmpty(fileName))
         return false;
 
     Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
+    defer(MaybeDisposeZeroTerminated(fileName, &actualFileName));
 
     HANDLE handle = CreateFileW(actualFileName.data, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+    defer(CloseHandle(handle));
+    
     if (handle == INVALID_HANDLE_VALUE)
-        goto exitFreeActualFileName;
+        return false;
 
     DWORD nwritten;
     if (!(WriteFile(handle, contents, contentsSize, &nwritten, nullptr) && nwritten == contentsSize))
-        goto exitCloseHandle;
+        return false;
 
-    result = true;
-    goto exitCloseHandle;
-
-exitCloseHandle:
-    CloseHandle(handle);
-exitFreeActualFileName:
-    MaybeDisposeZeroTerminated(fileName, &actualFileName);
-    return result;
+    return true;
 }
 
 Newstring OSUtils::ReadAllText(const Newstring& fileName, Encoding encoding, IAllocator* allocator)
@@ -241,11 +236,10 @@ void OSUtils::TruncateFileNameToDirectory(Newstring* fileName)
 bool OSUtils::FileExists(const Newstring& fileName)
 {
     Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
+    defer(MaybeDisposeZeroTerminated(fileName, &actualFileName));
 
     DWORD attrs = GetFileAttributesW(actualFileName.data);
     bool result = attrs != 0 && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
-
-    MaybeDisposeZeroTerminated(fileName, &actualFileName);
 
     return result;
 }

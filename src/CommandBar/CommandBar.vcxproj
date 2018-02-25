@@ -244,6 +244,7 @@
     <ClCompile Include="tipui.cpp" />
     <ClCompile Include="uiopts.cpp" />
     <ClCompile Include="unicode.cpp" />
+    <ClCompile Include="utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="allocators.h" />
@@ -276,6 +277,7 @@
     <ClInclude Include="uiopts.h" />
     <ClInclude Include="tipui.h" />
     <ClInclude Include="unicode.h" />
+    <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="..\..\..\..\..\..\cmdbar.ico" />

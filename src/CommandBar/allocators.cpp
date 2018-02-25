@@ -47,6 +47,7 @@ void* TempAllocator::Allocate(uintptr_t size)
 	void* alignedPointer = addBytesToPointer(current, requiredAlignment);
 	if ((uintptr_t)alignedPointer + size > (uintptr_t)end)
 	{
+        // @TODO: this thing doesn't respect alignment?
 		UnfitAllocation* unfit = (UnfitAllocation*)::malloc(sizeof(UnfitAllocation) + size + sizeof(void*));
 
 		if (unfit == nullptr)
@@ -54,7 +55,7 @@ void* TempAllocator::Allocate(uintptr_t size)
 
 		addUnfit(unfit);
 
-		return alignPointer(unfit + sizeof(UnfitAllocation), sizeof(void*)); // @Leak
+		return alignPointer(unfit + sizeof(UnfitAllocation), sizeof(void*));
 	}
 	else
 	{
@@ -78,6 +79,7 @@ void TempAllocator::Reset()
 {
 	if (start != nullptr)
 		current = start;
+    clearUnfits();
 }
 
 void TempAllocator::Dispose()
