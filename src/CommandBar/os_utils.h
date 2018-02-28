@@ -4,7 +4,7 @@
 #define NOMINMAX
 #include <Windows.h>
 
-struct OSUtils
+namespace OSUtils
 {
     static Newstring FormatErrorCode(DWORD errorCode, DWORD languageID = 0, IAllocator* allocator = &g_standardAllocator);
 
@@ -21,6 +21,7 @@ struct OSUtils
     static void TruncateFileNameToDirectory(Newstring* fileName);
 
     static bool FileExists(const Newstring& fileName);
+    static bool DirectoryExists(const Newstring& fileName);
 
 	static inline Encoding normalizeEncoding(Encoding encoding)
     {
@@ -28,7 +29,4 @@ struct OSUtils
 			return Encoding::Unknown;
 		return encoding;
 	}
-private:
-    static Newstring MaybeReallocAsZeroTerminated(const Newstring& fileName);
-    static void MaybeDisposeZeroTerminated(const Newstring& originalFileName, Newstring* actualFileName);
 };

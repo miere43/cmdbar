@@ -48,10 +48,12 @@ struct Newstring
     Newstring CloneAsCString(IAllocator* allocator = &g_standardAllocator) const;
 
     Newstring Trimmed() const;
+    Newstring TrimmedRight() const;
 
     void Dispose(IAllocator* allocator = &g_standardAllocator);
 
     bool IsZeroTerminated() const;
+    void RemoveZeroTermination();
 
     static bool IsNullOrEmpty(const Newstring& string);
     static bool IsNullOrEmpty(const Newstring* const string);

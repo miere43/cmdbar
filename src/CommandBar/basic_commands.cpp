@@ -4,14 +4,15 @@
 #include "command_loader.h"
 #include "command_window.h"
 #include "parse_utils.h"
+#include "defer.h"
 
 
-Command* runApp_createCommand(Array<Newstring>& keys, Array<Newstring>& values);
-Command* openDir_createCommand(Array<Newstring>& keys, Array<Newstring>& values);
-Command* quit_createCommand(Array<Newstring>& keys, Array<Newstring>& values);
+Command* runApp_createCommand(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values);
+Command* openDir_createCommand(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values);
+Command* quit_createCommand(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values);
 
 
-Command* openDir_createCommand(Array<Newstring>& keys, Array<Newstring>& values)
+Command* openDir_createCommand(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values)
 {
     OpenDirCommand* cmd = Memnew(OpenDirCommand);
 
@@ -32,15 +33,14 @@ Command* openDir_createCommand(Array<Newstring>& keys, Array<Newstring>& values)
     }
 
     assert(!Newstring::IsNullOrEmpty(cmd->dirPath));
-    cmd->dirPath = cmd->dirPath.Clone();
+    cmd->dirPath = cmd->dirPath.CloneAsCString();
 
     return cmd;
 }
 
-bool OpenDirCommand::onExecute(Array<Newstring>& args)
+bool OpenDirCommand::onExecute(ExecuteCommandState* state, Array<Newstring>& args)
 {
     Newstring folder;
-
     if (Newstring::IsNullOrEmpty(dirPath))
     {
         if (args.count == 0)
@@ -49,27 +49,52 @@ bool OpenDirCommand::onExecute(Array<Newstring>& args)
         folder = args.data[0];
     }
     else
+    {
         folder = this->dirPath;
+    }
 
     if (Newstring::IsNullOrEmpty(folder))
         return false;
 
-    wchar_t* data = (wchar_t*)g_standardAllocator.Allocate((folder.count + 1) * sizeof(wchar_t));
-    if (data == nullptr)
+    Newstring actualFolder = folder;
+    if (!actualFolder.IsZeroTerminated())
+    {
+        actualFolder = folder.CloneAsCString(&g_tempAllocator);
+        assert(!Newstring::IsNullOrEmpty(actualFolder));
+    }
+
+    if (!OSUtils::DirectoryExists(actualFolder))
+    {
+        actualFolder.RemoveZeroTermination();
+        state->SetErrorMessage(
+            Newstring::FormatTempCString(L"Folder \"%.*s\" does not exist.", actualFolder.count, actualFolder.data),
+            &g_tempAllocator);
+
         return false;
+    }
 
-    wmemcpy(data, folder.data, folder.count);
-    data[folder.count] = L'\0';
+    PIDLIST_ABSOLUTE itemID = ::ILCreateFromPathW(actualFolder.data);
+    if (itemID == nullptr)
+    {
+        Newstring osError = OSUtils::FormatErrorCode(GetLastError(), 0, &g_tempAllocator);
 
-    PIDLIST_ABSOLUTE itemID = ILCreateFromPathW(data);
-    assert(itemID);
+        state->SetErrorMessage(
+            Newstring::FormatTempCString(L"Cannot get directory identifier: %.*s", osError.count, osError.data),
+            &g_tempAllocator);
 
-    HRESULT result = SHOpenFolderAndSelectItems(itemID, 1, (LPCITEMIDLIST*)&itemID, 0);
-    assert(SUCCEEDED(result));
+        return false;
+    }
+    defer(ILFree(itemID));
 
-    ILFree(itemID);
+    HRESULT result = ::SHOpenFolderAndSelectItems(itemID, 1, (LPCITEMIDLIST*)&itemID, 0);
+    if (FAILED(result))
+    {
+        state->SetErrorMessage(
+            Newstring::FormatTempCString(L"Cannot select directory, error code was 0x%08X.", result),
+            &g_tempAllocator);
 
-    g_standardAllocator.Deallocate(data);
+        return false;
+    }
 
     return true;
 }
@@ -91,7 +116,7 @@ void registerBasicCommands(CommandLoader* loader)
 
 // Parse 'nCmdShow' / 'nShow' windows thing (see MSDN ShowWindow function)
 bool parseShowType(const Newstring& value, int* showType);
-Command * runApp_createCommand(Array<Newstring>& keys, Array<Newstring>& values)
+Command * runApp_createCommand(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values)
 {
     RunAppCommand* cmd = Memnew(RunAppCommand);
     if (cmd == nullptr) return nullptr;
@@ -135,16 +160,19 @@ Command * runApp_createCommand(Array<Newstring>& keys, Array<Newstring>& values)
         assert(cmd->shellExec);
 
     // Reallocate strings, because right now they are references to data that may be deleted or modified.
-    cmd->appPath = cmd->appPath.Trimmed().Clone();
-    cmd->appArgs = cmd->appArgs.Trimmed().Clone();
-    cmd->workDir = cmd->workDir.Trimmed().Clone();
+    cmd->appPath = cmd->appPath.Trimmed().CloneAsCString();
+    cmd->appPath.count -= 1;
+    cmd->appArgs = cmd->appArgs.Trimmed().CloneAsCString();
+    cmd->appArgs.count -= 1;
+    cmd->workDir = cmd->workDir.Trimmed().CloneAsCString();
+    cmd->workDir.count -= 1;
 
     return cmd;
 }
 
 static bool runProcess(const wchar_t* path, wchar_t* commandLine);
 static bool shellExecute(const wchar_t* path, const wchar_t* verb, const wchar_t* params, const wchar_t* workDir, int nShow);
-bool RunAppCommand::onExecute(Array<Newstring>& args)
+bool RunAppCommand::onExecute(ExecuteCommandState* state, Array<Newstring>& args)
 {
     // @TODO: test 'runProcess' with args.
     // @TODO: make workDir work with 'runProcess'.
@@ -212,27 +240,13 @@ bool RunAppCommand::onExecute(Array<Newstring>& args)
     bool result = false;
     if (shellExec)
     {
-        Newstring actualAppPath = appPath;
-        if (!actualAppPath.IsZeroTerminated())
-        {
-            actualAppPath = appPath.CloneAsCString(&g_tempAllocator);
-            assert(!Newstring::IsNullOrEmpty(actualAppPath));
-        }
-
-        result = shellExecute(actualAppPath.data, asAdmin ? L"runas" : nullptr, execAppParamsStr, workDir, this->shellExec_nShow);
+        result = shellExecute(appPath.data, asAdmin ? L"runas" : nullptr, execAppParamsStr, workDir, this->shellExec_nShow);
     }
     else
     {
         assert(workDir == nullptr);
 
-        Newstring actualAppPath = appPath;
-        if (!actualAppPath.IsZeroTerminated())
-        {
-            actualAppPath = appPath.CloneAsCString(&g_tempAllocator);
-            assert(!Newstring::IsNullOrEmpty(actualAppPath));
-        }
-
-        result = runProcess(actualAppPath.data, execAppParamsStr);
+        result = runProcess(appPath.data, execAppParamsStr);
     }
 
     if (shouldDeallocateAppParams)
@@ -312,12 +326,12 @@ static bool shellExecute(const wchar_t* path, const wchar_t* verb, const wchar_t
     return success;
 }
 
-Command* quit_createCommand(Array<Newstring>& keys, Array<Newstring>& values)
+Command* quit_createCommand(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values)
 {
     return Memnew(QuitCommand);
 }
 
-bool QuitCommand::onExecute(Array<Newstring>& args)
+bool QuitCommand::onExecute(ExecuteCommandState* state, Array<Newstring>& args)
 {
     commandWindow->Exit();
     return true;

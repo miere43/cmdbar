@@ -148,6 +148,16 @@ Newstring Newstring::Trimmed() const
     return Newstring(data + i, j);
 }
 
+Newstring Newstring::TrimmedRight() const
+{
+    uint32_t j;
+    for (j = count; j >= 0; --j)
+        if (!(data[j - 1] == L' ' || data[j - 1] == L'\t'))
+            break;
+
+    return Newstring(data, j);
+}
+
 void Newstring::Dispose(IAllocator* allocator)
 {
     assert(allocator);
@@ -160,6 +170,11 @@ bool Newstring::IsZeroTerminated() const
 {
     if (IsNullOrEmpty(this))  return false;
     return data[count - 1] == L'\0';
+}
+
+void Newstring::RemoveZeroTermination()
+{
+    if (IsZeroTerminated())  count -= 1;
 }
 
 bool Newstring::IsNullOrEmpty(const Newstring& string)

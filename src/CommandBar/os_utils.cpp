@@ -6,7 +6,17 @@
 #include "defer.h"
 
 
-Newstring OSUtils::FormatErrorCode(DWORD errorCode, DWORD languageID, IAllocator* allocator)
+namespace OSUtils {
+
+//
+// Helper procedures.
+//
+Newstring MaybeReallocAsZeroTerminated(const Newstring& fileName)
+{
+    return fileName.IsZeroTerminated() ? fileName : fileName.CloneAsCString(&g_tempAllocator);
+}
+
+Newstring FormatErrorCode(DWORD errorCode, DWORD languageID, IAllocator* allocator)
 {
     static const DWORD flags = FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_MAX_WIDTH_MASK;
     static const uint32_t maxMessageSize = 256;
@@ -25,10 +35,10 @@ Newstring OSUtils::FormatErrorCode(DWORD errorCode, DWORD languageID, IAllocator
     }
 
     msg.count = count;
-    return msg;
+    return msg.TrimmedRight();
 }
 
-Newstring OSUtils::GetDirectoryFromFileName(const Newstring& fileName, IAllocator* allocator)
+Newstring GetDirectoryFromFileName(const Newstring& fileName, IAllocator* allocator)
 {
     assert(allocator != nullptr);
 
@@ -46,7 +56,7 @@ Newstring OSUtils::GetDirectoryFromFileName(const Newstring& fileName, IAllocato
 	return Newstring::Clone(fileName.RefSubstring(0, slash), allocator);
 }
 
-Newstring OSUtils::BuildCommandLine(const Newstring* strings[], size_t stringsArrayLength, IAllocator* allocator)
+Newstring BuildCommandLine(const Newstring* strings[], size_t stringsArrayLength, IAllocator* allocator)
 {
     assert(allocator != nullptr);
 
@@ -85,14 +95,13 @@ Newstring OSUtils::BuildCommandLine(const Newstring* strings[], size_t stringsAr
 	return Newstring(result.data, result.count - 1);
 }
 
-void* OSUtils::ReadFileContents(const Newstring& fileName, uint32_t* fileSize, IAllocator* allocator)
+void* ReadFileContents(const Newstring& fileName, uint32_t* fileSize, IAllocator* allocator)
 {
     bool hasError = true;
     if (Newstring::IsNullOrEmpty(fileName) || fileSize == nullptr || allocator == nullptr)
         return nullptr;
 
     Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
-    defer(MaybeDisposeZeroTerminated(fileName, &actualFileName));
 
     HANDLE handle = CreateFileW(actualFileName.data, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
     defer(CloseHandle(handle));
@@ -121,7 +130,7 @@ void* OSUtils::ReadFileContents(const Newstring& fileName, uint32_t* fileSize, I
     return data;
 }
 
-bool OSUtils::WriteFileContents(const Newstring& fileName, void* contents, uint32_t contentsSize)
+bool WriteFileContents(const Newstring& fileName, void* contents, uint32_t contentsSize)
 {
     assert(contents);
 
@@ -129,7 +138,6 @@ bool OSUtils::WriteFileContents(const Newstring& fileName, void* contents, uint3
         return false;
 
     Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
-    defer(MaybeDisposeZeroTerminated(fileName, &actualFileName));
 
     HANDLE handle = CreateFileW(actualFileName.data, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
     defer(CloseHandle(handle));
@@ -144,7 +152,7 @@ bool OSUtils::WriteFileContents(const Newstring& fileName, void* contents, uint3
     return true;
 }
 
-Newstring OSUtils::ReadAllText(const Newstring& fileName, Encoding encoding, IAllocator* allocator)
+Newstring ReadAllText(const Newstring& fileName, Encoding encoding, IAllocator* allocator)
 {
     assert(allocator);
 
@@ -167,7 +175,7 @@ Newstring OSUtils::ReadAllText(const Newstring& fileName, Encoding encoding, IAl
     return result;
 }
 
-bool OSUtils::WriteAllText(const Newstring& fileName, const Newstring& text, Encoding encoding)
+bool WriteAllText(const Newstring& fileName, const Newstring& text, Encoding encoding)
 {
     encoding = normalizeEncoding(encoding);
     if (encoding == Encoding::Unknown)
@@ -184,18 +192,7 @@ bool OSUtils::WriteAllText(const Newstring& fileName, const Newstring& text, Enc
     return result;
 }
 
-Newstring OSUtils::MaybeReallocAsZeroTerminated(const Newstring & fileName)
-{
-    return fileName.IsZeroTerminated() ? fileName : fileName.CloneAsCString();
-}
-
-void OSUtils::MaybeDisposeZeroTerminated(const Newstring& originalFileName, Newstring* actualFileName)
-{
-    if (originalFileName.data != actualFileName->data)
-        actualFileName->Dispose();
-}
-
-void OSUtils::GetApplicationDirectory(NewstringBuilder* sb)
+void GetApplicationDirectory(NewstringBuilder* sb)
 {
     assert(sb != nullptr);
 
@@ -217,7 +214,7 @@ void OSUtils::GetApplicationDirectory(NewstringBuilder* sb)
     TruncateFileNameToDirectory(&sb->string);
 }
 
-void OSUtils::TruncateFileNameToDirectory(Newstring* fileName)
+void TruncateFileNameToDirectory(Newstring* fileName)
 {
     if (Newstring::IsNullOrEmpty(fileName))
         return;
@@ -233,14 +230,24 @@ void OSUtils::TruncateFileNameToDirectory(Newstring* fileName)
     }
 }
 
-bool OSUtils::FileExists(const Newstring& fileName)
+bool FileExists(const Newstring& fileName)
 {
     Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
-    defer(MaybeDisposeZeroTerminated(fileName, &actualFileName));
 
     DWORD attrs = GetFileAttributesW(actualFileName.data);
-    bool result = attrs != 0 && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
+    bool result = attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
 
     return result;
 }
 
+bool DirectoryExists(const Newstring& fileName)
+{
+    Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
+
+    DWORD attrs = GetFileAttributesW(actualFileName.data);
+    bool result = attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY);
+
+    return result;
+}
+
+} // namespace OSUtils

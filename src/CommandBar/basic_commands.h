@@ -8,7 +8,6 @@
 
 struct CommandLoader;
 void registerBasicCommands(CommandLoader* loader);
-Command* quit_createCommand(Array<Newstring>& keys, Array<Newstring>& values);
 
 
 struct CommandWindow;
@@ -16,14 +15,14 @@ struct QuitCommand : public Command
 {
     CommandWindow* commandWindow = nullptr;
 
-    virtual bool onExecute(Array<Newstring>& args) override;
+    virtual bool onExecute(ExecuteCommandState* state, Array<Newstring>& args) override;
 };
 
 struct OpenDirCommand : public Command
 {
     Newstring dirPath;
 
-    virtual bool onExecute(Array<Newstring>& args) override;
+    virtual bool onExecute(ExecuteCommandState* state, Array<Newstring>& args) override;
 };
 
 struct RunAppCommand : public Command
@@ -37,5 +36,5 @@ struct RunAppCommand : public Command
 
     int shellExec_nShow = SW_NORMAL;
 
-    virtual bool onExecute(Array<Newstring>& args) override;
+    virtual bool onExecute(ExecuteCommandState* state, Array<Newstring>& args) override;
 };

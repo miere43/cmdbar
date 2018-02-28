@@ -21,6 +21,8 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
     CommandInfo* currCmdInfo = nullptr;
     Newstring currCmdName;
 
+    CreateCommandState state;
+
     p.Initialize(source);
 
     while (p.Next())
@@ -30,7 +32,7 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
             case INIValueType::Group:
                 if (currCmdInfo != nullptr)
                 {
-                    Command* cmd = currCmdInfo->createCommand(keys, values);
+                    Command* cmd = currCmdInfo->createCommand(&state, keys, values);
                     assert(!Newstring::IsNullOrEmpty(currCmdName));
                     cmd->name = currCmdName.Clone();
                     cmd->info = currCmdInfo;
@@ -67,7 +69,7 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
 
     if (currCmdInfo != nullptr)
     {
-        Command* cmd = currCmdInfo->createCommand(keys, values);
+        Command* cmd = currCmdInfo->createCommand(&state, keys, values);
         assert(!Newstring::IsNullOrEmpty(currCmdName));
         cmd->name = currCmdName.Clone();
         cmd->info = currCmdInfo;

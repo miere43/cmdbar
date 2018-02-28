@@ -872,7 +872,7 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
 
     commandEngine->SetBeforeRunCallback(beforeRunCallback, this);
 
-    assert(textBuffer.Reserve(5));
+    assert(textBuffer.Reserve(512));
 
     setCursorTimer();
 
@@ -947,18 +947,33 @@ void CommandWindow::Exit()
 
 void CommandWindow::Evaluate()
 {
-    if (!commandEngine->Evaluate(textBuffer.string))
+    bool success = commandEngine->Evaluate(textBuffer.string);
+
+    if (!success)
     {
-        MessageBoxW(hwnd, L"Unknown command", L"Error", MB_OK | MB_ICONERROR);
-        SetFocus(hwnd); // We lose focus after MessageBox
+        auto state = commandEngine->GetExecutionState();
+        Newstring message = state->errorMessage;
+
+        if (Newstring::IsNullOrEmpty(message))
+        {
+            message = Newstring::WrapConstWChar(L"Unknown error.");
+        }
+        else if (!message.IsZeroTerminated())
+        {
+            message = message.CloneAsCString(&g_tempAllocator);
+            assert(!Newstring::IsNullOrEmpty(message));
+        }
+
+        MessageBoxW(hwnd, message.data, L"Error", MB_OK | MB_ICONERROR);
+        SetFocus(hwnd);  // We lose focus after MessageBox
+
         Redraw();
-
-        return;
     }
-
-    ClearText();
-    HideWindow();
-    //CB_TipHideWindow(&ui.tip);
+    else
+    {
+        ClearText();
+        HideWindow();
+    }
 }
 
 bool CommandWindow::CreateGraphicsResources()
@@ -1057,6 +1072,7 @@ void CommandWindow::Dispose()
 {
     tray.Dispose();
     DisposeGraphicsResources();
+    textBuffer.Dispose();
 
     if (hwnd != 0)
     {

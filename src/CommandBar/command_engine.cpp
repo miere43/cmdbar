@@ -5,6 +5,8 @@
 
 bool CommandEngine::Evaluate(const Newstring& expression)
 {
+    ClearExecutionState();
+
     Array<Newstring> args;
     bool inQuotes = false;
     uint32_t argStart = 0;
@@ -62,22 +64,37 @@ bool CommandEngine::Evaluate(const Newstring& expression)
     }
 
     if (args.count == 0)
+    {
+        executionState.SetErrorMessage(Newstring::WrapConstWChar(L"Invalid input.").CloneAsCString(&g_tempAllocator), &g_tempAllocator);
         return false;
+    }
 
     const Newstring& commandName = args.data[0];
     Command* command = FindCommandByName(commandName);
 
     if (command == nullptr)
+    {
+        executionState.SetErrorMessage(
+            Newstring::FormatTempCString(L"Command \"%.*s\" is not found.", commandName.count, commandName.data),
+            &g_tempAllocator);
         return false;
+    }
 
     if (beforeRunCallback != nullptr)
+    {
         beforeRunCallback(this, beforeRunCallbackUserdata);
+    }
 
     Array<Newstring> actualArgs;
     for (uint32_t i = 1; i < args.count; ++i)
         actualArgs.add(args.data[i]);
+    
+    return command->onExecute(&executionState, actualArgs);
+}
 
-    return command->onExecute(actualArgs);
+ExecuteCommandState* CommandEngine::GetExecutionState()
+{
+    return &executionState;
 }
 
 void CommandEngine::SetBeforeRunCallback(CommandBeforeRunCallback callback, void * userdata)
@@ -121,7 +138,20 @@ bool CommandEngine::RegisterCommandInfo(CommandInfo* info)
 
 void CommandEngine::Dispose()
 {
-    
+    ClearExecutionState();
+}
+
+void CommandEngine::ClearExecutionState()
+{
+    ExecuteCommandState& e = executionState;
+
+    if (!Newstring::IsNullOrEmpty(e.errorMessage))
+    {
+        assert(e.errorMessageAllocator);
+        e.errorMessage.Dispose(e.errorMessageAllocator);
+    }
+
+    e = ExecuteCommandState();
 }
 
 CommandInfo::CommandInfo()
@@ -132,3 +162,9 @@ CommandInfo::CommandInfo(Newstring dataName, CommandInfoFlags flags, CommandInfo
 	, flags(flags)
 	, createCommand(command)
 { }
+
+void BaseCommandState::SetErrorMessage(Newstring message, IAllocator* allocator)
+{
+    errorMessage = message;
+    errorMessageAllocator = allocator;
+}

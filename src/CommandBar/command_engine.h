@@ -2,12 +2,17 @@
 #include "array.h"
 #include "newstring.h"
 
+
 struct Command;
 struct CommandWindow;
 struct CommandEngine;
+struct BaseCommandState;
+struct CreateCommandState;
+struct ExecuteCommandState;
+
 typedef void(*CommandCallback)(Command& command, const Newstring* args, uint32_t numArgs);
 typedef void(*CommandBeforeRunCallback)(CommandEngine* engine, void* userdata);
-
+typedef Command*(*CommandInfo_CreateCommand)(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values);
 
 enum CommandInfoFlags
 {
@@ -16,8 +21,6 @@ enum CommandInfoFlags
     //CI_IncludeCommandNameToArgs = 2,
 };
 
-
-typedef Command*(*CommandInfo_CreateCommand)(Array<Newstring>& keys, Array<Newstring>& values);
 struct CommandInfo
 {
     Newstring dataName;
@@ -35,14 +38,33 @@ struct Command
     CommandEngine* engine = nullptr;
     Newstring name;
 
-    virtual bool onExecute(Array<Newstring>& args) = 0;
+    virtual bool onExecute(ExecuteCommandState* state, Array<Newstring>& args) = 0;
+};
+
+struct BaseCommandState 
+{
+    Newstring errorMessage;
+    IAllocator* errorMessageAllocator;
+
+    void SetErrorMessage(Newstring message, IAllocator* allocator);
+};
+
+struct CreateCommandState : public BaseCommandState
+{
+};
+
+struct ExecuteCommandState : public BaseCommandState
+{
 };
 
 struct CommandEngine
 {
+    ExecuteCommandState executionState;
+
     CommandWindow* window = nullptr;
     
     bool Evaluate(const Newstring& expression);
+    ExecuteCommandState* GetExecutionState();
 
 	void SetBeforeRunCallback(CommandBeforeRunCallback callback, void* userdata);
 	Command* FindCommandByName(const Newstring& name);
@@ -56,4 +78,8 @@ struct CommandEngine
     bool RegisterCommandInfo(CommandInfo* info);
 
     void Dispose();
+
+private:
+    void ClearExecutionState();
 };
+
