@@ -10,3 +10,4 @@ src/CommandBarTestPlugin
 *.aps
 
 count.bat
+doc/

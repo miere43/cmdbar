@@ -30,7 +30,10 @@ bool TempAllocator::SetSize(uintptr_t size)
 
 	start = ::malloc(size);
 	if (start == nullptr)
+    {
+        SetLastError(ERROR_OUTOFMEMORY);
 		return false;
+    }
 
 	current = start;
 	end = addBytesToPointer(start, size);
@@ -40,8 +43,8 @@ bool TempAllocator::SetSize(uintptr_t size)
 
 void* TempAllocator::Allocate(uintptr_t size)
 {
-	if (start == nullptr)
-		return nullptr;
+    assert(start);
+    assert(current);
 
 	uintptr_t requiredAlignment = bytesRequiredToAlignPointer(current, sizeof(void*));
 	void* alignedPointer = addBytesToPointer(current, requiredAlignment);
@@ -51,7 +54,10 @@ void* TempAllocator::Allocate(uintptr_t size)
 		UnfitAllocation* unfit = (UnfitAllocation*)::malloc(sizeof(UnfitAllocation) + size + sizeof(void*));
 
 		if (unfit == nullptr)
-			return nullptr;
+        {
+            SetLastError(ERROR_OUTOFMEMORY);
+            return nullptr;
+        }
 
 		addUnfit(unfit);
 
@@ -121,7 +127,11 @@ void TempAllocator::addUnfit(UnfitAllocation * unfit)
 void* StandardAllocator::Allocate(uintptr_t size)
 {
     void* block = ::malloc(size);
-    if (block == nullptr) return nullptr;
+    if (block == nullptr)
+    {
+        SetLastError(ERROR_OUTOFMEMORY);
+        return nullptr;
+    }
 
     allocated += size;
     return block;
@@ -142,21 +152,25 @@ void* StandardAllocator::Reallocate(void* block, uintptr_t size)
 {
     uintptr_t oldSize = block ? static_cast<uintptr_t>(_msize(block)) : 0;
     block = ::realloc(block, size);
-    if (block == nullptr)  return nullptr;
+    if (block == nullptr)
+    {
+        SetLastError(ERROR_OUTOFMEMORY);
+        return nullptr;
+    }
     uintptr_t newSize = static_cast<uintptr_t>(_msize(block));
 
     allocated = allocated - oldSize + newSize;
     return block;
 }
 
-void* operator new(size_t size, IAllocator * allocator)
+void* operator new(size_t size, IAllocator* allocator)
 {
     assert(allocator);
 
     return allocator->Allocate(size);
 }
 
-void operator delete(void* block, IAllocator * allocator)
+void operator delete(void* block, IAllocator* allocator)
 {
     assert(allocator);
 

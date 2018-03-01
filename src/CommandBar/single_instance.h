@@ -4,6 +4,6 @@
 
 struct SingleInstance
 {
-    bool checkOrInitInstanceLock(const wchar_t* instanceId);
-    bool postMessageToOtherInstance(UINT messageId, WPARAM wParam, LPARAM lParam);
+    bool CheckOrInitInstanceLock(const wchar_t* instanceId);
+    bool PostMessageToOtherInstance(UINT messageId, WPARAM wParam, LPARAM lParam);
 };

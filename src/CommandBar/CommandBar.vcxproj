@@ -228,7 +228,6 @@
     <ClCompile Include="common.cpp" />
     <ClCompile Include="edit_commands_window.cpp" />
     <ClCompile Include="hint_window.cpp" />
-    <ClCompile Include="line_reader.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="command_window.cpp" />
     <ClCompile Include="newstring.cpp" />
@@ -237,12 +236,9 @@
     <ClCompile Include="os_utils.cpp" />
     <ClCompile Include="parse_ini.cpp" />
     <ClCompile Include="parse_utils.cpp" />
-    <ClCompile Include="plugin.cpp" />
-    <ClCompile Include="run_application.cpp" />
     <ClCompile Include="string_utils.cpp" />
     <ClCompile Include="text_edit.cpp" />
     <ClCompile Include="tipui.cpp" />
-    <ClCompile Include="uiopts.cpp" />
     <ClCompile Include="unicode.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>
@@ -259,8 +255,6 @@
     <ClInclude Include="defer.h" />
     <ClInclude Include="edit_commands_window.h" />
     <ClInclude Include="hint_window.h" />
-    <ClInclude Include="line_reader.h" />
-    <ClInclude Include="math_utils.h" />
     <ClInclude Include="newstring.h" />
     <ClInclude Include="newstring_builder.h" />
     <ClInclude Include="single_instance.h" />
@@ -269,12 +263,9 @@
     <ClInclude Include="os_utils.h" />
     <ClInclude Include="parse_ini.h" />
     <ClInclude Include="parse_utils.h" />
-    <ClInclude Include="plugin.h" />
-    <ClInclude Include="run_application.h" />
     <ClInclude Include="string_utils.h" />
     <ClInclude Include="text_edit.h" />
     <ClInclude Include="tinyutf.h" />
-    <ClInclude Include="uiopts.h" />
     <ClInclude Include="tipui.h" />
     <ClInclude Include="unicode.h" />
     <ClInclude Include="utils.h" />

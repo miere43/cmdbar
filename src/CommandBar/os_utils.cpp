@@ -1,5 +1,6 @@
+#include <algorithm>
+
 #include "os_utils.h"
-#include "math_utils.h"
 #include "parse_utils.h"
 #include "unicode.h"
 #include "array.h"
@@ -48,7 +49,7 @@ Newstring GetDirectoryFromFileName(const Newstring& fileName, IAllocator* alloca
 	int backSlash    = fileName.LastIndexOf(L'\\');
 	int forwardSlash = fileName.LastIndexOf(L'/');
 
-	int slash = math::max(backSlash, forwardSlash);
+	int slash = std::max(backSlash, forwardSlash);
 
 	if (slash == -1)
 		return Newstring::Clone(fileName, allocator);
@@ -99,11 +100,18 @@ void* ReadFileContents(const Newstring& fileName, uint32_t* fileSize, IAllocator
 {
     bool hasError = true;
     if (Newstring::IsNullOrEmpty(fileName) || fileSize == nullptr || allocator == nullptr)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
         return nullptr;
+    }
 
     Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
+    if (Newstring::IsNullOrEmpty(actualFileName))
+        return nullptr;
 
     HANDLE handle = CreateFileW(actualFileName.data, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    if (handle == INVALID_HANDLE_VALUE)
+        return nullptr;
     defer(CloseHandle(handle));
 
     LARGE_INTEGER size;
@@ -157,32 +165,37 @@ Newstring ReadAllText(const Newstring& fileName, Encoding encoding, IAllocator* 
     assert(allocator);
 
     if (Newstring::IsNullOrEmpty(fileName))
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
         return Newstring::Empty();
+    }
 
-    encoding = normalizeEncoding(encoding);
+    encoding = NormalizeEncoding(encoding);
     if (encoding == Encoding::Unknown)
+    {
+        SetLastError(ERROR_INVALID_PARAMETER);
         return Newstring::Empty();
+    }
 
     uint32_t fileSize = 0;
-    void* data = ReadFileContents(fileName, &fileSize, allocator);
+    void* data = ReadFileContents(fileName, &fileSize, &g_tempAllocator);
 
     if (data == nullptr)
         return Newstring::Empty();
 
-    Newstring result = unicode::DecodeString(data, fileSize, encoding, allocator);
-    allocator->Deallocate(data);
+    Newstring result = Unicode::DecodeString(data, fileSize, encoding, allocator);
 
     return result;
 }
 
 bool WriteAllText(const Newstring& fileName, const Newstring& text, Encoding encoding)
 {
-    encoding = normalizeEncoding(encoding);
+    encoding = NormalizeEncoding(encoding);
     if (encoding == Encoding::Unknown)
         return false;
 
     uint32_t nsize;
-    void* data = unicode::EncodeString(text, &nsize, encoding);
+    void* data = Unicode::EncodeString(text, &nsize, encoding);
     if (!data)  return false;
     
     bool result = WriteFileContents(fileName, data, nsize);
@@ -222,7 +235,7 @@ void TruncateFileNameToDirectory(Newstring* fileName)
     int backSlash    = fileName->LastIndexOf(L'\\');
     int forwardSlash = fileName->LastIndexOf(L'/');
 
-    int slash = math::max(backSlash, forwardSlash);
+    int slash = std::max(backSlash, forwardSlash);
 
     if (slash != -1)
     {
@@ -248,6 +261,13 @@ bool DirectoryExists(const Newstring& fileName)
     bool result = attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY);
 
     return result;
+}
+
+Encoding NormalizeEncoding(Encoding encoding)
+{
+    if (encoding < (Encoding)0 || encoding >= Encoding::MAX_VALUE)
+        return Encoding::Unknown;
+    return encoding;
 }
 
 } // namespace OSUtils

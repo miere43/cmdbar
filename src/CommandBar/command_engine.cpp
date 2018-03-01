@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdarg.h>
 
 #include "command_engine.h"
 
@@ -65,7 +66,7 @@ bool CommandEngine::Evaluate(const Newstring& expression)
 
     if (args.count == 0)
     {
-        executionState.SetErrorMessage(Newstring::WrapConstWChar(L"Invalid input.").CloneAsCString(&g_tempAllocator), &g_tempAllocator);
+        executionState.errorMessage = Newstring::WrapConstWChar(L"Invalid input.").CloneAsCString(&g_tempAllocator);
         return false;
     }
 
@@ -74,9 +75,7 @@ bool CommandEngine::Evaluate(const Newstring& expression)
 
     if (command == nullptr)
     {
-        executionState.SetErrorMessage(
-            Newstring::FormatTempCString(L"Command \"%.*s\" is not found.", commandName.count, commandName.data),
-            &g_tempAllocator);
+        executionState.FormatErrorMessage(L"Command \"%.*s\" is not found.", commandName.count, commandName.data);
         return false;
     }
 
@@ -89,7 +88,7 @@ bool CommandEngine::Evaluate(const Newstring& expression)
     for (uint32_t i = 1; i < args.count; ++i)
         actualArgs.add(args.data[i]);
     
-    return command->onExecute(&executionState, actualArgs);
+    return command->Execute(&executionState, actualArgs);
 }
 
 ExecuteCommandState* CommandEngine::GetExecutionState()
@@ -145,11 +144,7 @@ void CommandEngine::ClearExecutionState()
 {
     ExecuteCommandState& e = executionState;
 
-    if (!Newstring::IsNullOrEmpty(e.errorMessage))
-    {
-        assert(e.errorMessageAllocator);
-        e.errorMessage.Dispose(e.errorMessageAllocator);
-    }
+    // Cleanup here if necessary.
 
     e = ExecuteCommandState();
 }
@@ -163,8 +158,21 @@ CommandInfo::CommandInfo(Newstring dataName, CommandInfoFlags flags, CommandInfo
 	, createCommand(command)
 { }
 
-void BaseCommandState::SetErrorMessage(Newstring message, IAllocator* allocator)
+void BaseCommandState::FormatErrorMessage(const wchar_t* format, ...)
 {
-    errorMessage = message;
-    errorMessageAllocator = allocator;
+    assert(format);
+
+    va_list args;
+    va_start(args, format);
+    
+    errorMessage = Newstring::FormatWithAllocator(&g_tempAllocator, format, args, true);
+    
+    va_end(args);
+
+    if (Newstring::IsNullOrEmpty(errorMessage))
+    {
+        // @TODO: log error.
+        errorMessage = Newstring::WrapConstWChar(L"Unknown error.").CloneAsCString();
+        assert(!Newstring::IsNullOrEmpty(errorMessage));
+    }
 }

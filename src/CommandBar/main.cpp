@@ -81,7 +81,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     commandWindow.commandEngine = &commandEngine;
 
     CommandLoader commandLoader;
-    registerBasicCommands(&commandLoader);
+    RegisterBasicCommands(&commandLoader);
 
     Array<Command*> commands = commandLoader.LoadFromFile(GetCommandsFilePath());
     for (uint32_t i = 0; i < commandLoader.commandInfoArray.count; ++i)

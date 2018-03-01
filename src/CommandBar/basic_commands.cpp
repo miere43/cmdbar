@@ -38,7 +38,7 @@ Command* openDir_createCommand(CreateCommandState* state, Array<Newstring>& keys
     return cmd;
 }
 
-bool OpenDirCommand::onExecute(ExecuteCommandState* state, Array<Newstring>& args)
+bool OpenDirCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
 {
     Newstring folder;
     if (Newstring::IsNullOrEmpty(dirPath))
@@ -66,9 +66,7 @@ bool OpenDirCommand::onExecute(ExecuteCommandState* state, Array<Newstring>& arg
     if (!OSUtils::DirectoryExists(actualFolder))
     {
         actualFolder.RemoveZeroTermination();
-        state->SetErrorMessage(
-            Newstring::FormatTempCString(L"Folder \"%.*s\" does not exist.", actualFolder.count, actualFolder.data),
-            &g_tempAllocator);
+        state->FormatErrorMessage(L"Folder \"%.*s\" does not exist.", actualFolder.count, actualFolder.data);
 
         return false;
     }
@@ -77,10 +75,7 @@ bool OpenDirCommand::onExecute(ExecuteCommandState* state, Array<Newstring>& arg
     if (itemID == nullptr)
     {
         Newstring osError = OSUtils::FormatErrorCode(GetLastError(), 0, &g_tempAllocator);
-
-        state->SetErrorMessage(
-            Newstring::FormatTempCString(L"Cannot get directory identifier: %.*s", osError.count, osError.data),
-            &g_tempAllocator);
+        state->FormatErrorMessage(L"Cannot get directory identifier: %.*s", osError.count, osError.data);
 
         return false;
     }
@@ -89,9 +84,7 @@ bool OpenDirCommand::onExecute(ExecuteCommandState* state, Array<Newstring>& arg
     HRESULT result = ::SHOpenFolderAndSelectItems(itemID, 1, (LPCITEMIDLIST*)&itemID, 0);
     if (FAILED(result))
     {
-        state->SetErrorMessage(
-            Newstring::FormatTempCString(L"Cannot select directory, error code was 0x%08X.", result),
-            &g_tempAllocator);
+        state->FormatErrorMessage(L"Cannot select directory, error code was 0x%08X.", result);
 
         return false;
     }
@@ -99,7 +92,7 @@ bool OpenDirCommand::onExecute(ExecuteCommandState* state, Array<Newstring>& arg
     return true;
 }
 
-void registerBasicCommands(CommandLoader* loader)
+void RegisterBasicCommands(CommandLoader* loader)
 {
     assert(loader != nullptr);
 
@@ -172,7 +165,7 @@ Command * runApp_createCommand(CreateCommandState* state, Array<Newstring>& keys
 
 static bool runProcess(const wchar_t* path, wchar_t* commandLine);
 static bool shellExecute(const wchar_t* path, const wchar_t* verb, const wchar_t* params, const wchar_t* workDir, int nShow);
-bool RunAppCommand::onExecute(ExecuteCommandState* state, Array<Newstring>& args)
+bool RunAppCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
 {
     // @TODO: test 'runProcess' with args.
     // @TODO: make workDir work with 'runProcess'.
@@ -331,7 +324,7 @@ Command* quit_createCommand(CreateCommandState* state, Array<Newstring>& keys, A
     return Memnew(QuitCommand);
 }
 
-bool QuitCommand::onExecute(ExecuteCommandState* state, Array<Newstring>& args)
+bool QuitCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
 {
     commandWindow->Exit();
     return true;

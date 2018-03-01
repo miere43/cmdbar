@@ -1,10 +1,10 @@
 #include <assert.h>
 #include <windowsx.h>
 #include <math.h>
+#include <algorithm>
 
 #include "command_window.h"
 #include "CommandBar.h"
-#include "math_utils.h"
 #include "os_utils.h"
 #include "basic_commands.h"
 #include "clipboard.h"
@@ -18,7 +18,7 @@
 LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void beforeRunCallback(CommandEngine* engine, void* userdata);
 
-bool CommandWindow::g_globalResourcesInitialized = false;
+bool CommandWindow::g_staticResourcesInitialized = false;
 HICON CommandWindow::g_appIcon = 0;
 ATOM CommandWindow::g_windowClass = 0;
 HKL CommandWindow::g_englishKeyboardLayout = 0;
@@ -32,9 +32,9 @@ enum
     CURSOR_BLINK_TIMER_ID = 0
 };
 
-bool CommandWindow::initGlobalResources(HINSTANCE hInstance)
+bool CommandWindow::InitializeStaticResources(HINSTANCE hInstance)
 {
-    if (g_globalResourcesInitialized)
+    if (g_staticResourcesInitialized)
         return true;
 
     if (g_appIcon == 0)
@@ -59,7 +59,7 @@ bool CommandWindow::initGlobalResources(HINSTANCE hInstance)
 
     g_englishKeyboardLayout = LoadKeyboardLayoutW(L"00000409", KLF_ACTIVATE);
 
-    g_globalResourcesInitialized = true;
+    g_staticResourcesInitialized = true;
     return true;
 }
 
@@ -178,9 +178,9 @@ LRESULT CommandWindow::OnChar(wchar_t c)
         ++cursorPos;
     }
 
-    onTextChanged();
+    OnTextChanged();
     shouldDrawCursor = true;
-    setCursorTimer();
+    SetCursorTimer();
 
     Redraw();
 
@@ -205,7 +205,7 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
         }
         case VK_TAB:
         {
-            onUserRequestedAutocompletion();
+            OnUserRequestedAutocompletion();
             break;
         }
         // Backspace
@@ -214,7 +214,7 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
         case VK_DELETE:
         {
             shouldDrawCursor = true;
-            setCursorTimer();
+            SetCursorTimer();
 
             if (IsTextSelected())
             {
@@ -236,7 +236,7 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
                 }
             }
 
-            onTextChanged();
+            OnTextChanged();
             Redraw();
 
             break;
@@ -252,7 +252,7 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
         case VK_RIGHT:
         {
             shouldDrawCursor = true;
-            setCursorTimer();
+            SetCursorTimer();
 
             if (cursorPos < textBuffer.count)
             {
@@ -299,7 +299,7 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
         case VK_LEFT:
         {
             shouldDrawCursor = true;
-            setCursorTimer();
+            SetCursorTimer();
 
             if (cursorPos > 0)
             {
@@ -316,8 +316,6 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
                     {
                         if (cursorPos >= selectionInitialPos)
                         {
-                            //OutputDebugStringW(L"hello!\n");
-                            //selectionPos = cursorPos;
                             --selectionLength;
                         }
                         else
@@ -360,9 +358,9 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
 
         Clipboard::Close();
 
-        onTextChanged();
+        OnTextChanged();
         shouldDrawCursor = true;
-        setCursorTimer();
+        SetCursorTimer();
 
         Redraw();
     }
@@ -392,9 +390,9 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
             cursorPos = selectionPos + textToCopy.count;
             ClearSelection();
 
-            onTextChanged();
+            OnTextChanged();
             shouldDrawCursor = true;
-            setCursorTimer();
+            SetCursorTimer();
 
             Redraw();
         }
@@ -404,9 +402,9 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
 
             cursorPos += textToCopy.count;
 
-            onTextChanged();
+            OnTextChanged();
             shouldDrawCursor = true;
-            setCursorTimer();
+            SetCursorTimer();
 
             Redraw();
         }
@@ -436,7 +434,7 @@ LRESULT CommandWindow::OnLeftMouseButtonDown(LPARAM lParam, WPARAM wParam)
 
     UpdateTextLayout();
     shouldDrawCursor = true;
-    setCursorTimer();
+    SetCursorTimer();
 
     BOOL isInside = false;
     BOOL isTrailingHit = false;
@@ -480,7 +478,7 @@ LRESULT CommandWindow::OnFocusAcquired()
     ActivateKeyboardLayout(g_englishKeyboardLayout, KLF_REORDER);
 
     shouldDrawCursor = true;
-    setCursorTimer();
+    SetCursorTimer();
 
     return 0;
 }
@@ -497,12 +495,12 @@ LRESULT CommandWindow::OnFocusLost()
     return 0;
 }
 
-void CommandWindow::onTextChanged()
+void CommandWindow::OnTextChanged()
 {
     shouldDrawCursor = true;
-    setCursorTimer();
+    SetCursorTimer();
 
-    updateAutocompletion();
+    UpdateAutocompletion();
 }
 
 LRESULT CommandWindow::OnMouseMove(LPARAM lParam, WPARAM wParam)
@@ -549,7 +547,7 @@ LRESULT CommandWindow::OnMouseMove(LPARAM lParam, WPARAM wParam)
         else
         {
             selectionInitialPos = selectionStartCursorPos;
-            selectionPos = math::min((int)cursorPos, oldCursorPos);
+            selectionPos = std::min((int)cursorPos, oldCursorPos);
             selectionLength = calcSelectionLength;
         }
     }
@@ -559,11 +557,11 @@ LRESULT CommandWindow::OnMouseMove(LPARAM lParam, WPARAM wParam)
     return 0;
 }
 
-void CommandWindow::onUserRequestedAutocompletion()
+void CommandWindow::OnUserRequestedAutocompletion()
 {
     if (autocompletionCandidate == nullptr)
     {
-        autocompletionCandidate = findAutocompletionCandidate();
+        autocompletionCandidate = FindAutocompletionCandidate();
         if (autocompletionCandidate == nullptr)
             return;
     }
@@ -582,7 +580,7 @@ void CommandWindow::onUserRequestedAutocompletion()
     return;
 }
 
-Command* CommandWindow::findAutocompletionCandidate()
+Command* CommandWindow::FindAutocompletionCandidate()
 {
     if (textBuffer.count == 0)
         return nullptr;
@@ -608,9 +606,9 @@ Command* CommandWindow::findAutocompletionCandidate()
     return nullptr;
 }
 
-void CommandWindow::updateAutocompletion()
+void CommandWindow::UpdateAutocompletion()
 {
-    Command* newCandidate = findAutocompletionCandidate();
+    Command* newCandidate = FindAutocompletionCandidate();
     if (autocompletionCandidate != newCandidate)
     {
         autocompletionCandidate = newCandidate;
@@ -618,7 +616,7 @@ void CommandWindow::updateAutocompletion()
     }
 }
 
-void CommandWindow::setCursorTimer()
+void CommandWindow::SetCursorTimer()
 {
     SetLastError(NO_ERROR);
 
@@ -790,7 +788,7 @@ LRESULT CommandWindow::OnShowWindow(LPARAM lParam, WPARAM wParam)
 
     if (isWindowShown)
     {
-        setCursorTimer();
+        SetCursorTimer();
         __debugbreak();
     }
     else 
@@ -832,7 +830,7 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
     HINSTANCE hInstance = GetModuleHandleW(0);
 
     isInitialized = false;
-    if (!initGlobalResources(hInstance))
+    if (!InitializeStaticResources(hInstance))
         return false;
 
     const uint32_t mainWindowFlags = WS_POPUP;
@@ -874,7 +872,7 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
 
     assert(textBuffer.Reserve(512));
 
-    setCursorTimer();
+    SetCursorTimer();
 
     QuitCommand* quitcmd = Memnew(QuitCommand);
     quitcmd->name = Newstring::NewFromWChar(L"quit");
@@ -1122,7 +1120,7 @@ LRESULT CommandWindow::WindowProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wPa
     return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
-void CommandWindow::beforeCommandRun()
+void CommandWindow::BeforeCommandRun()
 {
     HideWindow();
 }
@@ -1152,5 +1150,5 @@ LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 void beforeRunCallback(CommandEngine * engine, void * userdata)
 {
     if (userdata != nullptr)
-        ((CommandWindow*)userdata)->beforeCommandRun();
+        ((CommandWindow*)userdata)->BeforeCommandRun();
 }

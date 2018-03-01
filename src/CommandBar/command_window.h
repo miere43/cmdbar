@@ -22,7 +22,7 @@ struct CommandWindow
 	void Exit();
 
 	LRESULT WindowProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam);
-	void beforeCommandRun();
+	void BeforeCommandRun();
 
 	HWND hwnd = 0;
 
@@ -47,10 +47,10 @@ private:
     bool CreateGraphicsResources();
     void DisposeGraphicsResources();
 
-	static bool initGlobalResources(HINSTANCE hInstance);
+	static bool InitializeStaticResources(HINSTANCE hInstance);
 
     static HKL g_englishKeyboardLayout;
-	static bool g_globalResourcesInitialized;
+	static bool g_staticResourcesInitialized;
 	static ATOM g_windowClass;
 	static HICON g_appIcon;
 public:
@@ -97,11 +97,11 @@ public:
 
     LRESULT OnCursorBlinkTimerElapsed();
 
-    void onTextChanged();
-    void onUserRequestedAutocompletion();
-    Command* findAutocompletionCandidate();
+    void OnTextChanged();
+    void OnUserRequestedAutocompletion();
+    Command* FindAutocompletionCandidate();
 
-    void updateAutocompletion();
+    void UpdateAutocompletion();
 
     inline bool IsTextSelected()
     {
@@ -110,7 +110,7 @@ public:
 
     bool shouldDrawCursor = true;
     //void setShouldDrawCursor(bool shouldDrawCursor);
-    void setCursorTimer();
+    void SetCursorTimer();
     void killCursorTimer();
 
     bool isTextLayoutDirty = false;

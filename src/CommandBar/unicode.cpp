@@ -7,7 +7,7 @@
 
 #include "array.h"
 
-Newstring unicode::DecodeString(const void* data, uint32_t dataSize, Encoding encoding, IAllocator* allocator)
+Newstring Unicode::DecodeString(const void* data, uint32_t dataSize, Encoding encoding, IAllocator* allocator)
 {
     assert(data != nullptr);
     assert(dataSize >= 0);
@@ -73,7 +73,7 @@ Newstring unicode::DecodeString(const void* data, uint32_t dataSize, Encoding en
     return Newstring::Empty();
 }
 
-void* unicode::EncodeString(const Newstring& string, uint32_t* encodedStringByteSize, Encoding encoding, IAllocator* allocator)
+void* Unicode::EncodeString(const Newstring& string, uint32_t* encodedStringByteSize, Encoding encoding, IAllocator* allocator)
 {
     assert(allocator);
     assert(encodedStringByteSize);
@@ -123,7 +123,7 @@ void* unicode::EncodeString(const Newstring& string, uint32_t* encodedStringByte
     }
 }
 
-const wchar_t* unicode::decode16(const wchar_t* text, uint32_t* codepoint)
+const wchar_t* Unicode::Decode16(const wchar_t* text, uint32_t* codepoint)
 {
     assert(text);
     assert(codepoint);

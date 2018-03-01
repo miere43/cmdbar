@@ -7,11 +7,17 @@
 
 Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
 {
-    // @TODO
     Newstring source = OSUtils::ReadAllText(filePath, Encoding::UTF8);
     if (Newstring::IsNullOrEmpty(source))
     {
-        MessageBoxW(0, L"Unable to load source file.", L"Error", MB_ICONERROR);
+        Newstring osError = OSUtils::FormatErrorCode(GetLastError(), 0, &g_tempAllocator);
+        
+        Newstring msg = Newstring::FormatTempCString(
+            L"Unable to open commands declaration file \"%.*s\": %.*s",
+            filePath.GetFormatCount(), filePath.data,
+            osError.GetFormatCount(), osError.data);
+
+        MessageBoxW(0, msg.data, L"Error", MB_ICONERROR);
     }
 
     INIParser p;

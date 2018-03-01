@@ -21,6 +21,9 @@ enum CommandInfoFlags
     //CI_IncludeCommandNameToArgs = 2,
 };
 
+/**
+ * Represents shared data between several Command instances.
+ */
 struct CommandInfo
 {
     Newstring dataName;
@@ -38,15 +41,21 @@ struct Command
     CommandEngine* engine = nullptr;
     Newstring name;
 
-    virtual bool onExecute(ExecuteCommandState* state, Array<Newstring>& args) = 0;
+    virtual bool Execute(ExecuteCommandState* state, Array<Newstring>& args) = 0;
 };
 
 struct BaseCommandState 
 {
+    /**
+     * Use temporary allocator for error message, otherwise it wouldn't be deallocated!
+     * This message can be zero-terminated.
+     */
     Newstring errorMessage;
-    IAllocator* errorMessageAllocator;
 
-    void SetErrorMessage(Newstring message, IAllocator* allocator);
+    /**
+     * Formats an error message using specified format string. Result is stored in errorMessage variable.
+     */
+    void FormatErrorMessage(const wchar_t* format, ...);
 };
 
 struct CreateCommandState : public BaseCommandState
@@ -61,24 +70,53 @@ struct CommandEngine
 {
     ExecuteCommandState executionState;
 
+    /**
+     * Command window associated with this command engine.
+     */
     CommandWindow* window = nullptr;
-    
+    CommandBeforeRunCallback beforeRunCallback = nullptr;
+    void* beforeRunCallbackUserdata = nullptr;
+    Array<CommandInfo*> knownCommandInfoArray;
+    Array<Command*> commands;
+
+    /**
+     * Evaluates expression, calling command with args parsed from specified expression.
+     * If evaluation failed, or command execution ended with an error, returns false. To get additional information, get execution state by calling GetExecutionState().
+     */
     bool Evaluate(const Newstring& expression);
+
+    /**
+     * Returns execution state for last expression evaluation using Evaluate() method.
+     */
     ExecuteCommandState* GetExecutionState();
 
 	void SetBeforeRunCallback(CommandBeforeRunCallback callback, void* userdata);
+
+    /**
+     * Returns command by it's name.
+     */
 	Command* FindCommandByName(const Newstring& name);
 
-	CommandBeforeRunCallback beforeRunCallback = nullptr;
-	void* beforeRunCallbackUserdata = nullptr;
-
-    Array<CommandInfo*> knownCommandInfoArray;
-    Array<Command*> commands;
+    /**
+     * Registers command within command engine so it can be evaluated.
+     * If command cannot be registered, returns false, otherwise true.
+     *
+     * Specified command should not be deallocated before disposing command engine.
+     */
     bool RegisterCommand(Command* command);
+
+    /**
+     * Register command info within engine.
+     * If command info cannot be registered, returns false, otherwise true.
+     *
+     * Specified command info should not be deallocated before disposing command engine.
+     */
     bool RegisterCommandInfo(CommandInfo* info);
 
+    /**
+     * Releases resources used by command engine.
+     */
     void Dispose();
-
 private:
     void ClearExecutionState();
 };

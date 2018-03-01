@@ -111,7 +111,7 @@ Newstring Newstring::RefSubstring(uint32_t index, uint32_t count) const
     return result;
 }
 
-Newstring Newstring::Clone(IAllocator* allocator)
+Newstring Newstring::Clone(IAllocator* allocator) const
 {
     assert(allocator);
     return Newstring::Clone(this, allocator);
@@ -175,6 +175,16 @@ bool Newstring::IsZeroTerminated() const
 void Newstring::RemoveZeroTermination()
 {
     if (IsZeroTerminated())  count -= 1;
+}
+
+Newstring Newstring::WithoutZeroTermination() const
+{
+    return IsZeroTerminated() ? Newstring(data, count - 1) : Newstring(data, count);
+}
+
+uint32_t Newstring::GetFormatCount() const
+{
+    return IsZeroTerminated() ? count - 1 : count;
 }
 
 bool Newstring::IsNullOrEmpty(const Newstring& string)
@@ -326,7 +336,7 @@ Newstring Newstring::FormatCStringWithFallback(const wchar_t* format, ...)
     return result;
 }
 
-Newstring Newstring::FormatTemp(const wchar_t * format, ...)
+Newstring Newstring::FormatTemp(const wchar_t* format, ...)
 {
     assert(format);
 
@@ -340,7 +350,7 @@ Newstring Newstring::FormatTemp(const wchar_t * format, ...)
     return result;
 }
 
-Newstring Newstring::FormatTempCString(const wchar_t * format, ...)
+Newstring Newstring::FormatTempCString(const wchar_t* format, ...)
 {
     assert(format);
 
