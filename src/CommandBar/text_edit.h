@@ -13,7 +13,7 @@ struct TextEdit
     /**
      * Represents a value which indicates that text is not selected.
      */
-    enum { NoSelection = 0xFFFFFFFF };
+    enum : uint32_t { NoSelection = 0xFFFFFFFF };
 
     /**
      * Resizeable string buffer to store control text.
@@ -54,7 +54,7 @@ struct TextEdit
      * Handles Windows WM_KEYDOWN event.
      * Returns true if text editor should be redrawn, false otherwise.
      */
-    bool HandleOnKeyDownEvent(LPARAM lParam, uint32_t vk);
+    bool HandleOnKeyDownEvent(HWND hwnd, LPARAM lParam, uint32_t vk);
 
     /**
      * Selects all text.
@@ -138,12 +138,12 @@ private:
     /**
      * Copies selected text to the clipboard.
      */
-    void CopySelectionToClipboard();
+    void CopySelectionToClipboard(HWND hwnd);
 
     /**
      * Pastes text that is currently loaded in clipboard at caret position.
      */
-    void PasteTextFromClipboard();
+    void PasteTextFromClipboard(HWND hwnd);
 
     /**
      * Adds character that is next to the caret to current selection.

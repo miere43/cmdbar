@@ -181,7 +181,7 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
         }
         default:
         {
-            if (textEdit.HandleOnKeyDownEvent(lParam, (uint32_t)vk))
+            if (textEdit.HandleOnKeyDownEvent(hwnd, lParam, (uint32_t)vk))
                 TextEditChanged();
             break;
         }

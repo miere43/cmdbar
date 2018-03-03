@@ -32,7 +32,7 @@ bool TextEdit::HandleOnCharEvent(wchar_t c)
     return true;
 }
 
-bool TextEdit::HandleOnKeyDownEvent(LPARAM lParam, uint32_t vk)
+bool TextEdit::HandleOnKeyDownEvent(HWND hwnd, LPARAM lParam, uint32_t vk)
 {
     bool shift = !!(GetKeyState(VK_LSHIFT) & 0x8000);
     bool control = !!(GetKeyState(VK_LCONTROL) & 0x8000);
@@ -62,17 +62,15 @@ bool TextEdit::HandleOnKeyDownEvent(LPARAM lParam, uint32_t vk)
     }
 
     if (control && vk == 'A')       SelectAll();
-    else if (control && vk == 'C')  CopySelectionToClipboard();
-    else if (control && vk == 'V')  PasteTextFromClipboard();
+    else if (control && vk == 'C')  CopySelectionToClipboard(hwnd);
+    else if (control && vk == 'V')  PasteTextFromClipboard(hwnd);
 
     return true;
 }
 
 void TextEdit::SelectAll()
 {
-    if (buffer.count == 0)  return;
-
-    selectionStartPos = 0;
+    selectionStartPos = buffer.count != 0 ? 0 : NoSelection;
     caretPos = buffer.count;
 }
 
@@ -100,7 +98,7 @@ void TextEdit::SetText(const Newstring & text)
 
 void TextEdit::ClearSelection()
 {
-    selectionStartPos = 0xFFFFFFFF;
+    selectionStartPos = NoSelection;
 }
 
 void TextEdit::ClearSelection(uint32_t newCaretPos)
@@ -132,7 +130,7 @@ uint32_t TextEdit::GetSelectionEnd() const
 
 bool TextEdit::IsTextSelected() const
 {
-    return selectionStartPos != 0xFFFFFFFF && caretPos != selectionStartPos;
+    return selectionStartPos != NoSelection && caretPos != selectionStartPos;
 }
 
 void TextEdit::GetSelectionStartAndLength(uint32_t* start, uint32_t* length) const
@@ -262,13 +260,12 @@ void TextEdit::RemoveNextCharacter()
     }
 }
 
-void TextEdit::CopySelectionToClipboard()
+void TextEdit::CopySelectionToClipboard(HWND hwnd)
 {
     if (!IsTextSelected())
         return;
     
-    // @TODO: Replace 0 with hwnd.
-    if (!Clipboard::Open(0))
+    if (!Clipboard::Open(hwnd))
     {
         assert(false);
         return;
@@ -281,9 +278,9 @@ void TextEdit::CopySelectionToClipboard()
     Clipboard::Close();
 }
 
-void TextEdit::PasteTextFromClipboard()
+void TextEdit::PasteTextFromClipboard(HWND hwnd)
 {
-    if (!Clipboard::Open(0))
+    if (!Clipboard::Open(hwnd))
     {
         assert(false);
         return;
@@ -300,27 +297,15 @@ void TextEdit::PasteTextFromClipboard()
 
     if (IsTextSelected())
     {
-        buffer.Remove(selectionStartPos, GetSelectionLength());
-        buffer.Insert(selectionStartPos, textToCopy);
+        buffer.Remove(GetSelectionStart(), GetSelectionLength());
+        buffer.Insert(GetSelectionStart(), textToCopy);
 
-        AddCaretPos(selectionStartPos + textToCopy.count);
+        AddCaretPos(textToCopy.count);
         ClearSelection();
-
-        //OnTextChanged();
-        //shouldDrawCaret = true;
-        //SetCaretTimer();
-
-        //Redraw();
     }
     else
     {
         buffer.Insert(caretPos, textToCopy);
         AddCaretPos(textToCopy.count);
-
-        //OnTextChanged();
-        //shouldDrawCaret = true;
-        //SetCaretTimer();
-
-        //Redraw();
     }
 }
