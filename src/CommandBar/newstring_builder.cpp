@@ -72,6 +72,8 @@ void NewstringBuilder::ZeroTerminate()
 
 void NewstringBuilder::Insert(uint32_t pos, const Newstring& string)
 {
+    // @TODO(Critical): Fix crash when pos is out of range.
+
     if (Newstring::IsNullOrEmpty(string))  return;
     if (!Reserve(count + string.count))  return;
 

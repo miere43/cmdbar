@@ -12,8 +12,7 @@ Newstring::Newstring(wchar_t* data, uint32_t count)
 
 bool Newstring::operator==(const Newstring& rhs) const
 {
-    if (IsNullOrEmpty(this) && IsNullOrEmpty(rhs))  return true;
-    return count == rhs.count && wcsncmp(data, rhs.data, count) == 0;
+    return Equals(rhs, StringComparison::CaseSensitive);
 }
 
 bool Newstring::operator!=(const Newstring & rhs) const
@@ -30,6 +29,21 @@ bool Newstring::operator==(const wchar_t* rhs) const
 bool Newstring::operator!=(const wchar_t * rhs) const
 {
     return !operator==(rhs);
+}
+
+bool Newstring::Equals(const Newstring& rhs, StringComparison comparison) const
+{
+    if (IsNullOrEmpty(this) && IsNullOrEmpty(rhs))  return true;
+
+    auto compareProcedure = comparison == StringComparison::CaseSensitive ? wcsncmp : _wcsnicmp;
+
+    return count == rhs.count && compareProcedure(data, rhs.data, count) == 0;
+}
+
+bool Newstring::Equals(const wchar_t* rhs, StringComparison comparison) const
+{
+    Newstring wrapper = Newstring::WrapConstWChar(rhs);
+    return Equals(wrapper, comparison);
 }
 
 int Newstring::IndexOf(wchar_t c) const
@@ -221,9 +235,7 @@ Newstring Newstring::NewFromWChar(const wchar_t* string, IAllocator* allocator)
 Newstring Newstring::NewFromWChar(const wchar_t* string, uint32_t count, IAllocator* allocator)
 {
     assert(allocator);
-    Newstring wrapper;//= Newstringstring, count };
-    wrapper.data = (wchar_t*)string;
-    wrapper.count = count;
+    Newstring wrapper = Newstring::WrapConstWChar(string, count);
 
     return IsNullOrEmpty(wrapper) ? Empty() : Newstring::Clone(wrapper, allocator);
 }
@@ -413,10 +425,9 @@ Newstring Newstring::FormatWithAllocator(IAllocator* allocator, const wchar_t* f
 
     // Number of characters required to format specified string, **without terminating null**.
     int charCount = _vscwprintf(format, argsCopy);
+    assert(charCount != -1);
 
     va_end(argsCopy);
-
-    assert(charCount != -1);
 
     int allocCount = charCount + (includeTerminatingNull ? 1 : 0);
 

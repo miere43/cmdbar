@@ -27,9 +27,10 @@ bool Clipboard::CopyText(const Newstring& text)
     return 0 != SetClipboardData(CF_UNICODETEXT, mem);
 }
 
-bool Clipboard::GetText(Newstring* result)
+bool Clipboard::GetText(Newstring* result, IAllocator* allocator)
 {
     assert(result);
+    assert(allocator);
 
     HGLOBAL mem = GetClipboardData(CF_UNICODETEXT);
     if (mem == 0)
@@ -47,7 +48,7 @@ bool Clipboard::GetText(Newstring* result)
     }
     
     uint32_t maxCount = static_cast<uint32_t>((memSize - 1) / sizeof(wchar_t)); // Don't count terminating null.
-    *result = Newstring::New(maxCount + 1);
+    *result = Newstring::New(maxCount + 1, allocator);
     assert(!Newstring::IsNullOrEmpty(result));
 
     uint32_t i = 0;

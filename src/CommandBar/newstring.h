@@ -92,7 +92,17 @@ struct Newstring
      * Compares Newstring and c-string using case-sensitive comparison.
      */
     bool operator!=(const wchar_t* rhs) const;
+
+    /**
+     * Compares two strings using specified comparison method.
+     */
+    bool Equals(const Newstring& rhs, StringComparison comparison) const;
     
+    /**
+    * Compares two strings using specified comparison method.
+    */
+    bool Equals(const wchar_t* rhs, StringComparison comparison) const;
+
     /**
      * Returns position of specified character in the string.
      * If character is not found, returns -1.

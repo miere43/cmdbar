@@ -13,6 +13,7 @@
 #include "defer.h"
 #include "command_window_tray.h"
 #include "utils.h"
+#include "debug_utils.h"
 
 
 LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -65,32 +66,19 @@ bool CommandWindow::InitializeStaticResources(HINSTANCE hInstance)
 
 void CommandWindow::ClearText()
 {
-    textBuffer.count = 0;
-    cursorPos = 0;
+    textEdit.ClearText();
 
     autocompletionCandidate = nullptr;
 
-    ClearSelection();
     Redraw();
 }
 
 bool CommandWindow::SetText(const Newstring& text)
 {
-    textBuffer.count = 0;
-    
-    if (Newstring::IsNullOrEmpty(text))
-    {
-        ClearText();
-        return true;
-    }
-    else
-    {
-        textBuffer.Append(text);
-    }
-    
+    textEdit.SetText(text);
+
     autocompletionCandidate = nullptr;
 
-    ClearSelection();
     Redraw();
 
     return true;
@@ -119,11 +107,11 @@ void CommandWindow::UpdateTextLayout(bool forced)
 
         HRESULT hr;
 
-        int spaceIndex = textBuffer.string.IndexOf(L' ');
+        int spaceIndex = textEdit.buffer.string.IndexOf(L' ');
 
         hr = dwrite->CreateTextLayout(
-            textBuffer.data,
-            textBuffer.count,
+            textEdit.buffer.data,
+            textEdit.buffer.count,
             textFormat,
             clientWidth,
             clientHeight,
@@ -145,7 +133,7 @@ void CommandWindow::UpdateTextLayout(bool forced)
         if (spaceIndex != -1)
             range = { 0, static_cast<UINT32>(spaceIndex) };
         else
-            range = { 0, static_cast<UINT32>(textBuffer.count) };
+            range = { 0, static_cast<UINT32>(textEdit.buffer.count) };
 
         textLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range);
 
@@ -155,43 +143,27 @@ void CommandWindow::UpdateTextLayout(bool forced)
 
 void CommandWindow::ClearSelection()
 {
-    selectionPos = 0;
-    selectionLength = 0;
+    textEdit.ClearSelection();
+}
+
+void CommandWindow::TextEditChanged()
+{
+    Redraw();
+
+    shouldDrawCursor = true;
+    SetCursorTimer();
 }
 
 LRESULT CommandWindow::OnChar(wchar_t c)
 {
-    // Skip if not printable.
-    if (!iswprint(c)) return 0;
-
-    if (IsTextSelected())
-    {
-        textBuffer.Remove(selectionPos, selectionLength);
-        textBuffer.Insert(selectionPos, c);
-
-        cursorPos = selectionPos + 1;
-        ClearSelection();
-    }
-    else
-    {
-        textBuffer.Insert(cursorPos, c);
-        ++cursorPos;
-    }
-
-    OnTextChanged();
-    shouldDrawCursor = true;
-    SetCursorTimer();
-
-    Redraw();
+    if (textEdit.HandleOnCharEvent(c))
+        TextEditChanged();
 
     return 0;
 }
 
 LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
 {
-    BOOL shiftPressed = GetKeyState(VK_LSHIFT) & 0x8000;
-    BOOL ctrlPressed = GetKeyState(VK_LCONTROL) & 0x8000;
-
     switch (vk)
     {
         case VK_ESCAPE:
@@ -200,216 +172,19 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
             {
                 HideWindow();
             }
-
             break;
         }
-        case VK_TAB:
-        {
-            OnUserRequestedAutocompletion();
-            break;
-        }
-        // Backspace
-        // Delete
-        case VK_BACK:
-        case VK_DELETE:
-        {
-            shouldDrawCursor = true;
-            SetCursorTimer();
-
-            if (IsTextSelected())
-            {
-                textBuffer.Remove(selectionPos, selectionLength);
-                if (selectionInitialPos <= cursorPos)
-                    cursorPos -= selectionLength;
-                selectionLength = 0;
-            }
-            else
-            {
-                if (vk == VK_BACK && cursorPos != 0)
-                {
-                    textBuffer.Remove(cursorPos - 1, 1);
-                    --cursorPos;
-                }
-                else if (vk == VK_DELETE && cursorPos < textBuffer.count)
-                {
-                    textBuffer.Remove(cursorPos, 1);
-                }
-            }
-
-            OnTextChanged();
-            Redraw();
-
-            break;
-        }
-
         case VK_RETURN:
         {
             Evaluate();
-
             break;
         }
-
-        case VK_RIGHT:
+        default:
         {
-            shouldDrawCursor = true;
-            SetCursorTimer();
-
-            if (cursorPos < textBuffer.count)
-            {
-                if (shiftPressed) // High-order bit == 1 => key down
-                {
-                    if (!IsTextSelected())
-                    {
-                        selectionInitialPos = selectionPos = cursorPos;
-                        selectionLength = 1;
-                    }
-                    else
-                    {
-                        if (cursorPos <= selectionInitialPos)
-                        {
-                            selectionPos = cursorPos + 1;
-                            --selectionLength;
-                        }
-                        else
-                        {
-                            ++selectionLength;
-                        }
-                    }
-                }
-
-                ++cursorPos;
-                Redraw();
-            }
-
-            if (!shiftPressed)
-            {
-                if (IsTextSelected())
-                {
-                    cursorPos = selectionPos + selectionLength;
-                }
-
-                selectionLength = 0;
-
-                Redraw();
-            }
-
+            if (textEdit.HandleOnKeyDownEvent(lParam, (uint32_t)vk))
+                TextEditChanged();
             break;
         }
-
-        case VK_LEFT:
-        {
-            shouldDrawCursor = true;
-            SetCursorTimer();
-
-            if (cursorPos > 0)
-            {
-                --cursorPos;
-
-                if (shiftPressed)
-                {
-                    if (!IsTextSelected())
-                    {
-                        selectionInitialPos = selectionPos = cursorPos;
-                        selectionLength = 1;
-                    }
-                    else
-                    {
-                        if (cursorPos >= selectionInitialPos)
-                        {
-                            --selectionLength;
-                        }
-                        else
-                        {
-                            selectionPos = cursorPos;
-                            ++selectionLength;
-                        }
-                    }
-                }
-
-                Redraw();
-            }
-
-            if (!shiftPressed)
-            {
-                if (selectionLength != 0)
-                {
-                    cursorPos = selectionPos;
-                }
-
-                selectionLength = 0;
-
-                Redraw();
-            }
-        }
-
-        break;
-    }
-
-    if (ctrlPressed && vk == L'C')
-    {
-        if (!IsTextSelected())
-            return 0;
-        if (!Clipboard::Open(hwnd))
-            assert(false);
-
-        Newstring copyStr = textBuffer.string.RefSubstring(selectionPos, selectionLength);
-        bool copied = Clipboard::CopyText(copyStr);
-        assert(copied);
-
-        Clipboard::Close();
-
-        OnTextChanged();
-        shouldDrawCursor = true;
-        SetCursorTimer();
-
-        Redraw();
-    }
-    else if (ctrlPressed && vk == L'V')
-    {
-        if (!Clipboard::Open(hwnd))
-            assert(false);
-
-        Newstring textToCopy;
-        bool copied = Clipboard::GetText(&textToCopy);
-        assert(copied);
-
-        defer(textToCopy.Dispose());
-
-        Clipboard::Close();
-
-        if (Newstring::IsNullOrEmpty(textToCopy))
-        {
-            return 0;
-        }
-
-        if (IsTextSelected())
-        {
-            textBuffer.Remove(selectionPos, selectionLength);
-            textBuffer.Insert(selectionPos, textToCopy);
-
-            cursorPos = selectionPos + textToCopy.count;
-            ClearSelection();
-
-            OnTextChanged();
-            shouldDrawCursor = true;
-            SetCursorTimer();
-
-            Redraw();
-        }
-        else
-        {
-            textBuffer.Insert(cursorPos, textToCopy);
-
-            cursorPos += textToCopy.count;
-
-            OnTextChanged();
-            shouldDrawCursor = true;
-            SetCursorTimer();
-
-            Redraw();
-        }
-
-        return 0;
     }
 
     return 0;
@@ -428,45 +203,82 @@ LRESULT CommandWindow::OnMouseActivate()
 
 LRESULT CommandWindow::OnLeftMouseButtonDown(LPARAM lParam, WPARAM wParam)
 {
-    float mouseX = static_cast<float>(GET_X_LPARAM(lParam));
-    float mouseY = static_cast<float>(GET_Y_LPARAM(lParam));
+    const float mouseX = static_cast<float>(GET_X_LPARAM(lParam));
+    const float mouseY = static_cast<float>(GET_Y_LPARAM(lParam));
     const float borderSize = static_cast<float>(style->borderSize);
 
     UpdateTextLayout();
-    shouldDrawCursor = true;
-    SetCursorTimer();
 
     BOOL isInside = false;
     BOOL isTrailingHit = false;
-    DWRITE_HIT_TEST_METRICS metrics ={ 0 };
+    DWRITE_HIT_TEST_METRICS metrics = { 0 };
     HRESULT hr = 0;
 
     hr = textLayout->HitTestPoint(mouseX - style->textMarginLeft - borderSize, mouseY, &isTrailingHit, &isInside, &metrics);
     assert(SUCCEEDED(hr));
 
-    if (isTrailingHit)
-    {
-        cursorPos = metrics.textPosition + 1;
-    }
-    else
-    {
-        cursorPos = metrics.textPosition;
-    }
+    textEdit.ClearSelection();
+    textEdit.SetCaretPos(metrics.textPosition + (isTrailingHit ? 1 : 0));
 
-    selectionStartCursorPos = cursorPos;
+    mouseSelectionStartPos = textEdit.caretPos;
 
-    ClearSelection();
     Redraw();
+
+    ::SetCapture(hwnd);
 
     return 0;
 }
 
 LRESULT CommandWindow::OnLeftMouseButtonUp()
 {
-    selectionStartCursorPos = -1;
+    if (::GetCapture() == hwnd)  ReleaseCapture();
+    mouseSelectionStartPos = 0xFFFFFFFF;
 
-    if (GetCapture() == hwnd)
-        ReleaseCapture();
+    return 0;
+}
+
+LRESULT CommandWindow::OnMouseMove(LPARAM lParam, WPARAM wParam)
+{
+    if (mouseSelectionStartPos == 0xFFFFFFFF)
+        return 0;
+
+    bool isLeftMouseDown = !!(wParam & 0x0001);
+
+    if (!isLeftMouseDown)
+        return true;
+
+    const float mouseX = static_cast<float>(GET_X_LPARAM(lParam));
+    const float mouseY = static_cast<float>(GET_Y_LPARAM(lParam));
+    const float borderSize = static_cast<float>(style->borderSize);
+
+    UpdateTextLayout();
+
+    BOOL isInside = false;
+    BOOL isTrailingHit = false;
+    DWRITE_HIT_TEST_METRICS metrics = { 0 };
+    HRESULT hr = 0;
+
+    hr = textLayout->HitTestPoint(mouseX - style->textMarginLeft - borderSize, mouseY, &isTrailingHit, &isInside, &metrics);
+    assert(SUCCEEDED(hr));
+
+    uint32_t targetPos = metrics.textPosition + (isTrailingHit ? 1 : 0);
+    
+    uint32_t start = mouseSelectionStartPos;
+    uint32_t length;
+    if (targetPos < mouseSelectionStartPos)
+    {
+        start = targetPos;
+        length = mouseSelectionStartPos - targetPos;
+    }
+    else
+    {
+        start = mouseSelectionStartPos;
+        length = targetPos - mouseSelectionStartPos;
+    }
+    
+    textEdit.Select(start, length);
+
+    Redraw();
 
     return 0;
 }
@@ -490,8 +302,6 @@ LRESULT CommandWindow::OnFocusLost()
     //InvalidateRect(hwnd, nullptr, true);
     HideWindow();
     
-    // @TODO: use built-in CreateCaret/ShowCaret/etc. stuff!
-
     return 0;
 }
 
@@ -503,86 +313,36 @@ void CommandWindow::OnTextChanged()
     UpdateAutocompletion();
 }
 
-LRESULT CommandWindow::OnMouseMove(LPARAM lParam, WPARAM wParam)
-{
-    bool isLeftMouseDown = static_cast<bool>(wParam & 0x0001);
-
-    if (!isLeftMouseDown || selectionStartCursorPos == -1)
-        return 0;
-
-    SetCapture(hwnd);
-
-    float mouseX = static_cast<float>(GET_X_LPARAM(lParam));
-    float mouseY = static_cast<float>(GET_Y_LPARAM(lParam));
-    const float borderSize = static_cast<float>(style->borderSize);
-
-    UpdateTextLayout();
-
-    BOOL isInside = false;
-    BOOL isTrailingHit = false;
-    DWRITE_HIT_TEST_METRICS metrics ={ 0 };
-    HRESULT hr = 0;
-
-    hr = textLayout->HitTestPoint(mouseX - style->textMarginLeft - borderSize, mouseY, &isTrailingHit, &isInside, &metrics);
-    assert(SUCCEEDED(hr));
-
-    if (selectionStartCursorPos != -1)
-    {
-        int oldCursorPos = selectionStartCursorPos;
-
-        if (isTrailingHit)
-        {
-            cursorPos = metrics.textPosition + 1;
-        }
-        else
-        {
-            cursorPos = metrics.textPosition;
-        }
-
-        int calcSelectionLength = abs(oldCursorPos - (int)cursorPos);
-        if (calcSelectionLength == 0)
-        {
-            ClearSelection();
-        }
-        else
-        {
-            selectionInitialPos = selectionStartCursorPos;
-            selectionPos = std::min((int)cursorPos, oldCursorPos);
-            selectionLength = calcSelectionLength;
-        }
-    }
-
-    Redraw();
-
-    return 0;
-}
-
 void CommandWindow::OnUserRequestedAutocompletion()
 {
-    if (autocompletionCandidate == nullptr)
-    {
-        autocompletionCandidate = FindAutocompletionCandidate();
-        if (autocompletionCandidate == nullptr)
-            return;
-    }
-
-    // @TODO: textBuffer may not have enough storage.
-    wmemcpy(textBuffer.data, autocompletionCandidate->name.data, autocompletionCandidate->name.count);
-    textBuffer.count = autocompletionCandidate->name.count;
-    textBuffer.data[textBuffer.count] = L' ';
-    textBuffer.count += 1;
-
-    ClearSelection();
-    cursorPos = textBuffer.count;
-
-    Redraw();
-
-    return;
+    // @TODO:
+    
+    //    if (autocompletionCandidate == nullptr)
+//    {
+//        autocompletionCandidate = FindAutocompletionCandidate();
+//        if (autocompletionCandidate == nullptr)
+//            return;
+//    }
+//
+//    // @TODO: textBuffer may not have enough storage.
+//    wmemcpy(textBuffer.data, autocompletionCandidate->name.data, autocompletionCandidate->name.count);
+//    textBuffer.count = autocompletionCandidate->name.count;
+//    textBuffer.data[textBuffer.count] = L' ';
+//    textBuffer.count += 1;
+//
+//    ClearSelection();
+//    cursorPos = textBuffer.count;
+//
+//    Redraw();
+//
+//    return;
 }
 
 Command* CommandWindow::FindAutocompletionCandidate()
 {
-    if (textBuffer.count == 0)
+    // @TODO:
+
+   /* if (textBuffer.count == 0)
         return nullptr;
 
     int index = textBuffer.string.IndexOf(L' ');
@@ -601,7 +361,7 @@ Command* CommandWindow::FindAutocompletionCandidate()
 
         if (isMatchingCandidate)
             return candidate;
-    }
+    }*/
 
     return nullptr;
 }
@@ -671,11 +431,6 @@ void CommandWindow::AnimateWindow(WindowAnimation animation)
         Sleep(1);
     }
 }
-//
-//void CommandWindow::setShouldDrawCursor(bool shouldDrawCursor)
-//{
-//
-//}
 
 LRESULT CommandWindow::OnPaint()
 {
@@ -711,17 +466,21 @@ LRESULT CommandWindow::OnPaint()
     float cursorRelativeY = 0.0f;
 
     DWRITE_HIT_TEST_METRICS metrics;
-    textLayout->HitTestTextPosition(cursorPos, false, &cursorRelativeX, &cursorRelativeY, &metrics);
+    textLayout->HitTestTextPosition(textEdit.caretPos, false, &cursorRelativeX, &cursorRelativeY, &metrics);
 
     // Draw selection background
-    if (IsTextSelected())
+    if (textEdit.IsTextSelected())
     {
+        uint32_t selectionStart = 0;
+        uint32_t selectionLength = 0;
+        textEdit.GetSelectionStartAndLength(&selectionStart, &selectionLength);
+
         float unused;
         float selectionRelativeStartX = 0.0f;
         float selectionRelativeEndX = 0.0f;
 
-        textLayout->HitTestTextPosition(selectionPos, false, &selectionRelativeStartX, &unused, &metrics);
-        textLayout->HitTestTextPosition(selectionPos + selectionLength, false, &selectionRelativeEndX, &unused, &metrics);
+        textLayout->HitTestTextPosition(selectionStart, false, &selectionRelativeStartX, &unused, &metrics);
+        textLayout->HitTestTextPosition(selectionStart + selectionLength, false, &selectionRelativeEndX, &unused, &metrics);
 
         rt->FillRectangle(
             D2D1::RectF(
@@ -737,7 +496,7 @@ LRESULT CommandWindow::OnPaint()
     // Draw actual user text
     rt->DrawTextLayout(D2D1::Point2F(marginX, textDrawY), textLayout, textForegroundBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
-    if (shouldDrawCursor && !IsTextSelected())
+    if (shouldDrawCursor && !textEdit.IsTextSelected())
     {
         // Center cursor X at pixel center to disable anti-aliasing.
         float cursorActualX = floorf(marginX + cursorRelativeX) + 0.5f;
@@ -869,8 +628,8 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
         return false;
 
     commandEngine->SetBeforeRunCallback(beforeRunCallback, this);
-
-    assert(textBuffer.Reserve(512));
+    if (!textEdit.Initialize())
+        return false;
 
     SetCursorTimer();
 
@@ -886,9 +645,6 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
     exitcmd->commandWindow = this;
     commandEngine->RegisterCommand(exitcmd);
     
-    //EditCommandsWindow* edit = new EditCommandsWindow();
-    //edit->init(hwnd, commandEngine);
-
     if (nCmdShow != 0) ShowWindow();
 
     isInitialized = true;
@@ -945,7 +701,7 @@ void CommandWindow::Exit()
 
 void CommandWindow::Evaluate()
 {
-    bool success = commandEngine->Evaluate(textBuffer.string);
+    bool success = commandEngine->Evaluate(textEdit.buffer.string);
 
     if (!success)
     {
@@ -1070,7 +826,7 @@ void CommandWindow::Dispose()
 {
     tray.Dispose();
     DisposeGraphicsResources();
-    textBuffer.Dispose();
+    textEdit.Dispose();
 
     if (hwnd != 0)
     {

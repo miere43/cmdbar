@@ -185,7 +185,7 @@ bool RunAppCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
     }
     else
     {
-        int dataSize = 1; // Null-terminator.
+        int dataSize = 1; // Terminating zero.
         if (!Newstring::IsNullOrEmpty(appArgs))
             dataSize += appArgs.count + 1; // Include one space character for user-defined app args.
         for (uint32_t i = 0; i < args.count; ++i)
@@ -254,11 +254,7 @@ bool parseShowType(const Newstring& value, int* showType)
 {
     assert(showType != nullptr);
     
-    //NewstringComparison cmp = NewstringComparison::CaseInsensitive;
-
-    // @TODO: Do case-insensitive comparison.
-
-#define SHOWTYPECHECK(str, x) if (value == str) { *showType = x; return true; }
+#define SHOWTYPECHECK(str, x) if (value.Equals(str, StringComparison::CaseInsensitive)) { *showType = x; return true; }
     SHOWTYPECHECK(L"normal", SW_SHOWNORMAL);
     SHOWTYPECHECK(L"minimized", SW_SHOWMINIMIZED);
     SHOWTYPECHECK(L"maximized", SW_SHOWMAXIMIZED);
@@ -282,7 +278,7 @@ static bool runProcess(const wchar_t* path, wchar_t* commandLine)
         true,
         NORMAL_PRIORITY_CLASS,
         nullptr,
-        nullptr, //currentDirectory.data,
+        nullptr,
         &startupInfo,
         &processInfo);
 

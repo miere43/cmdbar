@@ -8,6 +8,7 @@
 #include "newstring.h"
 #include "newstring_builder.h"
 #include "command_window_tray.h"
+#include "text_edit.h"
 
 struct CommandWindowStyle;
 
@@ -59,16 +60,19 @@ public:
     void Redraw();
     void UpdateTextLayout(bool forced = false);
     void ClearSelection();
+    void TextEditChanged();
 
-    NewstringBuilder textBuffer;
-    uint32_t cursorPos = 0;
+    TextEdit textEdit;
+
     Command* autocompletionCandidate = nullptr;
 
-    CommandWindowTray tray;
+    /**
+     * Indicates starting text position of mouse selection.
+     * If currently there are no mouse selection, contains value of 0xFFFFFFFF.
+     */
+    uint32_t mouseSelectionStartPos = 0xFFFFFFFF;
 
-    int selectionInitialPos = 0;
-    int selectionPos = 0;
-    int selectionLength = 0;
+    CommandWindowTray tray;
 
     HKL originalKeyboardLayout = 0;
 
@@ -103,29 +107,30 @@ public:
 
     void UpdateAutocompletion();
 
-    inline bool IsTextSelected()
-    {
-        return selectionLength != 0;
-    }
-
     bool shouldDrawCursor = true;
-    //void setShouldDrawCursor(bool shouldDrawCursor);
     void SetCursorTimer();
     void killCursorTimer();
 
     bool isTextLayoutDirty = false;
-
-    // Selection with mouse variables
-    // If -1 then there were no selection.
-    int selectionStartCursorPos = -1;
 private:
+    /**
+     * Represents animations that can be played using AnimateWindow method.
+     */
     enum class WindowAnimation
     {
+        /**
+         * Fade in from zero opacity to full opacity.
+         */
         Show = 1,
+        /**
+         * Fade out from full opacity to zero opacity.
+         */
         Hide = 2,
     };
 
-    // This function blocks!
+    /**
+     * Creates new message loop and does specified window animation.
+     */
     void AnimateWindow(WindowAnimation animation);
 };
 
