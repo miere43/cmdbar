@@ -1,5 +1,3 @@
-#include <windowsx.h>
-
 #include "text_edit.h"
 #include "clipboard.h"
 #include "defer.h"
@@ -8,64 +6,6 @@
 bool TextEdit::Initialize()
 {
     return buffer.Reserve(512);
-}
-
-bool TextEdit::HandleOnCharEvent(wchar_t c)
-{
-    if (!iswprint(c)) return 0;
-
-    if (IsTextSelected())
-    {
-        buffer.Remove(selectionStartPos, GetSelectionLength());
-
-        buffer.Insert(selectionStartPos, c);
-        caretPos = selectionStartPos + 1;
-        
-        ClearSelection();
-    }
-    else
-    {
-        buffer.Insert(caretPos, c);
-        ++caretPos;
-    }
-
-    return true;
-}
-
-bool TextEdit::HandleOnKeyDownEvent(HWND hwnd, LPARAM lParam, uint32_t vk)
-{
-    bool shift = !!(GetKeyState(VK_LSHIFT) & 0x8000);
-    bool control = !!(GetKeyState(VK_LCONTROL) & 0x8000);
-
-    switch (vk)
-    {
-        case VK_BACK:
-        case VK_DELETE:
-        {
-            if (IsTextSelected())  RemoveSelectedText();
-            else  vk == VK_BACK ? RemovePrevCharacter() : RemoveNextCharacter();
-            return true;
-        }
-        case VK_RIGHT:
-        {
-            if (shift)  AddNextCharacterToSelection();
-            else  IsTextSelected() ? ClearSelection(GetSelectionEnd()) : MoveCaretRight();
-            return true;
-        }
-
-        case VK_LEFT:
-        {
-            if (shift)  AddPrevCharacterToSelection();
-            else  IsTextSelected() ? ClearSelection(GetSelectionStart()) : MoveCaretLeft();
-            return true;
-        }
-    }
-
-    if (control && vk == 'A')       SelectAll();
-    else if (control && vk == 'C')  CopySelectionToClipboard(hwnd);
-    else if (control && vk == 'V')  PasteTextFromClipboard(hwnd);
-
-    return true;
 }
 
 void TextEdit::SelectAll()
@@ -154,6 +94,7 @@ void TextEdit::Dispose()
 
 void TextEdit::SetCaretPos(uint32_t pos)
 {
+    // @TODO: Find or write clamp procedure.
     if (pos < 0)
     {
         caretPos = 0;
@@ -179,6 +120,27 @@ void TextEdit::AddCaretPos(int offset)
     {
         uint32_t newPos = caretPos + offset;
         caretPos = newPos <= caretPos ? newPos : 0;
+    }
+}
+
+void TextEdit::InsertCharacterAtCaret(wchar_t c)
+{
+    if (!iswprint(c))  return;
+
+    if (IsTextSelected())
+    {
+        buffer.Remove(GetSelectionStart(), GetSelectionLength());
+        buffer.Insert(GetSelectionStart(), c);
+        
+        SetCaretPos(GetSelectionStart());
+        AddCaretPos(+1);
+
+        ClearSelection();
+    }
+    else
+    {
+        buffer.Insert(caretPos, c);
+        AddCaretPos(+1);
     }
 }
 

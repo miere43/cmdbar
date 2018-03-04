@@ -59,7 +59,6 @@ public:
     bool SetText(const Newstring& text);
     void Redraw();
     void UpdateTextLayout(bool forced = false);
-    void ClearSelection();
     void TextEditChanged();
 
     TextEdit textEdit;
@@ -107,9 +106,9 @@ public:
 
     void UpdateAutocompletion();
 
-    bool shouldDrawCursor = true;
-    void SetCursorTimer();
-    void killCursorTimer();
+    bool shouldDrawCaret = true;
+    void SetCaretTimer();
+    void KillCaretTimer();
 
     bool isTextLayoutDirty = false;
 private:

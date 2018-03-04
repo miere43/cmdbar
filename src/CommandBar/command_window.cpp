@@ -141,29 +141,26 @@ void CommandWindow::UpdateTextLayout(bool forced)
     }
 }
 
-void CommandWindow::ClearSelection()
-{
-    textEdit.ClearSelection();
-}
-
 void CommandWindow::TextEditChanged()
 {
     Redraw();
 
-    shouldDrawCursor = true;
-    SetCursorTimer();
+    shouldDrawCaret = true;
+    SetCaretTimer();
 }
 
 LRESULT CommandWindow::OnChar(wchar_t c)
 {
-    if (textEdit.HandleOnCharEvent(c))
-        TextEditChanged();
+    textEdit.InsertCharacterAtCaret(c);
 
     return 0;
 }
 
 LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
 {
+    bool shift = !!(GetKeyState(VK_LSHIFT) & 0x8000);
+    bool control = !!(GetKeyState(VK_LCONTROL) & 0x8000);
+
     switch (vk)
     {
         case VK_ESCAPE:
@@ -179,13 +176,40 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
             Evaluate();
             break;
         }
+        case VK_BACK:
+        case VK_DELETE:
+        {
+            if (textEdit.IsTextSelected())  textEdit.RemoveSelectedText();
+            else  vk == VK_BACK ? textEdit.RemovePrevCharacter() : textEdit.RemoveNextCharacter();
+            break;
+        }
+        case VK_RIGHT:
+        {
+            if (shift)  textEdit.AddNextCharacterToSelection();
+            else  textEdit.IsTextSelected() ? textEdit.ClearSelection(textEdit.GetSelectionEnd()) : textEdit.MoveCaretRight();
+            break;
+        }
+        case VK_LEFT:
+        {
+            if (shift)  textEdit.AddPrevCharacterToSelection();
+            else  textEdit.IsTextSelected() ? textEdit.ClearSelection(textEdit.GetSelectionStart()) : textEdit.MoveCaretLeft();
+            break;
+        }
         default:
         {
-            if (textEdit.HandleOnKeyDownEvent(hwnd, lParam, (uint32_t)vk))
-                TextEditChanged();
+            if (control && vk == 'A')       textEdit.SelectAll();
+            else if (control && vk == 'X')
+            {
+                textEdit.CopySelectionToClipboard(hwnd);
+                textEdit.RemoveSelectedText();
+            }
+            else if (control && vk == 'C')  textEdit.CopySelectionToClipboard(hwnd);
+            else if (control && vk == 'V')  textEdit.PasteTextFromClipboard(hwnd);
             break;
         }
     }
+
+    TextEditChanged();
 
     return 0;
 }
@@ -289,8 +313,8 @@ LRESULT CommandWindow::OnFocusAcquired()
     
     ActivateKeyboardLayout(g_englishKeyboardLayout, KLF_REORDER);
 
-    shouldDrawCursor = true;
-    SetCursorTimer();
+    shouldDrawCaret = true;
+    SetCaretTimer();
 
     return 0;
 }
@@ -307,8 +331,8 @@ LRESULT CommandWindow::OnFocusLost()
 
 void CommandWindow::OnTextChanged()
 {
-    shouldDrawCursor = true;
-    SetCursorTimer();
+    shouldDrawCaret = true;
+    SetCaretTimer();
 
     UpdateAutocompletion();
 }
@@ -376,7 +400,7 @@ void CommandWindow::UpdateAutocompletion()
     }
 }
 
-void CommandWindow::SetCursorTimer()
+void CommandWindow::SetCaretTimer()
 {
     SetLastError(NO_ERROR);
 
@@ -387,7 +411,7 @@ void CommandWindow::SetCursorTimer()
         __debugbreak();
     }
 }
-void CommandWindow::killCursorTimer()
+void CommandWindow::KillCaretTimer()
 {
     KillTimer(hwnd, CURSOR_BLINK_TIMER_ID);
 }
@@ -496,7 +520,7 @@ LRESULT CommandWindow::OnPaint()
     // Draw actual user text
     rt->DrawTextLayout(D2D1::Point2F(marginX, textDrawY), textLayout, textForegroundBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
-    if (shouldDrawCursor && !textEdit.IsTextSelected())
+    if (shouldDrawCaret && !textEdit.IsTextSelected())
     {
         // Center cursor X at pixel center to disable anti-aliasing.
         float cursorActualX = floorf(marginX + cursorRelativeX) + 0.5f;
@@ -547,11 +571,11 @@ LRESULT CommandWindow::OnShowWindow(LPARAM lParam, WPARAM wParam)
 
     if (isWindowShown)
     {
-        SetCursorTimer();
+        SetCaretTimer();
         __debugbreak();
     }
     else 
-        killCursorTimer();
+        KillCaretTimer();
 
     return 0;
 }
@@ -570,7 +594,7 @@ LRESULT CommandWindow::OnActivate()
 
 LRESULT CommandWindow::OnCursorBlinkTimerElapsed()
 {
-    shouldDrawCursor = !shouldDrawCursor;
+    shouldDrawCaret = !shouldDrawCaret;
     Redraw();
 
     return 0;
@@ -631,7 +655,7 @@ bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
     if (!textEdit.Initialize())
         return false;
 
-    SetCursorTimer();
+    SetCaretTimer();
 
     QuitCommand* quitcmd = Memnew(QuitCommand);
     quitcmd->name = Newstring::NewFromWChar(L"quit");

@@ -45,18 +45,6 @@ struct TextEdit
     void Dispose();
 
     /**
-     * Handles Windows WM_CHAR event.
-     * Returns true if text editor should be redrawn, false otherwise.
-     */
-    bool HandleOnCharEvent(wchar_t c);
-
-    /**
-     * Handles Windows WM_KEYDOWN event.
-     * Returns true if text editor should be redrawn, false otherwise.
-     */
-    bool HandleOnKeyDownEvent(HWND hwnd, LPARAM lParam, uint32_t vk);
-
-    /**
      * Selects all text.
      */
     void SelectAll();
@@ -124,34 +112,47 @@ struct TextEdit
      * Adds specified offset to caret position, correctly handling underflows and overflows.
      */
     void AddCaretPos(int offset);
-private:
+
+    /**
+     * If text is not selected, adds specified character at caret position.
+     * If text is selected, then replaces selected text with specified character.
+     * If character is not printable, does nothing.
+     */
+    void InsertCharacterAtCaret(wchar_t c);
+
     /**
      * Moves caret one character to the left.
+     * If caret position is 0, then does nothing.
      */
     void MoveCaretLeft();
 
     /**
      * Moves caret one character to the right.
+     * If caret position equals to number of character in text buffer, then does nothing.
      */
     void MoveCaretRight();
 
     /**
      * Copies selected text to the clipboard.
+     * If text is not selected, then does nothing.
      */
     void CopySelectionToClipboard(HWND hwnd);
 
     /**
      * Pastes text that is currently loaded in clipboard at caret position.
+     * If there is no text in clipboard, then does nothing.
      */
     void PasteTextFromClipboard(HWND hwnd);
 
     /**
      * Adds character that is next to the caret to current selection.
+     * If there is no character next to the caret, then does nothing.c
      */
     void AddNextCharacterToSelection();
     
     /**
      * Adds character that is previous to the caret to current selection.
+     * If there is no character previous to the caret, then does nothing.c
      */
     void AddPrevCharacterToSelection();
     
