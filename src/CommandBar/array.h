@@ -148,7 +148,7 @@ private:
 	bool SetCapacity(uint32_t newCapacity)
     {
         const uintptr_t newSize = sizeof(T) * newCapacity;
-        T* newData = allocator->Reallocate(data, newSize);
+        T* newData = (T*)allocator->Reallocate(data, newSize);
         if (!newData)
             return false;
 

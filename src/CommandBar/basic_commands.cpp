@@ -167,8 +167,8 @@ static bool runProcess(const wchar_t* path, wchar_t* commandLine);
 static bool shellExecute(const wchar_t* path, const wchar_t* verb, const wchar_t* params, const wchar_t* workDir, int nShow);
 bool RunAppCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
 {
-    // @TODO: test 'runProcess' with args.
-    // @TODO: make workDir work with 'runProcess'.
+    // @TODO: Test 'runProcess' with args.
+    // @TODO: Make workDir work with 'runProcess'.
 
     wchar_t* workDir = this->workDir.data;
     wchar_t* execAppParamsStr = nullptr;
@@ -185,6 +185,8 @@ bool RunAppCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
     }
     else
     {
+        // @TODO: Rewrite with NewstringBuilder.
+
         int dataSize = 1; // Terminating zero.
         if (!Newstring::IsNullOrEmpty(appArgs))
             dataSize += appArgs.count + 1; // Include one space character for user-defined app args.
@@ -242,6 +244,12 @@ bool RunAppCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
         result = runProcess(appPath.data, execAppParamsStr);
     }
 
+    if (!result)
+    {
+        Newstring osError = OSUtils::FormatErrorCode(GetLastError(), 0, &g_tempAllocator);
+        state->FormatErrorMessage(L"Unable to run application: %.*s", osError.count, osError.data);
+    }
+
     if (shouldDeallocateAppParams)
     {
         g_standardAllocator.Deallocate(execAppParamsStr);
@@ -270,6 +278,7 @@ static bool runProcess(const wchar_t* path, wchar_t* commandLine)
     STARTUPINFOW startupInfo = { sizeof(startupInfo), 0 };
     PROCESS_INFORMATION processInfo = { 0 };
 
+    SetLastError(0);
     bool success = 0 != CreateProcessW(
         path,
         commandLine,
@@ -304,15 +313,8 @@ static bool shellExecute(const wchar_t* path, const wchar_t* verb, const wchar_t
     info.nShow = nShow;
     info.lpDirectory = workDir;
 
-    bool success = 0 != ShellExecuteExW(&info);
-    if (!success)
-    {
-        DWORD error = GetLastError();
-        if (error == ERROR_CANCELLED)
-            success = true;
-    }
-
-    return success;
+    SetLastError(0);
+    return !!ShellExecuteExW(&info);
 }
 
 Command* quit_createCommand(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values)
