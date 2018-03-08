@@ -19,6 +19,7 @@
 #include "defer.h"
 #include "parse_ini.h"
 #include "common.h"
+#include "utils.h"
 
 #pragma comment(linker,"\"/manifestdependency:type='win32' \
 name='Microsoft.Windows.Common-Controls' version='6.0.0.0' \
@@ -55,8 +56,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 
 		return 0;
 	}
-
-    CloseClipboard();
 #endif
 
 	CommandEngine commandEngine;
@@ -92,7 +91,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     nCmdShow =  wcscmp(lpCmdLine, L"/noshow") == 0 ? 0 : SW_SHOW;
 
     bool initialized = commandWindow.Initialize(400, 40, nCmdShow);
-    if (!initialized)  return -1;
+    if (!initialized)  return 1;
 
     MSG msg;
     uint32_t ret;
@@ -235,24 +234,15 @@ bool InitializeLibraries()
     icc.dwICC = ICC_STANDARD_CLASSES;
     if (!InitCommonControlsEx(&icc))
     {
-        auto msg = Newstring::FormatTempCStringWithFallback(
-            L"Failed to initialize common controls.\n\nError code was 0x%08X.",
-            L"Failed to initialize common controls.",
-            GetLastError());
-
-        MessageBoxW(0, msg.data, L"Error", MB_ICONERROR);
-        return false;
+        return ShowErrorBox(0, Newstring::FormatTempCStringWithFallback(
+            L"Failed to initialize common controls.\n\nError code was 0x%08X.", GetLastError()));
     }
 
     hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
     if (FAILED(hr))
     {
-        auto msg = Newstring::FormatTempCStringWithFallback(
-            L"Failed to initialize COM.\n\nError code was 0x%08X.",
-            L"Failed to initialize COM.",
-            hr);
-
-        return false;
+        return ShowErrorBox(0, Newstring::FormatTempCStringWithFallback(
+            L"Failed to initialize COM.\n\nError code was 0x%08X.", GetLastError()));
     }
 
     return true;
@@ -274,8 +264,7 @@ bool InitializeAllocators()
 {
     if (!g_tempAllocator.SetSize(4096))
     {
-        MessageBoxW(0, L"Unable to initialize temporary allocator.", L"Error", MB_ICONERROR);
-        return false;
+        return ShowErrorBox(0, Newstring::WrapConstWChar(L"Unable to initialize temporary allocator."));
     }
 
     return true;

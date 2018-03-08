@@ -6,24 +6,55 @@
 #include "allocators.h"
 
 
+/**
+ * Represents resizeable array.
+ */
 template<typename T>
-struct Array {
-	T*  data     = nullptr;
-	uint32_t count    = 0;
+struct Array
+{
+    /**
+     * Pointer to array data.
+     */
+	T* data = nullptr;
+
+    /**
+     * Number of elements in use.
+     */
+	uint32_t count = 0;
+
+    /**
+     * Number of elements this array is able to store without reallocating array data.
+     */
 	uint32_t capacity = 0;
+
+    /**
+     * Allocator that is used to allocate array data.
+     */
 	IAllocator* allocator = nullptr;
 
+    /**
+     * Initializes array with specified allocator.
+     */
 	Array(IAllocator* allocator = &g_standardAllocator)
 	{
 		this->allocator = allocator;
 	}
 
+    /**
+     * Initializes array with specified initial capacity and allocator.
+     */
 	Array(uint32_t initialCapacity, IAllocator* allocator = &g_standardAllocator)
 	{
 		this->allocator = allocator;
-		SetCapacity(initialCapacity);
+
+        if (initialCapacity > 0)
+            SetCapacity(initialCapacity);
 	}
 
+    /**
+     * Reserves specified amount of elements to store in this array.
+     * Returns true if specified capacity is successfully reserved.
+     */
 	bool Reserve(uint32_t newCapacity)
 	{
 		if (capacity < newCapacity)
@@ -35,6 +66,10 @@ struct Array {
 		return true;
 	}
 
+    /**
+     * Appends specified value to the end of array.
+     * Returns true if specified element was added to array.
+     */
 	bool Append(const T& value)
 	{
 		if (!Reserve(count + 1))
@@ -64,11 +99,13 @@ struct Array {
         }
     }
 
-	// Adds all elements from array 'values'.
-	// Returns false if no items were added to this resizeable array or if there is nothing to add (values == nullptr or count == 0).
+    /**
+     * Appends elements from specified array to the end of this array.
+     * Returns true if specified elements were successfully added to array.
+     */
 	bool AppendRange(const T* values, uint32_t count)
 	{
-		if (values == nullptr || count <= 0)
+		if (values == nullptr || count == 0)
 			return true;
 
 		if (!Reserve(this->count + count))
@@ -80,14 +117,21 @@ struct Array {
 		return true;
 	}
 
+    /**
+     * Resets array element count to zero.
+     */
 	void Clear()
 	{
 		count = 0;
 	}
 
+    /**
+     * Disposes allocated data of this array and resets array state.
+     */
 	void Dispose()
 	{
-		if (data != nullptr) {
+		if (data != nullptr)
+        {
 			allocator->Deallocate(data);
 			data = nullptr;
 		}
@@ -96,37 +140,21 @@ struct Array {
 		capacity = 0;
 	}
 
+private:
+    /**
+     * Sets capacity of current array to specified value.
+     * If changing capacity is failed, returns false.
+     */
 	bool SetCapacity(uint32_t newCapacity)
-	{
-        // @TODO: Use Reallocate method in allocator.
+    {
+        const uintptr_t newSize = sizeof(T) * newCapacity;
+        T* newData = allocator->Reallocate(data, newSize);
+        if (!newData)
+            return false;
 
-		if (data == nullptr)
-		{
-			data = static_cast<T*>(allocator->Allocate(sizeof(T) * newCapacity));
-			if (data == nullptr)
-				return false;
-			
-			capacity = newCapacity;
-			count = 0;
+        data = newData;
+        capacity = newCapacity;
 
-			return true;
-		}
-		else
-		{
-			T* newData = static_cast<T*>(allocator->Allocate(sizeof(T) * newCapacity));
-			if (newData == nullptr)
-				return false;
-
-			if (data != nullptr && count > 0) {
-				// If newCapacity < count, this wouldn't work.
-				memcpy_s(newData, sizeof(T) * newCapacity, data, sizeof(T) * count);
-				allocator->Deallocate(data);
-			}
-			
-			capacity = newCapacity;
-			data = newData;
-
-			return true;
-		}
+        return true;
 	}
 };
