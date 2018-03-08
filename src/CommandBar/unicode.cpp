@@ -36,7 +36,7 @@ Newstring Unicode::DecodeString(const void* data, uint32_t dataSize, Encoding en
             Array<wchar_t> buf{ allocator };
 
             const uint32_t bestCaseCount = dataSize + 2 + 1;
-            if (!buf.reserve(bestCaseCount))
+            if (!buf.Reserve(bestCaseCount))
                 return Newstring::Empty();
 
             const char* strData = reinterpret_cast<const char*>(data);
@@ -51,9 +51,9 @@ Newstring Unicode::DecodeString(const void* data, uint32_t dataSize, Encoding en
 
                 if (buf.capacity < buf.count + 3)
                 {
-                    if (!buf.reserve(buf.count + 3))
+                    if (!buf.Reserve(buf.count + 3))
                     {
-                        buf.Deallocate();
+                        buf.Dispose();
                         return Newstring::Empty();
                     }
 

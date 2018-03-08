@@ -104,7 +104,7 @@ void RegisterBasicCommands(CommandLoader* loader)
     };
 
     for (int i = 0; i < ARRAYSIZE(bc); ++i)
-        cmds.add(&bc[i]);
+        cmds.Append(&bc[i]);
 }
 
 // Parse 'nCmdShow' / 'nShow' windows thing (see MSDN ShowWindow function)

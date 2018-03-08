@@ -171,8 +171,6 @@ void TextEdit::AddNextCharacterToSelection()
     }
 
     AddCaretPos(+1);
-
-    OutputDebugStringW(Newstring::FormatTempCString(L"selectionStartPos %d  caretPos %d  GetSelectionLength() %d\n", selectionStartPos, caretPos, GetSelectionLength()).data);
 }
 
 void TextEdit::AddPrevCharacterToSelection()
@@ -186,8 +184,6 @@ void TextEdit::AddPrevCharacterToSelection()
     }
 
     AddCaretPos(-1);
-
-    OutputDebugStringW(Newstring::FormatTempCString(L"selectionStartPos %d  caretPos %d  GetSelectionLength() %d\n", selectionStartPos, caretPos, GetSelectionLength()).data);
 }
 
 void TextEdit::RemoveSelectedText()
@@ -233,7 +229,7 @@ void TextEdit::CopySelectionToClipboard(HWND hwnd)
         return;
     }
 
-    Newstring copyStr = buffer.string.RefSubstring(selectionStartPos, GetSelectionLength());
+    Newstring copyStr = buffer.string.RefSubstring(GetSelectionStart(), GetSelectionLength());
     bool copied = Clipboard::CopyText(copyStr);
     assert(copied);
 

@@ -21,7 +21,7 @@ bool CommandEngine::Evaluate(const Newstring& expression)
             if (inQuotes)
             {
                 inQuotes = false;
-                args.add(Newstring(expression.data + argStart, argLength));
+                args.Append(Newstring(expression.data + argStart, argLength));
 
                 argStart = i + 1;
                 argLength = 0;
@@ -44,7 +44,7 @@ bool CommandEngine::Evaluate(const Newstring& expression)
         {
             if (argLength > 0)
             {
-                args.add(Newstring(expression.data + argStart, argLength));
+                args.Append(Newstring(expression.data + argStart, argLength));
                 argStart = i + 1;
                 argLength = 0;
             }
@@ -61,7 +61,7 @@ bool CommandEngine::Evaluate(const Newstring& expression)
 
     if (argLength > 0)
     {
-        args.add(Newstring(expression.data + argStart, argLength));
+        args.Append(Newstring(expression.data + argStart, argLength));
     }
 
     if (args.count == 0)
@@ -86,7 +86,7 @@ bool CommandEngine::Evaluate(const Newstring& expression)
 
     Array<Newstring> actualArgs;
     for (uint32_t i = 1; i < args.count; ++i)
-        actualArgs.add(args.data[i]);
+        actualArgs.Append(args.data[i]);
     
     return command->Execute(&executionState, actualArgs);
 }
@@ -119,7 +119,7 @@ bool CommandEngine::RegisterCommand(Command* command)
 {
     assert(command);
 
-    if (commands.add(command))
+    if (commands.Append(command))
     {
         command->engine = this;
         return true;
@@ -132,7 +132,7 @@ bool CommandEngine::RegisterCommandInfo(CommandInfo* info)
 {
     assert(info);
 
-    return knownCommandInfoArray.add(info);
+    return knownCommandInfoArray.Append(info);
 }
 
 void CommandEngine::Dispose()

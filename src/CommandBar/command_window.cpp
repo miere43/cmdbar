@@ -176,6 +176,17 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
             Evaluate();
             break;
         }
+        case VK_UP:
+        case VK_DOWN:
+        {
+            const Newstring* entry = vk == VK_UP ? history.GetPrevEntry() : history.GetNextEntry();
+            if (entry == nullptr)  break;
+
+            textEdit.SetText(*entry);
+            textEdit.SetCaretPos(entry->count);
+
+            break;
+        }
         case VK_BACK:
         case VK_DELETE:
         {
@@ -587,8 +598,14 @@ LRESULT CommandWindow::OnQuit()
     return 0;
 }
 
-LRESULT CommandWindow::OnActivate()
+LRESULT CommandWindow::OnActivate(uint32_t activateState)
 {
+    if (activateState == WA_ACTIVE)
+    {
+        OutputDebugStringW(L"reset state\n");
+        history.ResetCurrentEntryIndex();
+    }
+
     return 0;
 }
 
@@ -725,7 +742,10 @@ void CommandWindow::Exit()
 
 void CommandWindow::Evaluate()
 {
-    bool success = commandEngine->Evaluate(textEdit.buffer.string);
+    const Newstring& input = textEdit.buffer.string;
+    history.SaveEntry(input);
+
+    bool success = commandEngine->Evaluate(input);
 
     if (!success)
     {
@@ -851,6 +871,7 @@ void CommandWindow::Dispose()
     tray.Dispose();
     DisposeGraphicsResources();
     textEdit.Dispose();
+    history.Dispose();
 
     if (hwnd != 0)
     {
@@ -859,7 +880,7 @@ void CommandWindow::Dispose()
     }
 }
 
-LRESULT CommandWindow::WindowProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam)
+LRESULT CommandWindow::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -877,7 +898,7 @@ LRESULT CommandWindow::WindowProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wPa
         case WM_TIMER:          return this->OnTimer(lParam, wParam);
         case WM_SHOWWINDOW:     return this->OnShowWindow(lParam, wParam);
         case WM_QUIT:           return this->OnQuit();
-        case WM_ACTIVATE:       return this->OnActivate();
+        case WM_ACTIVATE:       return this->OnActivate((uint32_t)LOWORD(wParam));
 
         case CommandWindow::g_showWindowMessageId:
         {
@@ -924,7 +945,7 @@ LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
         window = reinterpret_cast<CommandWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     }
 
-    return window ? window->WindowProc(hwnd, msg, lParam, wParam) : DefWindowProcW(hwnd, msg, wParam, lParam);
+    return window ? window->WindowProc(hwnd, msg, wParam, lParam) : DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 void beforeRunCallback(CommandEngine * engine, void * userdata)

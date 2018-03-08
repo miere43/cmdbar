@@ -65,7 +65,7 @@ Newstring BuildCommandLine(const Newstring* strings[], size_t stringsArrayLength
 		return Newstring::Empty();
 
 	Array<wchar_t> result { allocator };
-	result.reserve(64);
+	result.Reserve(64);
 
 	for (size_t i = 0; i < stringsArrayLength; ++i)
 	{
@@ -76,22 +76,22 @@ Newstring BuildCommandLine(const Newstring* strings[], size_t stringsArrayLength
 		bool hasSpaces = arg->IndexOf(L' ') != -1;
 		if (hasSpaces)
 		{
-			result.reserve(result.count + arg->count + 2);
-			result.add(L'"');
+			result.Reserve(result.count + arg->count + 2);
+			result.Append(L'"');
 		} else
-			result.reserve(result.count + arg->count);
+			result.Reserve(result.count + arg->count);
 
 		memcpy(result.data + result.count, arg->data, arg->count * sizeof(wchar_t));
 		result.count += arg->count;
 
 		if (hasSpaces) 
-			result.add(L'"');
+			result.Append(L'"');
 
 		if (i != stringsArrayLength - 1)
-			result.add(L' ');
+			result.Append(L' ');
 	}
 
-	result.add('\0');
+	result.Append('\0');
 
 	return Newstring(result.data, result.count - 1);
 }

@@ -21,23 +21,23 @@ struct Array {
 	Array(uint32_t initialCapacity, IAllocator* allocator = &g_standardAllocator)
 	{
 		this->allocator = allocator;
-		setCapacity(initialCapacity);
+		SetCapacity(initialCapacity);
 	}
 
-	bool reserve(uint32_t newCapacity)
+	bool Reserve(uint32_t newCapacity)
 	{
 		if (capacity < newCapacity)
 		{
 			int toReserve = newCapacity <= 5 ? 10 : newCapacity;
-			return setCapacity(toReserve);
+			return SetCapacity(toReserve);
 		}
 
 		return true;
 	}
 
-	bool add(const T& value)
+	bool Append(const T& value)
 	{
-		if (!reserve(count + 1))
+		if (!Reserve(count + 1))
 			return false;
 
 		data[count++] = value;
@@ -45,14 +45,33 @@ struct Array {
 		return true;
 	}
 
+    /**
+     * Removes single element at specified index. 
+     * If data is not allocated or index is out of range, then does nothing.
+     */
+    void Remove(uint32_t index)
+    {
+        if (data == nullptr || index > count)  return;
+        
+        if (index == count - 1)
+        {
+            --count;
+        }
+        else
+        {
+            memcpy(&data[index], &data[index + 1], sizeof(T) * (count - 1 - index));
+            --count;
+        }
+    }
+
 	// Adds all elements from array 'values'.
 	// Returns false if no items were added to this resizeable array or if there is nothing to add (values == nullptr or count == 0).
-	bool addRange(const T* values, uint32_t count)
+	bool AppendRange(const T* values, uint32_t count)
 	{
 		if (values == nullptr || count <= 0)
 			return true;
 
-		if (!reserve(this->count + count))
+		if (!Reserve(this->count + count))
 			return false;
 
 		for (uint32_t i = 0; i < count; ++i)
@@ -61,12 +80,12 @@ struct Array {
 		return true;
 	}
 
-	void clear()
+	void Clear()
 	{
 		count = 0;
 	}
 
-	void Deallocate()
+	void Dispose()
 	{
 		if (data != nullptr) {
 			allocator->Deallocate(data);
@@ -77,8 +96,10 @@ struct Array {
 		capacity = 0;
 	}
 
-	bool setCapacity(uint32_t newCapacity)
+	bool SetCapacity(uint32_t newCapacity)
 	{
+        // @TODO: Use Reallocate method in allocator.
+
 		if (data == nullptr)
 		{
 			data = static_cast<T*>(allocator->Allocate(sizeof(T) * newCapacity));

@@ -9,6 +9,7 @@
 #include "newstring_builder.h"
 #include "command_window_tray.h"
 #include "text_edit.h"
+#include "command_history.h"
 
 struct CommandWindowStyle;
 
@@ -22,7 +23,7 @@ struct CommandWindow
 
 	void Exit();
 
-	LRESULT WindowProc(HWND hwnd, UINT msg, LPARAM lParam, WPARAM wParam);
+	LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	void BeforeCommandRun();
 
 	HWND hwnd = 0;
@@ -62,6 +63,7 @@ public:
     void TextEditChanged();
 
     TextEdit textEdit;
+    CommandHistory history;
 
     Command* autocompletionCandidate = nullptr;
 
@@ -96,7 +98,7 @@ public:
     LRESULT OnTimer(LPARAM lParam, WPARAM wParam);
     LRESULT OnShowWindow(LPARAM lParam, WPARAM wParam);
     LRESULT OnQuit();
-    LRESULT OnActivate();
+    LRESULT OnActivate(uint32_t activateState);
 
     LRESULT OnCursorBlinkTimerElapsed();
 

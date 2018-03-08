@@ -222,6 +222,7 @@
     <ClCompile Include="basic_commands.cpp" />
     <ClCompile Include="clipboard.cpp" />
     <ClCompile Include="command_engine.cpp" />
+    <ClCompile Include="command_history.cpp" />
     <ClCompile Include="command_loader.cpp" />
     <ClCompile Include="command_window_style_loader.cpp" />
     <ClCompile Include="command_window_tray.cpp" />
@@ -249,6 +250,7 @@
     <ClInclude Include="clipboard.h" />
     <ClInclude Include="CommandBar.h" />
     <ClInclude Include="command_engine.h" />
+    <ClInclude Include="command_history.h" />
     <ClInclude Include="command_loader.h" />
     <ClInclude Include="command_window_style_loader.h" />
     <ClInclude Include="command_window_tray.h" />

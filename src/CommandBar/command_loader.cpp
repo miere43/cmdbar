@@ -43,12 +43,12 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
                     cmd->name = currCmdName.Clone();
                     cmd->info = currCmdInfo;
                     assert(cmd);
-                    cmds.add(cmd);
+                    cmds.Append(cmd);
                     currCmdName = Newstring::Empty();
                 }
 
-                keys.clear();
-                values.clear();
+                keys.Clear();
+                values.Clear();
                 currCmdInfo = FindCommandInfoByName(p.group);
                 assert(currCmdInfo);
 
@@ -62,8 +62,8 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
                 }
                 else
                 {
-                    keys.add(p.key);
-                    values.add(p.value);
+                    keys.Append(p.key);
+                    values.Append(p.value);
                 }
 
                 break;
@@ -80,7 +80,7 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
         cmd->name = currCmdName.Clone();
         cmd->info = currCmdInfo;
         assert(cmd);
-        cmds.add(cmd);
+        cmds.Append(cmd);
         currCmdName = Newstring::Empty();
     }
 

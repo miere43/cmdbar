@@ -50,7 +50,7 @@ struct TextEdit
     void SelectAll();
 
     /**
-     * Select text of enclosed in specified range.
+     * Select text enclosed in specified range.
      */
     void Select(uint32_t start, uint32_t length);
 
