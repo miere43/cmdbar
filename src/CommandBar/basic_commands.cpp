@@ -244,9 +244,13 @@ bool RunAppCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
         result = runProcess(appPath.data, execAppParamsStr);
     }
 
+    DWORD error = GetLastError();
+    if (error == ERROR_CANCELLED)
+        result = true;
+
     if (!result)
     {
-        Newstring osError = OSUtils::FormatErrorCode(GetLastError(), 0, &g_tempAllocator);
+        Newstring osError = OSUtils::FormatErrorCode(error, 0, &g_tempAllocator);
         state->FormatErrorMessage(L"Unable to run application: %.*s", osError.count, osError.data);
     }
 
