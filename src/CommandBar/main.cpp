@@ -46,9 +46,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     defer(DisposeLibraries());
 
 #ifndef _DEBUG
-	if (!g_singleInstanceGuard.checkOrInitInstanceLock(L"CommandBarSingleInstanceGuard"))
+	if (!g_singleInstanceGuard.CheckOrInitInstanceLock(L"CommandBarSingleInstanceGuard"))
     {
-		if (!g_singleInstanceGuard.postMessageToOtherInstance(CommandWindow::g_showWindowMessageId, 0, 0))
+		if (!g_singleInstanceGuard.PostMessageToOtherInstance(CommandWindow::g_showWindowMessageId, 0, 0))
         {
 			MessageBoxW(0, L"Already running.", L"Command Bar", MB_OK);
 		}
