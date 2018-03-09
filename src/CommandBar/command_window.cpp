@@ -206,6 +206,11 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
             else  textEdit.IsTextSelected() ? textEdit.ClearSelection(textEdit.GetSelectionStart()) : textEdit.MoveCaretLeft();
             break;
         }
+        case VK_TAB:
+        {
+            OnUserRequestedAutocompletion();
+            break;
+        }
         default:
         {
             if (control && vk == 'A')       textEdit.SelectAll();
@@ -350,41 +355,31 @@ void CommandWindow::OnTextChanged()
 
 void CommandWindow::OnUserRequestedAutocompletion()
 {
-    // @TODO:
-    
-    //    if (autocompletionCandidate == nullptr)
-//    {
-//        autocompletionCandidate = FindAutocompletionCandidate();
-//        if (autocompletionCandidate == nullptr)
-//            return;
-//    }
-//
-//    // @TODO: textBuffer may not have enough storage.
-//    wmemcpy(textBuffer.data, autocompletionCandidate->name.data, autocompletionCandidate->name.count);
-//    textBuffer.count = autocompletionCandidate->name.count;
-//    textBuffer.data[textBuffer.count] = L' ';
-//    textBuffer.count += 1;
-//
-//    ClearSelection();
-//    cursorPos = textBuffer.count;
-//
-//    Redraw();
-//
-//    return;
+    UpdateAutocompletion();
+    if (autocompletionCandidate == nullptr)
+        return;
+
+    textEdit.SetText(autocompletionCandidate->name);
+    textEdit.SetCaretPos(autocompletionCandidate->name.count);
+    textEdit.InsertCharacterAtCaret(L' ');
+
+    Redraw();
+
+    return;
 }
 
 Command* CommandWindow::FindAutocompletionCandidate()
 {
-    // @TODO:
-
-   /* if (textBuffer.count == 0)
+    if (textEdit.buffer.count == 0)
         return nullptr;
 
-    int index = textBuffer.string.IndexOf(L' ');
+    const Newstring& buffer = textEdit.buffer.string;
+
+    int index = buffer.IndexOf(L' ');
 
     Newstring command;
-    command.data  = textBuffer.data;
-    command.count = index == -1 ? textBuffer.count : index;
+    command.data  = buffer.data;
+    command.count = index == -1 ? buffer.count : index;
 
     if (command.count == 0)
         return nullptr;
@@ -396,7 +391,7 @@ Command* CommandWindow::FindAutocompletionCandidate()
 
         if (isMatchingCandidate)
             return candidate;
-    }*/
+    }
 
     return nullptr;
 }
