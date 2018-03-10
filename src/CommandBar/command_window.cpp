@@ -94,22 +94,14 @@ void CommandWindow::UpdateTextLayout(bool forced)
 {
     if (textLayout == nullptr || isTextLayoutDirty || forced)
     {
-        if (textLayout)
-        {
-            textLayout->Release();
-            textLayout = nullptr;
-        }
+        SafeRelease(textLayout);
 
         RECT clientRect;
         GetClientRect(hwnd, &clientRect);
         float clientWidth  = static_cast<float>(clientRect.right - clientRect.left);
         float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
 
-        HRESULT hr;
-
-        int spaceIndex = textEdit.buffer.string.IndexOf(L' ');
-
-        hr = dwrite->CreateTextLayout(
+        HRESULT hr = dwrite->CreateTextLayout(
             textEdit.buffer.data,
             textEdit.buffer.count,
             textFormat,
@@ -121,13 +113,8 @@ void CommandWindow::UpdateTextLayout(bool forced)
         assert(SUCCEEDED(hr));
 
         textLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
-        //if (autocompletionCandidate != nullptr)
-        //{
-        //    //assert(textBuffer.startsWith(
-        //    //    autocompletionCandidate->name,
-        //    //    math::min(textBuffer.count, autocompletionCandidate->name.count), 
-        //    //    StringComparison::CaseInsensitive));
-        //}
+
+        int spaceIndex = textEdit.buffer.string.IndexOf(L' ');
 
         DWRITE_TEXT_RANGE range;
         if (spaceIndex != -1)
@@ -138,6 +125,41 @@ void CommandWindow::UpdateTextLayout(bool forced)
         textLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range);
 
         isTextLayoutDirty = false;
+
+    }
+}
+
+void CommandWindow::UpdateAutocompletionLayout(bool forced)
+{
+    if (autocompletionLayout == nullptr || isAutocompletionLayoutDirty || forced)
+    {
+        SafeRelease(autocompletionLayout);
+
+        auto ac = autocompletionCandidate;
+        if (ac == nullptr)
+            return;
+
+        RECT clientRect;
+        GetClientRect(hwnd, &clientRect);
+        float clientWidth  = static_cast<float>(clientRect.right - clientRect.left);
+        float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
+
+        HRESULT hr = dwrite->CreateTextLayout(
+            ac->name.data,
+            ac->name.count,
+            textFormat,
+            clientWidth,
+            clientHeight,
+            &this->autocompletionLayout
+        );
+        assert(SUCCEEDED(hr));
+
+        autocompletionLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+
+        DWRITE_TEXT_RANGE range = { 0, ac->name.count };
+        assert(SUCCEEDED(autocompletionLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range)));
+
+        isAutocompletionLayoutDirty = false;
     }
 }
 
@@ -152,6 +174,7 @@ void CommandWindow::TextEditChanged()
 LRESULT CommandWindow::OnChar(wchar_t c)
 {
     textEdit.InsertCharacterAtCaret(c);
+    isTextLayoutDirty = true;
 
     return 0;
 }
@@ -402,6 +425,8 @@ void CommandWindow::UpdateAutocompletion()
     if (autocompletionCandidate != newCandidate)
     {
         autocompletionCandidate = newCandidate;
+        UpdateAutocompletionLayout(true);
+        
         Redraw();
     }
 }
@@ -522,7 +547,33 @@ LRESULT CommandWindow::OnPaint()
     }
 
     float textDrawY = borderSize;
-    
+
+    UpdateAutocompletion();
+    if (autocompletionLayout != nullptr)
+    {
+        DWRITE_HIT_TEST_METRICS acMetrics;
+        float acDrawRelativeX = 0.0f;
+        float acDrawRelativeY = 0.0f;
+        assert(SUCCEEDED(
+            autocompletionLayout->HitTestTextPosition(textEdit.buffer.count, false, &acDrawRelativeX, &acDrawRelativeY, &acMetrics)));
+
+        D2D1_RECT_F acClip = D2D1::RectF(
+            marginX + acDrawRelativeX,
+            borderSize + acDrawRelativeY,
+            clientWidth,
+            clientHeight);
+
+        rt->PushAxisAlignedClip(acClip, D2D1_ANTIALIAS_MODE_ALIASED);
+
+        rt->DrawTextLayout(
+            D2D1::Point2F(marginX, textDrawY),
+            autocompletionLayout,
+            autocompletionTextForegroundBrush,
+            D2D1_DRAW_TEXT_OPTIONS_CLIP);
+
+        rt->PopAxisAlignedClip();
+    }
+
     // Draw actual user text
     rt->DrawTextLayout(D2D1::Point2F(marginX, textDrawY), textLayout, textForegroundBrush, D2D1_DRAW_TEXT_OPTIONS_CLIP);
 
