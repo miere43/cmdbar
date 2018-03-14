@@ -62,6 +62,7 @@ public:
     void UpdateTextLayout(bool forced = false);
     void UpdateAutocompletionLayout(bool forced = false);
     void TextEditChanged();
+    bool ShouldDrawAutocompletion() const;
 
     TextEdit textEdit;
     CommandHistory history;

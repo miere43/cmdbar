@@ -171,6 +171,11 @@ void CommandWindow::TextEditChanged()
     SetCaretTimer();
 }
 
+bool CommandWindow::ShouldDrawAutocompletion() const
+{
+    return autocompletionCandidate != nullptr && autocompletionLayout != nullptr;
+}
+
 LRESULT CommandWindow::OnChar(wchar_t c)
 {
     textEdit.InsertCharacterAtCaret(c);
@@ -549,7 +554,7 @@ LRESULT CommandWindow::OnPaint()
     float textDrawY = borderSize;
 
     UpdateAutocompletion();
-    if (autocompletionLayout != nullptr)
+    if (ShouldDrawAutocompletion())
     {
         DWRITE_HIT_TEST_METRICS acMetrics;
         float acDrawRelativeX = 0.0f;
@@ -646,9 +651,8 @@ LRESULT CommandWindow::OnQuit()
 
 LRESULT CommandWindow::OnActivate(uint32_t activateState)
 {
-    if (activateState == WA_ACTIVE)
+    if (activateState != WA_INACTIVE)
     {
-        OutputDebugStringW(L"reset state\n");
         history.ResetCurrentEntryIndex();
     }
 
