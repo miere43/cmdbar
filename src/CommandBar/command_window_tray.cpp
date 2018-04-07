@@ -18,7 +18,7 @@ bool CommandWindowTray::Initialize(HWND hwnd, HICON icon, Newstring* failureReas
     data.hWnd = hwnd;
     data.uID = IconID;
     data.uCallbackMessage = MessageID;
-    data.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE;
+    data.uFlags = NIF_ICON | NIF_TIP | NIF_MESSAGE | NIF_SHOWTIP;
     data.hIcon = icon;
     lstrcpyW(data.szTip, L"Command Bar");
 
