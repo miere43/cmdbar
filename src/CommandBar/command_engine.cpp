@@ -108,7 +108,7 @@ Command* CommandEngine::FindCommandByName(const Newstring& name)
 	{
 		Command* command = commands.data[i];
 
-		if (name == command->name)
+		if (name.Equals(command->name, StringComparison::CaseInsensitive))
 			return command;
 	}
 

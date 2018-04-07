@@ -129,38 +129,62 @@ void CommandWindow::UpdateTextLayout(bool forced)
     }
 }
 
-void CommandWindow::UpdateAutocompletionLayout(bool forced)
+void CommandWindow::UpdateAutocompletionLayout()
 {
-    if (autocompletionLayout == nullptr || isAutocompletionLayoutDirty || forced)
+    SafeRelease(autocompletionLayout);
+
+    auto ac = autocompletionCandidate;
+    if (ac == nullptr)
+        return;
+
+    RECT clientRect;
+    GetClientRect(hwnd, &clientRect);
+    float clientWidth  = static_cast<float>(clientRect.right - clientRect.left);
+    float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
+
+    enum
     {
-        SafeRelease(autocompletionLayout);
+        MAX_AUTOCOMPLETE = 128
+    };
 
-        auto ac = autocompletionCandidate;
-        if (ac == nullptr)
-            return;
+    Newstring autocomplText;
+    auto commandText = textEdit.buffer.string;
 
-        RECT clientRect;
-        GetClientRect(hwnd, &clientRect);
-        float clientWidth  = static_cast<float>(clientRect.right - clientRect.left);
-        float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
+    if (commandText.count < MAX_AUTOCOMPLETE)
+    {
+        wchar_t buffer[MAX_AUTOCOMPLETE];
 
-        HRESULT hr = dwrite->CreateTextLayout(
-            ac->name.data,
-            ac->name.count,
-            textFormat,
-            clientWidth,
-            clientHeight,
-            &this->autocompletionLayout
-        );
-        assert(SUCCEEDED(hr));
+        const size_t ncopy = std::min(commandText.count, ac->name.count);
+        wmemcpy(buffer, commandText.data, commandText.count);
 
-        autocompletionLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+        if (ac->name.count > ncopy)
+        {
+            wmemcpy_s(buffer + ncopy, sizeof(wchar_t) * (MAX_AUTOCOMPLETE - ncopy),
+                ac->name.data + ncopy, ac->name.count - ncopy);
+        }
 
-        DWRITE_TEXT_RANGE range = { 0, ac->name.count };
-        assert(SUCCEEDED(autocompletionLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range)));
-
-        isAutocompletionLayoutDirty = false;
+        autocomplText.data  = buffer;
+        autocomplText.count = ac->name.count;
     }
+    else
+    {
+        autocomplText = commandText;
+    }
+
+    HRESULT hr = dwrite->CreateTextLayout(
+        autocomplText.data,
+        autocomplText.count,
+        textFormat,
+        clientWidth,
+        clientHeight,
+        &this->autocompletionLayout
+    );
+    assert(SUCCEEDED(hr));
+
+    autocompletionLayout->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+
+    DWRITE_TEXT_RANGE range ={ 0, ac->name.count };
+    assert(SUCCEEDED(autocompletionLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range)));
 }
 
 void CommandWindow::TextEditChanged()
@@ -173,7 +197,7 @@ void CommandWindow::TextEditChanged()
 
 bool CommandWindow::ShouldDrawAutocompletion() const
 {
-    return autocompletionCandidate != nullptr && autocompletionLayout != nullptr;
+    return autocompletionCandidate != nullptr;
 }
 
 LRESULT CommandWindow::OnChar(wchar_t c)
@@ -430,8 +454,7 @@ void CommandWindow::UpdateAutocompletion()
     if (autocompletionCandidate != newCandidate)
     {
         autocompletionCandidate = newCandidate;
-        UpdateAutocompletionLayout(true);
-        
+
         Redraw();
     }
 }
@@ -556,6 +579,8 @@ LRESULT CommandWindow::OnPaint()
     UpdateAutocompletion();
     if (ShouldDrawAutocompletion())
     {
+        UpdateAutocompletionLayout();
+
         DWRITE_HIT_TEST_METRICS acMetrics;
         float acDrawRelativeX = 0.0f;
         float acDrawRelativeY = 0.0f;

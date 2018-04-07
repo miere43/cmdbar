@@ -60,7 +60,7 @@ public:
     bool SetText(const Newstring& text);
     void Redraw();
     void UpdateTextLayout(bool forced = false);
-    void UpdateAutocompletionLayout(bool forced = false);
+    void UpdateAutocompletionLayout();
     void TextEditChanged();
     bool ShouldDrawAutocompletion() const;
 
@@ -87,8 +87,6 @@ public:
     ID2D1SolidColorBrush* autocompletionTextForegroundBrush = nullptr;
     ID2D1SolidColorBrush* selectedTextBrush = nullptr;
     IDWriteTextLayout* autocompletionLayout = nullptr;
-
-    bool isAutocompletionLayoutDirty = false;
 
     LRESULT OnChar(wchar_t c);
     LRESULT OnKeyDown(LPARAM lParam, WPARAM wParam);
