@@ -275,11 +275,6 @@
     <ClInclude Include="utils.h" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="..\..\..\..\..\..\cmdbar.ico" />
-    <Image Include="..\app.ico" />
-    <Image Include="..\cmdbar.ico" />
-  </ItemGroup>
-  <ItemGroup>
     <ResourceCompile Include="CommandBar.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
