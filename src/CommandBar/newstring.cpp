@@ -15,18 +15,17 @@ bool Newstring::operator==(const Newstring& rhs) const
     return Equals(rhs, StringComparison::CaseSensitive);
 }
 
-bool Newstring::operator!=(const Newstring & rhs) const
+bool Newstring::operator!=(const Newstring& rhs) const
 {
     return !operator==(rhs);
 }
 
 bool Newstring::operator==(const wchar_t* rhs) const
 {
-    Newstring wrapper = Newstring::WrapConstWChar(rhs);
-    return operator==(wrapper);
+    return operator==(Newstring::WrapConstWChar(rhs));
 }
 
-bool Newstring::operator!=(const wchar_t * rhs) const
+bool Newstring::operator!=(const wchar_t* rhs) const
 {
     return !operator==(rhs);
 }
@@ -42,8 +41,7 @@ bool Newstring::Equals(const Newstring& rhs, StringComparison comparison) const
 
 bool Newstring::Equals(const wchar_t* rhs, StringComparison comparison) const
 {
-    Newstring wrapper = Newstring::WrapConstWChar(rhs);
-    return Equals(wrapper, comparison);
+    return Equals(Newstring::WrapConstWChar(rhs), comparison);
 }
 
 int Newstring::IndexOf(wchar_t c) const
@@ -74,7 +72,7 @@ int Newstring::LastIndexOf(wchar_t c) const
 
 bool Newstring::StartsWith(const Newstring& string, StringComparison comparison) const
 {
-    if (Newstring::IsNullOrEmpty(string))
+    if (IsNullOrEmpty(string))
         return false;
 
     if (string.count > this->count)
@@ -145,9 +143,14 @@ Newstring Newstring::CloneAsCString(IAllocator* allocator) const
     return ns;
 }
 
+Newstring Newstring::AsTempCString() const
+{
+    return IsZeroTerminated() ? *this : CloneAsCString(&g_tempAllocator);
+}
+
 Newstring Newstring::Trimmed() const
 {
-    if (Newstring::IsNullOrEmpty(this))  return Empty();
+    if (IsNullOrEmpty(this))  return Empty();
 
     uint32_t i;
     for (i = 0; i < count; ++i)
@@ -335,10 +338,10 @@ Newstring Newstring::FormatCStringWithFallback(const wchar_t* format, ...)
 
     va_end(args);
 
-    if (Newstring::IsNullOrEmpty(result))
+    if (IsNullOrEmpty(result))
     {
         result = Newstring::NewCStringFromWChar(format, &g_standardAllocator);
-        if (Newstring::IsNullOrEmpty(result))
+        if (IsNullOrEmpty(result))
         {
             result = Newstring::WrapConstWChar(format);
             result.count -= 1; // Don't count terminating null.
@@ -387,10 +390,10 @@ Newstring Newstring::FormatTempCStringWithFallback(const wchar_t* format, ...)
 
     va_end(args);
 
-    if (Newstring::IsNullOrEmpty(result))
+    if (IsNullOrEmpty(result))
     {
         result = Newstring::NewCStringFromWChar(format, &g_tempAllocator);
-        if (Newstring::IsNullOrEmpty(result))
+        if (IsNullOrEmpty(result))
         {
             result = Newstring::WrapConstWChar(format);
             result.count -= 1; // Don't count terminating null.
@@ -432,7 +435,7 @@ Newstring Newstring::FormatWithAllocator(IAllocator* allocator, const wchar_t* f
     int allocCount = charCount + (includeTerminatingNull ? 1 : 0);
 
     Newstring result = New(allocCount, allocator);
-    if (Newstring::IsNullOrEmpty(result))  return Empty();
+    if (IsNullOrEmpty(result))  return Empty();
 
     int written = _vsnwprintf_s(result.data, allocCount, allocCount, format, args);
     assert(written == charCount);

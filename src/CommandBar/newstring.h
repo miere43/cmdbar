@@ -144,6 +144,11 @@ struct Newstring
     Newstring CloneAsCString(IAllocator* allocator = &g_standardAllocator) const;
 
     /**
+     * If string is not zero-terminated, then creates temporary copy of the string with temporary allocator. Resulting string is null-terminated.
+     */
+    Newstring AsTempCString() const;
+
+    /**
      * Returns string which references this string data, but without tabs and spaces at start and the end of string.
      */
     Newstring Trimmed() const;

@@ -9,14 +9,6 @@
 
 namespace OSUtils {
 
-//
-// Helper procedures.
-//
-Newstring MaybeReallocAsZeroTerminated(const Newstring& fileName)
-{
-    return fileName.IsZeroTerminated() ? fileName : fileName.CloneAsCString(&g_tempAllocator);
-}
-
 Newstring FormatErrorCode(DWORD errorCode, DWORD languageID, IAllocator* allocator)
 {
     static const DWORD flags = FORMAT_MESSAGE_IGNORE_INSERTS | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_MAX_WIDTH_MASK;
@@ -105,7 +97,7 @@ void* ReadFileContents(const Newstring& fileName, uint32_t* fileSize, IAllocator
         return nullptr;
     }
 
-    Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
+    Newstring actualFileName = fileName.AsTempCString();
     if (Newstring::IsNullOrEmpty(actualFileName))
         return nullptr;
 
@@ -145,7 +137,9 @@ bool WriteFileContents(const Newstring& fileName, void* contents, uint32_t conte
     if (Newstring::IsNullOrEmpty(fileName))
         return false;
 
-    Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
+    Newstring actualFileName = fileName.AsTempCString();
+    if (Newstring::IsNullOrEmpty(actualFileName))
+        return false;
 
     HANDLE handle = CreateFileW(actualFileName.data, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
     defer(CloseHandle(handle));
@@ -245,7 +239,9 @@ void TruncateFileNameToDirectory(Newstring* fileName)
 
 bool FileExists(const Newstring& fileName)
 {
-    Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
+    Newstring actualFileName = fileName.AsTempCString();
+    if (Newstring::IsNullOrEmpty(actualFileName))
+        return false;
 
     DWORD attrs = GetFileAttributesW(actualFileName.data);
     bool result = attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
@@ -255,7 +251,9 @@ bool FileExists(const Newstring& fileName)
 
 bool DirectoryExists(const Newstring& fileName)
 {
-    Newstring actualFileName = MaybeReallocAsZeroTerminated(fileName);
+    Newstring actualFileName = fileName.AsTempCString();
+    if (Newstring::IsNullOrEmpty(actualFileName))
+        return false;
 
     DWORD attrs = GetFileAttributesW(actualFileName.data);
     bool result = attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY);

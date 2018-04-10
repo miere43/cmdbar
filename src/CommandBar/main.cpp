@@ -76,9 +76,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 	CommandWindow commandWindow;
     defer(commandWindow.Dispose());
 
-    commandWindow.style = &windowStyle;
-    commandWindow.commandEngine = &commandEngine;
-
     CommandLoader commandLoader;
     RegisterBasicCommands(&commandLoader);
 
@@ -88,9 +85,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     for (uint32_t i = 0; i < commands.count; ++i)
         commandEngine.RegisterCommand(commands.data[i]);
 
-    nCmdShow =  wcscmp(lpCmdLine, L"/noshow") == 0 ? 0 : SW_SHOW;
+    nCmdShow = wcscmp(lpCmdLine, L"/noshow") == 0 ? 0 : SW_SHOW;
 
-    bool initialized = commandWindow.Initialize(400, 40, nCmdShow);
+    bool initialized = commandWindow.Initialize(&commandEngine, &windowStyle, nCmdShow); // width=400, height=40
     if (!initialized)  return 1;
 
     MSG msg;

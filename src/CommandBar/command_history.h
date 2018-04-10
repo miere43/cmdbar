@@ -29,14 +29,14 @@ struct CommandHistory
     void SaveEntry(const Newstring& text);
 
     /**
-     * Rethieves previous (newest) entry.
+     * Retrieves previous (newest) entry.
      * If no entries are stored, then returns null pointer.
      * If there is no previous entry, then entries are wrapped around and newest entry is returned.
      */
     const Newstring* GetPrevEntry();
 
     /**
-    * Rethieves next (oldest) entry.
+    * Retrieves next (oldest) entry.
     * If no entries are stored, then returns null pointer.
     * If there is no next entry, then entries are wrapped around and oldest entry is returned.
     */

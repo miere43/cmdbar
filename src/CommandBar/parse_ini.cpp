@@ -7,6 +7,11 @@ INIParser::INIParser()
 {
 }
 
+INIParser::INIParser(Newstring source)
+{
+    Initialize(source);
+}
+
 void INIParser::Initialize(Newstring source)
 {
     this->source = source;

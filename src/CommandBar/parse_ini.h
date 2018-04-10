@@ -26,6 +26,7 @@ struct INIParser
     };
 
     INIParser();
+    INIParser(Newstring source);
 
     Newstring source;
     uint32_t sourceIndex;

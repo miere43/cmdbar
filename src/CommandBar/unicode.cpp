@@ -98,7 +98,7 @@ void* Unicode::EncodeString(const Newstring& string, uint32_t* encodedStringByte
         }
         case Encoding::UTF8:
         {
-            const uintptr_t dataSize = string.count * 4;
+            const size_t dataSize = string.count * 4;
             char* data = (char*)allocator->Allocate(dataSize);
             if (!data)  return nullptr;
 
@@ -106,9 +106,9 @@ void* Unicode::EncodeString(const Newstring& string, uint32_t* encodedStringByte
                 CP_UTF8,
                 0,
                 string.data,
-                string.count,
+                (int)string.count,
                 data,
-                dataSize,
+                (int)dataSize,
                 0,
                 0);
 

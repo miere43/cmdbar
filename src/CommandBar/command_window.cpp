@@ -19,7 +19,6 @@
 LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void beforeRunCallback(CommandEngine* engine, void* userdata);
 
-bool CommandWindow::g_staticResourcesInitialized = false;
 HICON CommandWindow::g_appIcon = 0;
 ATOM CommandWindow::g_windowClass = 0;
 HKL CommandWindow::g_englishKeyboardLayout = 0;
@@ -35,32 +34,32 @@ enum
 
 bool CommandWindow::InitializeStaticResources(HINSTANCE hInstance)
 {
-    if (g_staticResourcesInitialized)
-        return true;
-
     if (g_appIcon == 0)
     {
         g_appIcon = (HICON)LoadImageW(hInstance, MAKEINTRESOURCEW(IDI_APPTRAYICON), IMAGE_ICON, 0, 0, LR_DEFAULTSIZE);
         if (g_appIcon == 0)
             g_appIcon = LoadIconW(0, IDI_APPLICATION);
     }
-
-    WNDCLASSEXW wc ={ 0 };
-    wc.cbSize = sizeof(wc);
-    wc.lpszClassName = g_className;
-    wc.hInstance = hInstance;
-    wc.lpfnWndProc = commandWindowWndProc;
-    wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-    wc.hCursor = LoadCursorW(0, IDC_IBEAM);
-    wc.hIcon = g_appIcon;
-
-    g_windowClass = RegisterClassExW(&wc);
+    
     if (g_windowClass == 0)
-        return false;
+    {
+        WNDCLASSEXW wc ={ 0 };
+        wc.cbSize = sizeof(wc);
+        wc.lpszClassName = g_className;
+        wc.hInstance = hInstance;
+        wc.lpfnWndProc = commandWindowWndProc;
+        wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+        wc.hCursor = LoadCursorW(0, IDC_IBEAM);
+        wc.hIcon = g_appIcon;
 
-    g_englishKeyboardLayout = LoadKeyboardLayoutW(L"00000409", KLF_ACTIVATE);
+        g_windowClass = RegisterClassExW(&wc);
+        if (g_windowClass == 0)
+            return false;
+    }
 
-    g_staticResourcesInitialized = true;
+    if (g_englishKeyboardLayout == 0)
+        g_englishKeyboardLayout = LoadKeyboardLayoutW(L"00000409", KLF_ACTIVATE);
+
     return true;
 }
 
@@ -125,7 +124,6 @@ void CommandWindow::UpdateTextLayout(bool forced)
         textLayout->SetFontWeight(DWRITE_FONT_WEIGHT_BOLD, range);
 
         isTextLayoutDirty = false;
-
     }
 }
 
@@ -377,8 +375,6 @@ LRESULT CommandWindow::OnMouseMove(LPARAM lParam, WPARAM wParam)
 
 LRESULT CommandWindow::OnFocusAcquired()
 {
-    //originalKeyboardLayout = GetKeyboardLayout(GetCurrentThreadId());
-    
     ActivateKeyboardLayout(g_englishKeyboardLayout, KLF_REORDER);
 
     shouldDrawCaret = true;
@@ -389,9 +385,6 @@ LRESULT CommandWindow::OnFocusAcquired()
 
 LRESULT CommandWindow::OnFocusLost()
 {
-    //ActivateKeyboardLayout(originalKeyboardLayout, KLF_REORDER);
-    //OutputDebugStringA("lost focus.\n");
-    //InvalidateRect(hwnd, nullptr, true);
     HideWindow();
     
     return 0;
@@ -692,21 +685,25 @@ LRESULT CommandWindow::OnCursorBlinkTimerElapsed()
     return 0;
 }
 
-bool CommandWindow::Initialize(int windowWidth, int windowHeight, int nCmdShow)
+bool CommandWindow::Initialize(CommandEngine* engine, CommandWindowStyle* style, int nCmdShow)
 {
     if (isInitialized)
         return true;
 
-    assert(windowWidth  > 0);
-    assert(windowHeight > 0);
     assert(style);
-    assert(commandEngine);
+    assert(engine);
+
+    this->commandEngine = engine;
+    this->style = style;
 
     HINSTANCE hInstance = GetModuleHandleW(0);
 
     isInitialized = false;
     if (!InitializeStaticResources(hInstance))
         return false;
+
+    int windowWidth = style->windowWidth;
+    int windowHeight = style->windowHeight;//(int)style->fontHeight + style->borderSize * 2;
 
     const uint32_t mainWindowFlags = WS_POPUP;
     const uint32_t mainWindowExtendedFlags = WS_EX_TOOLWINDOW;
@@ -876,7 +873,7 @@ bool CommandWindow::CreateGraphicsResources()
     }
 
     hr = dwrite->CreateTextFormat(
-        style->fontFamily.data,
+        style->fontFamily.AsTempCString().data,
         nullptr,
         style->fontWeight,
         style->fontStyle,
@@ -1023,7 +1020,7 @@ LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
     return window ? window->WindowProc(hwnd, msg, wParam, lParam) : DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
-void beforeRunCallback(CommandEngine * engine, void * userdata)
+void beforeRunCallback(CommandEngine* engine, void* userdata)
 {
     if (userdata != nullptr)
         ((CommandWindow*)userdata)->BeforeCommandRun();

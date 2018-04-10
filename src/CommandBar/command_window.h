@@ -15,7 +15,7 @@ struct CommandWindowStyle;
 
 struct CommandWindow
 {
-	bool Initialize(int windowWidth, int windowHeight, int nCmdShow);
+	bool Initialize(CommandEngine* engine, CommandWindowStyle* style, int nCmdShow);
 
 	void ShowWindow();
 	void HideWindow();
@@ -52,7 +52,6 @@ private:
 	static bool InitializeStaticResources(HINSTANCE hInstance);
 
     static HKL g_englishKeyboardLayout;
-	static bool g_staticResourcesInitialized;
 	static ATOM g_windowClass;
 	static HICON g_appIcon;
 public:
@@ -76,8 +75,6 @@ public:
     uint32_t mouseSelectionStartPos = 0xFFFFFFFF;
 
     CommandWindowTray tray;
-
-    HKL originalKeyboardLayout = 0;
 
     ID2D1HwndRenderTarget* hwndRenderTarget = nullptr;
     IDWriteTextFormat* textFormat = nullptr;
@@ -138,6 +135,9 @@ private:
     void AnimateWindow(WindowAnimation animation);
 };
 
+/**
+ * Defines styling options for command window such as window color, font face, text color and so on.
+ */
 struct CommandWindowStyle
 {
     COLORREF marginColor = 0;
@@ -154,4 +154,6 @@ struct CommandWindowStyle
     float textMarginLeft = 4.0f;
     int borderSize = 5;
     int textHeight = 0;
+    int windowWidth = 400;
+    int windowHeight = 40;
 };
