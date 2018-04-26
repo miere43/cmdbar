@@ -121,7 +121,7 @@ void TempAllocator::AddUnfit(UnfitAllocation* newUnfit)
 	{
 		UnfitAllocation* alloc = unfit;
 		while (alloc->next) continue;
-		alloc->next = unfit;
+		alloc->next = newUnfit;
 	}
 }
 
