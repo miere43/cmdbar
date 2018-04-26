@@ -23,16 +23,6 @@ struct StandardAllocator : public IAllocator
 
 struct TempAllocator : public IAllocator
 {
-	struct UnfitAllocation
-	{
-		UnfitAllocation* next = nullptr;
-	};
-
-	void* current = nullptr;
-	void* start = nullptr;
-	void* end = nullptr;
-	UnfitAllocation* unfit = nullptr;
-
 	bool SetSize(uintptr_t size);
 
 	virtual void* Allocate(uintptr_t size) override;
@@ -41,12 +31,19 @@ struct TempAllocator : public IAllocator
 
 	void Reset();
 	void Dispose();
-
-	uintptr_t size() const { return (uintptr_t)end - (uintptr_t)start; }
 private:
+    struct UnfitAllocation
+    {
+        UnfitAllocation* next = nullptr;
+    };
 
-	void clearUnfits();
-	void addUnfit(UnfitAllocation* unfit);
+    void* current = nullptr;
+    void* start = nullptr;
+    void* end = nullptr;
+    UnfitAllocation* unfit = nullptr;
+
+	void ClearUnfits();
+	void AddUnfit(UnfitAllocation* unfit);
 };
 
 extern StandardAllocator g_standardAllocator;

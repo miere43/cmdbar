@@ -11,7 +11,7 @@ inline uintptr_t bytesRequiredToAlignPointer(void* pointer, uintptr_t alignment)
 	return (uintptr_t)pointer % alignment;
 }
 
-inline void* alignPointer(void* pointer, uintptr_t alignment)
+inline void* AlignPointer(void* pointer, uintptr_t alignment)
 {
 	return (void*)((uintptr_t)pointer + ((uintptr_t)pointer % alignment));
 }
@@ -59,9 +59,10 @@ void* TempAllocator::Allocate(uintptr_t size)
             return nullptr;
         }
 
-		addUnfit(unfit);
+        unfit->next = nullptr;
+		AddUnfit(unfit);
 
-		return alignPointer(unfit + sizeof(UnfitAllocation), sizeof(void*));
+		return AlignPointer((void*)((uintptr_t)unfit + sizeof(UnfitAllocation)), sizeof(void*));
 	}
 	else
 	{
@@ -70,12 +71,12 @@ void* TempAllocator::Allocate(uintptr_t size)
 	}
 }
 
-void TempAllocator::Deallocate(void * ptr)
+void TempAllocator::Deallocate(void* ptr)
 {
 	// I don't care :P
 }
 
-void* TempAllocator::Reallocate(void * block, uintptr_t size)
+void* TempAllocator::Reallocate(void* block, uintptr_t size)
 {
     assert(false);
     return nullptr;
@@ -85,7 +86,7 @@ void TempAllocator::Reset()
 {
 	if (start != nullptr)
 		current = start;
-    clearUnfits();
+    ClearUnfits();
 }
 
 void TempAllocator::Dispose()
@@ -96,7 +97,7 @@ void TempAllocator::Dispose()
 	start = current = end = nullptr;
 }
 
-void TempAllocator::clearUnfits()
+void TempAllocator::ClearUnfits()
 {
 	UnfitAllocation* current = unfit;
 
@@ -110,11 +111,11 @@ void TempAllocator::clearUnfits()
 	unfit = nullptr;
 }
 
-void TempAllocator::addUnfit(UnfitAllocation * unfit)
+void TempAllocator::AddUnfit(UnfitAllocation* newUnfit)
 {
 	if (unfit == nullptr)
 	{
-		unfit = unfit;
+		unfit = newUnfit;
 	}
 	else
 	{
