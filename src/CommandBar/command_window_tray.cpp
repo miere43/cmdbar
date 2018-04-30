@@ -8,9 +8,12 @@ static const UINT IconID = 1;
 static const UINT MessageID = WM_USER + 15;
 
 
-bool CommandWindowTray::Initialize(HWND hwnd, HICON icon, Newstring* failureReason)
+bool CommandWindowTray::Initialize(Newstring* failureReason)
 {
-    this->hwnd = hwnd;
+    assert(hwnd);
+    assert(icon);
+
+    Dispose();
 
     NOTIFYICONDATAW data{ 0 };
     data.cbSize = sizeof(data);
@@ -38,11 +41,13 @@ bool CommandWindowTray::Initialize(HWND hwnd, HICON icon, Newstring* failureReas
     return true;
 fail:
     Dispose();
-    *failureReason = Newstring::FormatTempCString(
-        L"Unable to create tray menu: %s",
-        OSUtils::FormatErrorCode(GetLastError(), 0, &g_tempAllocator).data
-    );
 
+    if (failureReason)
+    {
+        *failureReason = Newstring::FormatTempCString(
+            L"Unable to create tray menu: %s",
+            OSUtils::FormatErrorCode(GetLastError(), 0, &g_tempAllocator).data);
+    }
     return false;
 }
 

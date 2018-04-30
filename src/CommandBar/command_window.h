@@ -54,6 +54,7 @@ private:
     static HKL g_englishKeyboardLayout;
 	static ATOM g_windowClass;
 	static HICON g_appIcon;
+    static UINT g_taskbarCreatedMessageId;
 public:
     void ClearText();
     bool SetText(const Newstring& text);

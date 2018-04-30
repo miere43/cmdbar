@@ -22,6 +22,7 @@ void beforeRunCallback(CommandEngine* engine, void* userdata);
 HICON CommandWindow::g_appIcon = 0;
 ATOM CommandWindow::g_windowClass = 0;
 HKL CommandWindow::g_englishKeyboardLayout = 0;
+UINT CommandWindow::g_taskbarCreatedMessageId = 0;
 const wchar_t* CommandWindow::g_windowName = L"Command Bar";
 const wchar_t* CommandWindow::g_className = L"CommandWindow";
 const UINT CommandWindow::g_showWindowMessageId = WM_USER + 64;
@@ -59,6 +60,9 @@ bool CommandWindow::InitializeStaticResources(HINSTANCE hInstance)
 
     if (g_englishKeyboardLayout == 0)
         g_englishKeyboardLayout = LoadKeyboardLayoutW(L"00000409", KLF_ACTIVATE);
+
+    if (g_taskbarCreatedMessageId == 0)
+        g_taskbarCreatedMessageId = RegisterWindowMessageW(L"TaskbarCreated");
 
     return true;
 }
@@ -730,7 +734,9 @@ bool CommandWindow::Initialize(CommandEngine* engine, CommandWindowStyle* style,
         MessageBoxW(hwnd, L"Hotkey Alt+Q is already claimed.", L"Command Bar", MB_ICONINFORMATION);
 
     Newstring trayFailureReason;
-    tray.Initialize(hwnd, g_appIcon, &trayFailureReason);
+    tray.hwnd = hwnd;
+    tray.icon = g_appIcon;
+    tray.Initialize(&trayFailureReason);
 
     if (!Newstring::IsNullOrEmpty(trayFailureReason))
     {
@@ -978,6 +984,9 @@ LRESULT CommandWindow::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
             return 0;
         }
     }
+
+    if (msg == CommandWindow::g_taskbarCreatedMessageId && CommandWindow::g_taskbarCreatedMessageId != 0)
+        tray.Initialize(nullptr);
 
     TrayMenuAction action = TrayMenuAction::None;
     if (tray.ProcessEvent(hwnd, msg, lParam, wParam, &action))
