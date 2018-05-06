@@ -268,6 +268,7 @@ LRESULT CommandWindow::OnKeyDown(LPARAM lParam, WPARAM vk)
         default:
         {
             if (control && vk == 'A')       textEdit.SelectAll();
+            else if (control && vk == 'L')  textEdit.SelectAll();
             else if (control && vk == 'X')
             {
                 textEdit.CopySelectionToClipboard(hwnd);
