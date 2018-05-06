@@ -72,6 +72,7 @@ bool CommandEngine::Evaluate(const Newstring& expression)
 
     const Newstring& commandName = args.data[0];
     Command* command = FindCommandByName(commandName);
+    executionState.command = command;
 
     if (command == nullptr)
     {

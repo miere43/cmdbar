@@ -24,7 +24,6 @@ struct CommandWindow
 	void Exit();
 
 	LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-	void BeforeCommandRun();
 
 	HWND hwnd = 0;
 
@@ -33,6 +32,10 @@ struct CommandWindow
 
 	const CommandWindowStyle* style = nullptr;
 	CommandEngine* commandEngine = nullptr;
+
+    /** When user opens command bar, it will show previous command as autocompletion suggestion. */
+    bool showPreviousCommandAutocompletion = true;
+    Command* showPreviousCommandAutocompletion_command = nullptr;
 
     void Dispose();
 
@@ -63,6 +66,8 @@ public:
     void UpdateAutocompletionLayout();
     void TextEditChanged();
     bool ShouldDrawAutocompletion() const;
+    void BeforeCommandRun();
+    //void AfterCommandRun();
 
     TextEdit textEdit;
     CommandHistory history;

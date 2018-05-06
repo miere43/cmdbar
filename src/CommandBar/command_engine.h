@@ -64,6 +64,10 @@ struct CreateCommandState : public BaseCommandState
 
 struct ExecuteCommandState : public BaseCommandState
 {
+    /**
+    * Command that was parsed from expression string.
+    */
+    Command* command = nullptr;
 };
 
 struct CommandEngine

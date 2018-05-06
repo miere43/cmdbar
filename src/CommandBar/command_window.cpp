@@ -447,6 +447,15 @@ Command* CommandWindow::FindAutocompletionCandidate()
 
 void CommandWindow::UpdateAutocompletion()
 {
+    if (showPreviousCommandAutocompletion)
+    {
+        if (textEdit.buffer.count == 0)
+        {
+            autocompletionCandidate = showPreviousCommandAutocompletion_command;
+            return;
+        }
+    }
+    
     Command* newCandidate = FindAutocompletionCandidate();
     if (autocompletionCandidate != newCandidate)
     {
@@ -639,10 +648,7 @@ LRESULT CommandWindow::OnTimer(LPARAM lParam, WPARAM timerID)
     switch (timerID)
     {
         case CURSOR_BLINK_TIMER_ID: return OnCursorBlinkTimerElapsed();
-        default:
-            __debugbreak(); // Unknown timer.
     }
-    
     return 0;
 }
 
@@ -797,6 +803,11 @@ void CommandWindow::ShowWindow()
     SetForegroundWindow(hwnd);
     SetFocus(hwnd);
 
+    if (showPreviousCommandAutocompletion && showPreviousCommandAutocompletion_command != nullptr)
+    {
+        autocompletionCandidate = showPreviousCommandAutocompletion_command;
+    }
+
     AnimateWindow(WindowAnimation::Show);
 }
 
@@ -847,6 +858,12 @@ void CommandWindow::Evaluate()
     }
     else
     {
+        if (showPreviousCommandAutocompletion)
+        {
+            auto state = commandEngine->GetExecutionState();
+            showPreviousCommandAutocompletion_command = state->command;
+        }
+
         ClearText();
         HideWindow();
     }
