@@ -78,8 +78,11 @@ void TempAllocator::Deallocate(void* ptr)
 
 void* TempAllocator::Reallocate(void* block, uintptr_t size)
 {
-    assert(false);
-    return nullptr;
+    // @TODO
+    void* new_block = Allocate(size);
+    if (block)
+        memcpy(new_block, block, size);
+    return new_block;
 }
 
 void TempAllocator::Reset()

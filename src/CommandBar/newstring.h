@@ -4,103 +4,65 @@
 #include "allocators.h"
 
 
-/**
- * Represents string encoding.
- */
+/** Represents string encoding. */
 enum class Encoding
 {
-    /**
-     * Unknown encoding.
-     */
+    /** Unknown encoding. */
     Unknown = 0,
 
-    /**
-     * UTF-8 encoding.
-     */
+    /** UTF-8 encoding. */
     UTF8,
 
-    /**
-     * ASCII encoding.
-     */
+    /** ASCII encoding. */
     ASCII,
 
-    /**
-     * Represents maximum value of Encoding enumeration.
-     */
+    /** Represents maximum value of Encoding enumeration. */
     MAX_VALUE
 };
 
 
-/**
- * Represents comparison method between strings.
- */
+/** Represents comparison method between strings. */
 enum class StringComparison
 {
-    /**
-     * String comparison is case-sensitive.
-     */
+    /** String comparison is case-sensitive. */
     CaseSensitive = 0,
 
-    /**
-     * String comparison is case-insensitive.
-     */
+    /**  String comparison is case-insensitive. */
     CaseInsensitive
 };
 
 
-/**
- * Represents string.
- */
+/** Represents string. */
 struct Newstring
 {
-    /**
-     * Pointer to string data.
-     */
+    /** Pointer to string characters. */
     wchar_t* data  = nullptr;
 
-    /**
-     * String length.
-     */
+    /** String length. */
     uint32_t count = 0;
 
-    /**
-     * Initializes empty string.
-     */
+    /** Initializes empty string. */
 	explicit Newstring();
 
-    /**
-     * Initializes string with specified string data and length.
-     */
+    /** Initializes string with specified string data and length. */
 	explicit Newstring(wchar_t* data, uint32_t count);
 
-    /**
-     * Compares two strings using case-sensitive comparison.
-     */
+    /** Compares two strings using case-sensitive comparison. */
     bool operator==(const Newstring& rhs) const;
 
-    /**
-     * Compares two strings using case-sensitive comparison.
-     */
+    /** Compares two strings using case-sensitive comparison. */
     bool operator!=(const Newstring& rhs) const;
 
-    /**
-     * Compares Newstring and c-string using case-sensitive comparison.
-     */
+    /** Compares Newstring and c-string using case-sensitive comparison. */
     bool operator==(const wchar_t* rhs) const;
 
-    /**
-     * Compares Newstring and c-string using case-sensitive comparison.
-     */
+    /** Compares Newstring and c-string using case-sensitive comparison. */
     bool operator!=(const wchar_t* rhs) const;
 
-    /**
-     * Compares two strings using specified comparison method.
-     */
+    /** Compares two strings using specified comparison method. */
     bool Equals(const Newstring& rhs, StringComparison comparison) const;
     
-    /**
-    * Compares two strings using specified comparison method.
-    */
+    /** Compares two strings using specified comparison method. */
     bool Equals(const wchar_t* rhs, StringComparison comparison) const;
 
     /**
@@ -115,9 +77,7 @@ struct Newstring
      */
     int LastIndexOf(wchar_t c) const;
 
-    /**
-     * Returns true if this string starts with specified string.
-     */
+    /** Returns true if this string starts with specified string. */
     bool StartsWith(const Newstring& string, StringComparison comparison = StringComparison::CaseSensitive) const;
 
     /** Copies characters from this string to another.
@@ -128,49 +88,31 @@ struct Newstring
      */
     uint32_t CopyTo(Newstring* dest, uint32_t fromIndex = 0, uint32_t destIndex = 0, uint32_t copyCount = UINT32_MAX) const;
 
-    /**
-     * Creates string that references this string's data from specified position and length.
-     */
-    Newstring RefSubstring(uint32_t index, uint32_t count = 0xFFFFFFFF) const;
+    /** Creates string that references this string's data from specified position and length. */
+    Newstring RefSubstring(uint32_t index, uint32_t count = UINT32_MAX) const;
 
-    /**
-     * Creates copy of this string using specified allocator.
-     */
+    /** Creates copy of this string using specified allocator. */
     Newstring Clone(IAllocator* allocator = &g_standardAllocator) const;
 
-    /**
-     * Creates copy of this string using specified allocator. Resulting string is zero-terminated.
-     */
+    /** Creates copy of this string using specified allocator. Resulting string is zero-terminated. */
     Newstring CloneAsCString(IAllocator* allocator = &g_standardAllocator) const;
 
-    /**
-     * If string is not zero-terminated, then creates temporary copy of the string with temporary allocator. Resulting string is null-terminated.
-     */
+    /** If string is not zero-terminated, then creates temporary copy of the string with temporary allocator. Resulting string is null-terminated. */
     Newstring AsTempCString() const;
 
-    /**
-     * Returns string which references this string data, but without tabs and spaces at start and the end of string.
-     */
+    /** Returns string which references this string data, but without tabs and spaces at start and the end of string. */
     Newstring Trimmed() const;
 
-    /**
-     * Returns string which references this string data, but without tabs and spaces the end of string.
-     */
+    /** Returns string which references this string data, but without tabs and spaces the end of string. */
     Newstring TrimmedRight() const;
 
-    /**
-     * Deallocates string data using specified allocator and resets string state.
-     */
+    /** Deallocates string data using specified allocator and resets string state. */
     void Dispose(IAllocator* allocator = &g_standardAllocator);
 
-    /**
-     * Returns true if last character of the string is zero.
-     */
+    /** Returns true if last character of the string is zero. */
     bool IsZeroTerminated() const;
 
-    /**
-     * If string is zero-terminated, decreases string length by one.
-     */
+    /** If string is zero-terminated, decreases string length by one. */
     void RemoveZeroTermination();
 
     /**
@@ -179,19 +121,13 @@ struct Newstring
      */
     Newstring WithoutZeroTermination() const;
 
-    /**
-     * Returns string length without zero-terminating character at the end (if present).
-     */ 
+    /** Returns string length without zero-terminating character at the end (if present). */ 
     uint32_t GetFormatCount() const;
 
-    /**
-     * Returns true if string data is null or string length is zero.
-     */
+    /** Returns true if string data is null or string length is zero. */
     static bool IsNullOrEmpty(const Newstring& string);
 
-    /**
-     * Returns true if pointer to string is null or string data is null or string length is zero.
-     */
+    /** Returns true if pointer to string is null or string data is null or string length is zero. */
     static bool IsNullOrEmpty(const Newstring* const string);
     
     /**
@@ -230,73 +166,45 @@ struct Newstring
      */
     static Newstring Clone(const Newstring* string, IAllocator* allocator);
 
-    /**
-     * Joins several strings into one without any delimiters between strings.
-     */
+    /** Joins several strings into one without any delimiters between strings. */
     static Newstring Join(std::initializer_list<Newstring> strings, IAllocator* allocator = &g_standardAllocator);
 
-    /**
-     * Formats string using standard allocator.
-     */ 
+    /** Formats string using standard allocator. */ 
     static Newstring Format(const wchar_t* format, ...);
 
-    /**
-     * Formats string using standard allocator. String is zero-terminated.
-     */ 
+    /** Formats string using standard allocator. String is zero-terminated. */ 
     static Newstring FormatCString(const wchar_t* format, ...);
 
-    /**
-     * Formats string using standard allocator. If formatting fails, fallback string is used.
-     */ 
+    /** Formats string using standard allocator. If formatting fails, fallback string is used. */ 
     static Newstring FormatCStringWithFallback(const wchar_t* format, ...);
     
-    /**
-     * Formats string using temporary allocator.
-     */ 
+    /** Formats string using temporary allocator. */ 
     static Newstring FormatTemp(const wchar_t* format, ...);
 
-    /**
-     * Formats string using temporary allocator. String is null-terminated.
-     */ 
+    /** Formats string using temporary allocator. String is null-terminated. */ 
     static Newstring FormatTempCString(const wchar_t* format, ...);
 
-    /**
-     * Formats string using temporary allocator. If formatting fails, fallback string is used. String is null-terminated.
-     */ 
+    /** Formats string using temporary allocator. If formatting fails, fallback string is used. String is null-terminated. */ 
     static Newstring FormatTempCStringWithFallback(const wchar_t* format, ...);
 
-    /**
-     * Formats string using specified allocator.
-     */
+    /** Formats string using specified allocator. */
     static Newstring FormatWithAllocator(IAllocator* allocator, const wchar_t* format, ...);
 
-    /**
-     * Formats string using specified allocator and varargs list, and optionally appends terminating zero to the string.
-     */
+    /** Formats string using specified allocator and varargs list, and optionally appends terminating zero to the string. */
     static Newstring FormatWithAllocator(IAllocator* allocator, const wchar_t* format, va_list args, bool includeTerminatingNull);
 
-    /**
-     * Creates new string which references specified c-string. If c-string is null, returns empty string.
-     */
+    /** Creates new string which references specified c-string. If c-string is null, returns empty string. */
     static Newstring WrapWChar(wchar_t* string);
     
-    /**
-     * Creates new string which references specified c-string. If c-string is null, returns empty string.
-     */
+    /** Creates new string which references specified c-string. If c-string is null, returns empty string. */
     static Newstring WrapWChar(wchar_t* string, uint32_t count);
 
-    /**
-     * Creates new string which references specified constant c-string. If c-string is null, returns empty string.
-     */
+    /** Creates new string which references specified constant c-string. If c-string is null, returns empty string. */
     static const Newstring WrapConstWChar(const wchar_t* string);
 
-    /**
-     * Creates new string which references specified constant c-string. If c-string is null, returns empty string.
-     */
+    /** Creates new string which references specified constant c-string. If c-string is null, returns empty string. */
     static const Newstring WrapConstWChar(const wchar_t* string, uint32_t count);
 
-    /**
-     * Returns string with null string data and zero length.
-     */
+    /**  Returns string with null string data and zero length. */
     static Newstring Empty();
 };

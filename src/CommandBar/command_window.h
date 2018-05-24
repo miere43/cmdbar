@@ -49,9 +49,11 @@ private:
 
 	void Evaluate();
 
+    /** Returns size of client window part as two floats. */
+    void GetClientSizeF(float* width, float* height);
+
     bool CreateGraphicsResources();
     void DisposeGraphicsResources();
-
 	static bool InitializeStaticResources(HINSTANCE hInstance);
 
     static HKL g_englishKeyboardLayout;

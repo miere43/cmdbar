@@ -1,19 +1,24 @@
-#include <assert.h>
-#include <windowsx.h>
-#include <math.h>
-#include <algorithm>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 
-#include "command_window.h"
+#include <Windows.h>
+#include <windowsx.h>
+#include <algorithm>
+#include <assert.h>
+#include <math.h>
+
 #include "CommandBar.h"
-#include "os_utils.h"
-#include "basic_commands.h"
-#include "clipboard.h"
-#include "string_utils.h"
 #include "edit_commands_window.h"
-#include "defer.h"
 #include "command_window_tray.h"
-#include "utils.h"
+#include "command_window.h"
+#include "basic_commands.h"
+#include "string_utils.h"
 #include "debug_utils.h"
+#include "clipboard.h"
+#include "os_utils.h"
+#include "defer.h"
+#include "utils.h"
 
 
 LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -44,7 +49,7 @@ bool CommandWindow::InitializeStaticResources(HINSTANCE hInstance)
     
     if (g_windowClass == 0)
     {
-        WNDCLASSEXW wc ={ 0 };
+        WNDCLASSEXW wc = {};
         wc.cbSize = sizeof(wc);
         wc.lpszClassName = g_className;
         wc.hInstance = hInstance;
@@ -110,8 +115,7 @@ void CommandWindow::UpdateTextLayout(bool forced)
             textFormat,
             clientWidth,
             clientHeight,
-            &this->textLayout
-        );
+            &this->textLayout);
 
         assert(SUCCEEDED(hr));
 
@@ -139,11 +143,9 @@ void CommandWindow::UpdateAutocompletionLayout()
     if (ac == nullptr)
         return;
 
-    RECT clientRect;
-    GetClientRect(hwnd, &clientRect);
-    float clientWidth  = static_cast<float>(clientRect.right - clientRect.left);
-    float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
-
+    float clientWidth, clientHeight;
+    GetClientSizeF(&clientWidth, &clientHeight);
+    
     enum
     {
         MAX_AUTOCOMPLETE = 128
@@ -527,10 +529,8 @@ LRESULT CommandWindow::OnPaint()
     ID2D1HwndRenderTarget* rt = this->hwndRenderTarget;
     assert(rt);
 
-    RECT clientRect;
-    GetClientRect(hwnd, &clientRect);
-    float clientWidth  = static_cast<float>(clientRect.right - clientRect.left);
-    float clientHeight = static_cast<float>(clientRect.bottom - clientRect.top);
+    float clientWidth, clientHeight;
+    GetClientSizeF(&clientWidth, &clientHeight);
     float cursorUpY = style->borderSize + 3.0f;
     
     const float borderSize = static_cast<float>(style->borderSize);
@@ -868,6 +868,14 @@ void CommandWindow::Evaluate()
         ClearText();
         HideWindow();
     }
+}
+
+void CommandWindow::GetClientSizeF(float* width, float* height)
+{
+    RECT rc;
+    GetClientRect(hwnd, &rc);
+    if (width)  *width  = (float)(rc.right - rc.left);
+    if (height) *height = (float)(rc.bottom - rc.top);
 }
 
 bool CommandWindow::CreateGraphicsResources()

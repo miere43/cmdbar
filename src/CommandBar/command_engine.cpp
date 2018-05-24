@@ -173,7 +173,7 @@ void BaseCommandState::FormatErrorMessage(const wchar_t* format, ...)
     if (Newstring::IsNullOrEmpty(errorMessage))
     {
         // @TODO: log error.
-        errorMessage = Newstring::WrapConstWChar(L"Unknown error.").CloneAsCString();
+        errorMessage = Newstring::WrapConstWChar(L"Unknown error.").CloneAsCString(&g_tempAllocator);
         assert(!Newstring::IsNullOrEmpty(errorMessage));
     }
 }

@@ -19,7 +19,7 @@ void NewstringBuilder::Dispose()
 
 void NewstringBuilder::Append(wchar_t c)
 {
-    if (Reserve(capacity + 1))
+    if (Reserve(count + 1))
     {
         data[count++] = c;
     }
@@ -46,10 +46,10 @@ void NewstringBuilder::Append(const Newstring& string)
     }
 
     if (string.count == 0)  return;
-    if (Reserve(capacity + string.count))
+    if (Reserve(count + string.count))
     {
         uint32_t prevCount = count;
-        count = capacity;
+        count = count + string.count;
         count = prevCount + string.CopyTo(&this->string, 0, prevCount);
     }
 }
@@ -59,7 +59,7 @@ void NewstringBuilder::ZeroTerminate()
     if (!data)  return;
     if (count > 0 && data[count - 1] == L'\0')  return;
 
-    if (Reserve(capacity + 1))
+    if (Reserve(count + 1))
     {
         data[count++] = L'\0';
     }

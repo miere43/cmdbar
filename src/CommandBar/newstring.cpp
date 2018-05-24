@@ -230,17 +230,13 @@ Newstring Newstring::New(uint32_t count, IAllocator* allocator)
 Newstring Newstring::NewFromWChar(const wchar_t* string, IAllocator* allocator)
 {
     assert(allocator);
-    auto wrapper = WrapConstWChar(string);
-
-    return IsNullOrEmpty(wrapper) ? Empty() : Newstring::Clone(wrapper, allocator);
+    return Newstring::Clone(WrapConstWChar(string), allocator);
 }
 
 Newstring Newstring::NewFromWChar(const wchar_t* string, uint32_t count, IAllocator* allocator)
 {
     assert(allocator);
-    Newstring wrapper = Newstring::WrapConstWChar(string, count);
-
-    return IsNullOrEmpty(wrapper) ? Empty() : Newstring::Clone(wrapper, allocator);
+    return Newstring::Clone(Newstring::WrapConstWChar(string, count), allocator);
 }
 
 Newstring Newstring::NewCStringFromWChar(const wchar_t * string, IAllocator * allocator)
