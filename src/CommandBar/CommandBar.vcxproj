@@ -227,6 +227,7 @@
     <ClCompile Include="command_window_style_loader.cpp" />
     <ClCompile Include="command_window_tray.cpp" />
     <ClCompile Include="common.cpp" />
+    <ClCompile Include="context.cpp" />
     <ClCompile Include="debug_utils.cpp" />
     <ClCompile Include="edit_commands_window.cpp" />
     <ClCompile Include="hint_window.cpp" />
@@ -234,6 +235,7 @@
     <ClCompile Include="command_window.cpp" />
     <ClCompile Include="newstring.cpp" />
     <ClCompile Include="newstring_builder.cpp" />
+    <ClCompile Include="popup_window.cpp" />
     <ClCompile Include="single_instance.cpp" />
     <ClCompile Include="os_utils.cpp" />
     <ClCompile Include="parse_ini.cpp" />
@@ -255,12 +257,14 @@
     <ClInclude Include="command_window_style_loader.h" />
     <ClInclude Include="command_window_tray.h" />
     <ClInclude Include="common.h" />
+    <ClInclude Include="context.h" />
     <ClInclude Include="debug_utils.h" />
     <ClInclude Include="defer.h" />
     <ClInclude Include="edit_commands_window.h" />
     <ClInclude Include="hint_window.h" />
     <ClInclude Include="newstring.h" />
     <ClInclude Include="newstring_builder.h" />
+    <ClInclude Include="popup_window.h" />
     <ClInclude Include="single_instance.h" />
     <ClInclude Include="array.h" />
     <ClInclude Include="command_window.h" />

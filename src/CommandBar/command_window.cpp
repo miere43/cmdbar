@@ -14,11 +14,13 @@
 #include "command_window.h"
 #include "command_loader.h"
 #include "basic_commands.h"
+#include "popup_window.h"
 #include "string_utils.h"
 #include "debug_utils.h"
 #include "clipboard.h"
 #include "parse_ini.h"
 #include "os_utils.h"
+#include "context.h"
 #include "defer.h"
 #include "utils.h"
 
@@ -775,6 +777,13 @@ bool CommandWindow::Initialize(CommandEngine* engine, CommandWindowStyle* style,
     
     if (nCmdShow != 0) ShowWindow();
 
+    // @TODO
+    //PopupWindow* window = new PopupWindow();
+    //window->SetHeaderText(Newstring::Format(L"This is header."), true);
+    //window->SetMainText(Newstring::Format(L"This is main text."), true);
+    //window->Initialize(hwnd);
+    //window->Show(3000);
+
     isInitialized = true;
     return isInitialized;
 }
@@ -882,8 +891,8 @@ void CommandWindow::GetClientSizeF(float* width, float* height)
 
 bool CommandWindow::CreateGraphicsResources()
 {
-    d2d1 = nullptr;
-    dwrite = nullptr;
+    SafeRelease(d2d1);
+    SafeRelease(dwrite);
     const auto format = Newstring::FormatTempCStringWithFallback;
 
     HRESULT hr = E_UNEXPECTED;
@@ -894,16 +903,15 @@ bool CommandWindow::CreateGraphicsResources()
         }
     );
     
-    hr = D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, &d2d1);
-    if (FAILED(hr))
+    auto g = GetGraphicsContext();
+    if (g)
     {
-        return ShowErrorBox(hwnd, format(L"Cannot initialize Direct2D.\n\nError code was 0x%08X.", hr));
+        d2d1 = g->d2d1;
+        dwrite = g->dwrite;
     }
-
-    hr = DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory), reinterpret_cast<IUnknown**>(&dwrite));
-    if (FAILED(hr))
+    else
     {
-        return ShowErrorBox(hwnd, format(L"Cannot initialize DirectWrite.\n\nError code was 0x%08X.", hr));
+        return ShowErrorBox(hwnd, Newstring::WrapConstWChar(L"Unable to initialize graphics."));
     }
 
     hr = dwrite->CreateTextFormat(
