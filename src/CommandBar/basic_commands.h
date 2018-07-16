@@ -7,7 +7,7 @@
 
 
 struct CommandLoader;
-void RegisterBasicCommands(CommandLoader* loader);
+void RegisterBuiltinCommands(CommandLoader* loader);
 
 
 struct CommandWindow;
@@ -15,12 +15,16 @@ struct QuitCommand : public Command
 {
     CommandWindow* commandWindow = nullptr;
 
+    virtual ~QuitCommand() override;
+
     virtual bool Execute(ExecuteCommandState* state, Array<Newstring>& args) override;
 };
 
 struct OpenDirCommand : public Command
 {
     Newstring dirPath;
+
+    virtual ~OpenDirCommand() override;
 
     virtual bool Execute(ExecuteCommandState* state, Array<Newstring>& args) override;
 };
@@ -35,6 +39,8 @@ struct RunAppCommand : public Command
     bool asAdmin = false;
 
     int shellExec_nShow = SW_NORMAL;
+
+    virtual ~RunAppCommand() override;
 
     virtual bool Execute(ExecuteCommandState* state, Array<Newstring>& args) override;
 };

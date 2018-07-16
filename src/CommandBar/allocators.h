@@ -40,7 +40,8 @@ private:
     void* current = nullptr;
     void* start = nullptr;
     void* end = nullptr;
-    UnfitAllocation* unfit = nullptr;
+    UnfitAllocation* firstUnfit = nullptr;
+    UnfitAllocation* lastUnfit  = nullptr;
 
 	void ClearUnfits();
 	void AddUnfit(UnfitAllocation* unfit);
@@ -52,8 +53,8 @@ extern TempAllocator g_tempAllocator;
 void* operator new(size_t size, IAllocator* allocator);
 void  operator delete(void* block, IAllocator* allocator);
 
-#define Memnew(m_class) (new (&g_standardAllocator) m_class)
-#define MemnewAllocator(m_class, m_allocator) (new (m_allocator) m_class)
+#define Memnew(m_class, ...) (new (&g_standardAllocator) m_class(__VA_ARGS__))
+#define MemnewAllocator(m_class, m_allocator, ...) (new (m_allocator) m_class(__VA_ARGS__))
 
 template<typename T>
 void Memdelete(T* object)

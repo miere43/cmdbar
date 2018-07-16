@@ -38,6 +38,11 @@ Command* openDir_createCommand(CreateCommandState* state, Array<Newstring>& keys
     return cmd;
 }
 
+OpenDirCommand::~OpenDirCommand()
+{
+    dirPath.Dispose();
+}
+
 bool OpenDirCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
 {
     Newstring folder;
@@ -92,7 +97,7 @@ bool OpenDirCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
     return true;
 }
 
-void RegisterBasicCommands(CommandLoader* loader)
+void RegisterBuiltinCommands(CommandLoader* loader)
 {
     assert(loader != nullptr);
 
@@ -100,7 +105,7 @@ void RegisterBasicCommands(CommandLoader* loader)
 
     static CommandInfo bc[] = {
         CommandInfo(Newstring::WrapConstWChar(L"open_dir"), CI_None, openDir_createCommand),
-        CommandInfo(Newstring::WrapConstWChar(L"run_app"), CI_None, runApp_createCommand)
+        CommandInfo(Newstring::WrapConstWChar(L"run_app"),  CI_None, runApp_createCommand)
     };
 
     for (int i = 0; i < ARRAYSIZE(bc); ++i)
@@ -165,6 +170,14 @@ Command * runApp_createCommand(CreateCommandState* state, Array<Newstring>& keys
 
 static bool runProcess(const wchar_t* path, wchar_t* commandLine);
 static bool shellExecute(const wchar_t* path, const wchar_t* verb, const wchar_t* params, const wchar_t* workDir, int nShow);
+
+RunAppCommand::~RunAppCommand()
+{
+    appPath.Dispose();
+    appArgs.Dispose();
+    workDir.Dispose();
+}
+
 bool RunAppCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
 {
     // @TODO: Test 'runProcess' with args.
@@ -324,6 +337,11 @@ static bool shellExecute(const wchar_t* path, const wchar_t* verb, const wchar_t
 Command* quit_createCommand(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values)
 {
     return Memnew(QuitCommand);
+}
+
+QuitCommand::~QuitCommand()
+{
+    
 }
 
 bool QuitCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)

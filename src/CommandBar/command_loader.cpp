@@ -1,13 +1,15 @@
 #include <assert.h>
 
 #include "command_loader.h"
-#include "os_utils.h"
 #include "parse_ini.h"
-
+#include "os_utils.h"
+#include "defer.h"
 
 Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
 {
     Newstring source = OSUtils::ReadAllText(filePath, Encoding::UTF8);
+    defer(source.Dispose());
+
     if (Newstring::IsNullOrEmpty(source))
     {
         Newstring osError = OSUtils::FormatErrorCode(GetLastError(), 0, &g_tempAllocator);

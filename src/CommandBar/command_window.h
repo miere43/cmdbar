@@ -71,6 +71,9 @@ public:
     void BeforeCommandRun();
     //void AfterCommandRun();
 
+    /** Reloads commands from cmds.ini file. */
+    void ReloadCommandsFile();
+
     TextEdit textEdit;
     CommandHistory history;
 

@@ -49,7 +49,7 @@ void NewstringBuilder::Append(const Newstring& string)
     if (Reserve(count + string.count))
     {
         uint32_t prevCount = count;
-        count = count + string.count;
+        count = capacity; // string.CopyTo uses 'count' variable.
         count = prevCount + string.CopyTo(&this->string, 0, prevCount);
     }
 }

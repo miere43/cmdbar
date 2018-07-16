@@ -102,7 +102,7 @@ void TempAllocator::Dispose()
 
 void TempAllocator::ClearUnfits()
 {
-	UnfitAllocation* current = unfit;
+	UnfitAllocation* current = firstUnfit;
 
 	while (current != nullptr)
 	{
@@ -111,21 +111,23 @@ void TempAllocator::ClearUnfits()
 		current = next;
 	}
 
-	unfit = nullptr;
+	firstUnfit = nullptr;
+    lastUnfit  = nullptr;
 }
 
 void TempAllocator::AddUnfit(UnfitAllocation* newUnfit)
 {
-	if (unfit == nullptr)
+	if (firstUnfit == nullptr)
 	{
-		unfit = newUnfit;
-	}
-	else
-	{
-		UnfitAllocation* alloc = unfit;
-		while (alloc->next) continue;
-		alloc->next = newUnfit;
-	}
+        firstUnfit = newUnfit;
+	    lastUnfit  = newUnfit;
+    }
+    else
+    {
+        assert(lastUnfit != nullptr);
+        lastUnfit->next = newUnfit;
+        lastUnfit = newUnfit;
+    }
 }
 
 void* StandardAllocator::Allocate(uintptr_t size)

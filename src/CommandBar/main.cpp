@@ -79,19 +79,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
 	CommandWindow commandWindow;
     defer(commandWindow.Dispose());
 
-    CommandLoader commandLoader;
-    RegisterBasicCommands(&commandLoader);
-
-    Array<Command*> commands = commandLoader.LoadFromFile(GetCommandsFilePath());
-    for (uint32_t i = 0; i < commandLoader.commandInfoArray.count; ++i)
-        commandEngine.RegisterCommandInfo(commandLoader.commandInfoArray.data[i]);
-    for (uint32_t i = 0; i < commands.count; ++i)
-        commandEngine.RegisterCommand(commands.data[i]);
-
     nCmdShow = wcscmp(lpCmdLine, L"/noshow") == 0 ? 0 : SW_SHOW;
 
     bool initialized = commandWindow.Initialize(&commandEngine, &windowStyle, nCmdShow); // width=400, height=40
     if (!initialized)  return 1;
+
+    commandWindow.ReloadCommandsFile();
 
     MSG msg;
     uint32_t ret;
@@ -110,119 +103,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, wchar_t* lpCmd
     }
 
     return static_cast<int>(msg.wParam);
-}
-
-Newstring AskUserForCmdsFilePath()
-{
-    HRESULT hr = E_UNEXPECTED;
-    defer(
-        if (FAILED(hr))
-        {
-            auto msg = Newstring::FormatCString(L"Error: 0x%08X.", hr);
-            MessageBoxW(0, msg.data, L"Error", MB_ICONERROR);
-        }
-    );
-
-    Newstring result;
-
-    IFileOpenDialog* dialog = nullptr;
-    defer(SafeRelease(dialog));
-
-    hr = CoCreateInstance(
-        CLSID_FileOpenDialog,
-        nullptr,
-        CLSCTX_ALL,
-        IID_IFileOpenDialog,
-        reinterpret_cast<void**>(&dialog));
-    if (FAILED(hr))  return result;
-
-    dialog->SetTitle(L"Select cmds.ini");
-
-    hr = dialog->Show(0); // @TODO: Handle user cancellation case.
-    if (FAILED(hr))  return result;
-
-    IShellItem* selection = nullptr;
-    defer(SafeRelease(selection));
-
-    hr = dialog->GetResult(&selection);  
-    if (FAILED(hr))  return result;
-
-    wchar_t* selectionTitle = nullptr;
-    defer(
-        if (selectionTitle)
-        {
-            CoTaskMemFree(selectionTitle);
-            selectionTitle = nullptr;
-        }
-    );
-
-    hr = selection->GetDisplayName(SIGDN_FILESYSPATH, &selectionTitle);
-    if (FAILED(hr) || !selectionTitle)  return result;
-
-    result = Newstring::WrapConstWChar(selectionTitle);
-    result.count += 1; // Count terminating zero.
-
-    if (!OSUtils::FileExists(result))
-        return result;
-
-    result = result.Clone();
-    return result;
-}
-
-Newstring GetCommandsFilePath()
-{
-#ifdef _DEBUG
-    static Newstring SettingsPath = Newstring::WrapConstWChar(L"settings_debug.ini");
-#else
-    static Newstring SettingsPath = Newstring::WrapConstWChar(L"settings.ini");
-#endif
-
-    NewstringBuilder settingsPath;
-    defer(settingsPath.Dispose());
-
-    OSUtils::GetApplicationDirectory(&settingsPath);
-    settingsPath.Append(SettingsPath);
-    settingsPath.ZeroTerminate();
-
-    Newstring cmdsFile;
-    Newstring settingsText = OSUtils::ReadAllText(settingsPath.string);
-    defer(settingsText.Dispose());
-
-    if (Newstring::IsNullOrEmpty(settingsText))
-    {
-        cmdsFile = AskUserForCmdsFilePath();
-        if (Newstring::IsNullOrEmpty(cmdsFile))
-        {
-            settingsPath.Dispose();
-            return Newstring::Empty();
-        }
-
-        Newstring settingsNewText = Newstring::Join({
-            Newstring::WrapConstWChar(L"cmds_path="),
-            Newstring(cmdsFile.data, cmdsFile.count - 1) // Don't count terminating zero. 
-        }); 
-        defer(settingsNewText.Dispose());
-        assert(!Newstring::IsNullOrEmpty(settingsNewText));
-
-        bool result = OSUtils::WriteAllText(settingsPath.string, settingsNewText);
-        assert(result);
-    }
-    else
-    {
-        INIParser ps;
-        ps.Initialize(settingsText);
-
-        while (ps.Next())
-        {
-            if (ps.type == INIValueType::KeyValuePair && ps.key == L"cmds_path")
-            {
-                cmdsFile = Newstring::NewFromWChar(ps.value.data, ps.value.count);
-                break;
-            }
-        }
-    }
-
-    return cmdsFile;
 }
 
 bool InitializeLibraries()

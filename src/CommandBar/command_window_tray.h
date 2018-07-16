@@ -8,7 +8,8 @@ enum class TrayMenuAction
 {
     None = 0,
     Show = 1,
-    Exit = 2,
+    ReloadCommandsFile = 2,
+    Exit = 3
 };
 
 struct CommandWindowTray

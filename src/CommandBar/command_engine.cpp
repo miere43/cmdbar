@@ -129,11 +129,11 @@ bool CommandEngine::RegisterCommand(Command* command)
     return false;
 }
 
-bool CommandEngine::RegisterCommandInfo(CommandInfo* info)
+void CommandEngine::UnregisterAllCommands()
 {
-    assert(info);
-
-    return knownCommandInfoArray.Append(info);
+    for (uint32_t i = 0; i < commands.count; ++i)
+        Memdelete(commands.data[i]);
+    commands.Clear();    
 }
 
 void CommandEngine::Dispose()
@@ -176,4 +176,9 @@ void BaseCommandState::FormatErrorMessage(const wchar_t* format, ...)
         errorMessage = Newstring::WrapConstWChar(L"Unknown error.").CloneAsCString(&g_tempAllocator);
         assert(!Newstring::IsNullOrEmpty(errorMessage));
     }
+}
+
+Command::~Command()
+{
+    name.Dispose();
 }

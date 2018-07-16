@@ -41,6 +41,8 @@ struct Command
     CommandEngine* engine = nullptr;
     Newstring name;
 
+    virtual ~Command();
+
     virtual bool Execute(ExecuteCommandState* state, Array<Newstring>& args) = 0;
 };
 
@@ -78,7 +80,6 @@ struct CommandEngine
     CommandWindow* window = nullptr;
     CommandBeforeRunCallback beforeRunCallback = nullptr;
     void* beforeRunCallbackUserdata = nullptr;
-    Array<CommandInfo*> knownCommandInfoArray;
     Array<Command*> commands;
 
     /**
@@ -103,17 +104,11 @@ struct CommandEngine
      * Registers command within command engine so it can be evaluated.
      * If command cannot be registered, returns false, otherwise true.
      *
-     * Specified command should not be deallocated before disposing command engine.
+     * Specified command should be allocated using standard allocator. It will be deallocated by command engine.
      */
     bool RegisterCommand(Command* command);
 
-    /**
-     * Register command info within engine.
-     * If command info cannot be registered, returns false, otherwise true.
-     *
-     * Specified command info should not be deallocated before disposing command engine.
-     */
-    bool RegisterCommandInfo(CommandInfo* info);
+    void UnregisterAllCommands();
 
     /**
      * Releases resources used by command engine.

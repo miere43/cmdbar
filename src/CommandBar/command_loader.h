@@ -2,6 +2,7 @@
 #include "command_engine.h"
 #include "newstring.h"
 
+
 struct CommandLoader
 {
     Array<CommandInfo*> commandInfoArray;
