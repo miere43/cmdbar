@@ -125,7 +125,7 @@ void TextEdit::AddCaretPos(int offset)
 
 void TextEdit::InsertCharacterAtCaret(wchar_t c)
 {
-    if (!iswprint(c))  return;
+    if (!iswprint(c) || c == '\t')  return;
 
     if (IsTextSelected())
     {
