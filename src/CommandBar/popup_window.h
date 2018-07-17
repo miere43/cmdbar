@@ -7,6 +7,22 @@
 #include "context.h"
 
 
+struct Margin
+{
+    int left = 0;
+    int top = 0;
+    int right = 0;
+    int bottom = 0;
+
+    inline Margin() { }
+    inline Margin(int left, int top, int right, int bottom) {
+        this->left = left;
+        this->top = top;
+        this->right = right;
+        this->bottom = bottom;
+    }
+};
+
 struct PopupWindow
 {
     HWND hwnd = 0;
@@ -30,6 +46,10 @@ private:
     Newstring headerText;
     Newstring mainText;
 
+    int windowMargin = 25;
+    Margin headerTextMargin = Margin{ 5, 5, 5, 5 };
+    Margin mainTextMargin = Margin{ 5, 40, 5, 5 };
+    
     void CreateGraphicsResources();
     void DisposeGraphicsResources();
 

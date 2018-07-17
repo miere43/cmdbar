@@ -433,7 +433,7 @@ Newstring Newstring::FormatWithAllocator(IAllocator* allocator, const wchar_t* f
     Newstring result = New(allocCount, allocator);
     if (IsNullOrEmpty(result))  return Empty();
 
-    int written = _vsnwprintf(result.data, allocCount, format, args);
+    int written = _vsnwprintf(result.data, allocCount, format, args);  // @TODO: Check out why _vsnwprintf_s doesn't work (has 'buffer too small' error)!
     assert(written == charCount);
 
     result.count = written;

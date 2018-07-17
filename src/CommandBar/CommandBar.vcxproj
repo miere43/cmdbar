@@ -245,6 +245,7 @@
     <ClCompile Include="tipui.cpp" />
     <ClCompile Include="unicode.cpp" />
     <ClCompile Include="utils.cpp" />
+    <ClCompile Include="window_management.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="allocators.h" />
@@ -277,6 +278,7 @@
     <ClInclude Include="tipui.h" />
     <ClInclude Include="unicode.h" />
     <ClInclude Include="utils.h" />
+    <ClInclude Include="window_management.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="CommandBar.rc" />

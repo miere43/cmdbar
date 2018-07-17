@@ -11,6 +11,7 @@
 #include "CommandBar.h"
 #include "edit_commands_window.h"
 #include "command_window_tray.h"
+#include "window_management.h"
 #include "command_window.h"
 #include "command_loader.h"
 #include "basic_commands.h"
@@ -41,6 +42,8 @@ enum
     SHOW_APP_WINDOW_HOTKEY_ID = 0,
     CURSOR_BLINK_TIMER_ID = 0
 };
+
+using namespace WindowManagement;
 
 bool CommandWindow::InitializeStaticResources(HINSTANCE hInstance)
 {
@@ -488,46 +491,6 @@ void CommandWindow::KillCaretTimer()
     KillTimer(hwnd, CURSOR_BLINK_TIMER_ID);
 }
 
-void CommandWindow::AnimateWindow(WindowAnimation animation)
-{
-    uint64_t clockFrequency;
-    uint64_t clockCurrTick;
-    QueryPerformanceFrequency((LARGE_INTEGER*)&clockFrequency);
-    QueryPerformanceCounter((LARGE_INTEGER*)&clockCurrTick);
-
-    const double animDuration = 0.05;
-    double currSecs = clockCurrTick / (double)clockFrequency;
-    double targetSecs = currSecs + animDuration;
-
-    MSG msg;
-    while (currSecs < targetSecs)
-    {
-        while (PeekMessageW(&msg, hwnd, 0, 0, PM_REMOVE) != 0)
-        {
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
-        }
-
-        QueryPerformanceCounter((LARGE_INTEGER*)&clockCurrTick);
-        currSecs = clockCurrTick / (double)clockFrequency;
-
-        if (currSecs >= targetSecs)
-        {
-            SetLayeredWindowAttributes(hwnd, 0, animation == WindowAnimation::Show ? 255 : 0, LWA_ALPHA);
-            break;
-        }
-        else
-        {
-            double diff = ((targetSecs - currSecs) * (1.0 / animDuration));
-            if (animation == WindowAnimation::Show)
-                diff = 1.0 - diff;
-            SetLayeredWindowAttributes(hwnd, 0, (BYTE)(diff * 255), LWA_ALPHA);
-        }
-
-        Sleep(1);
-    }
-}
-
 LRESULT CommandWindow::OnPaint()
 {
     ID2D1HwndRenderTarget* rt = this->hwndRenderTarget;
@@ -820,12 +783,12 @@ void CommandWindow::ShowWindow()
         autocompletionCandidate = showPreviousCommandAutocompletion_command;
     }
 
-    AnimateWindow(WindowAnimation::Show);
+    AnimateWindow(hwnd, WindowAnimation::Show);
 }
 
 void CommandWindow::HideWindow()
 {
-    AnimateWindow(WindowAnimation::Hide);
+    AnimateWindow(hwnd, WindowAnimation::Hide);
 
     ::ShowWindow(hwnd, SW_HIDE);
     ClearText();
