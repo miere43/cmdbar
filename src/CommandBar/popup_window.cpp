@@ -1,11 +1,13 @@
 #include "popup_window.h"
 #include "window_management.h"
+#include <Windowsx.h>
 
 
 using namespace WindowManagement;
 
 
 ATOM PopupWindow::g_windowClass = 0;
+const UINT_PTR DismissTimerId = 123;
 
 
 /**
@@ -28,6 +30,11 @@ void PopupWindow::SetMainText(const Newstring & text, bool takeOwnership)
 {
     mainText.Dispose();
     mainText = takeOwnership ? text : text.Clone();
+}
+
+void PopupWindow::SetPopupCorner(PopupCorner corner)
+{
+    popupCorner = corner;
 }
 
 bool PopupWindow::Initialize(HWND parentWindow)
@@ -55,8 +62,36 @@ bool PopupWindow::Initialize(HWND parentWindow)
     MONITORINFO monitorInfo { sizeof(monitorInfo) };
     if (GetMonitorInfoW(monitor, &monitorInfo))
     {
-        x = (monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left) - width - windowMargin;
-        y = windowMargin;
+        int desktopWidth = monitorInfo.rcWork.right - monitorInfo.rcWork.left;
+        int desktopHeight = monitorInfo.rcWork.bottom - monitorInfo.rcWork.top;
+
+        switch (popupCorner)
+        {
+            case PopupCorner::TopRight:
+            {
+                x = desktopWidth - width - windowMargin;
+                y = windowMargin;
+                break;
+            }
+            case PopupCorner::TopLeft:
+            {
+                x = windowMargin;
+                y = windowMargin;
+                break;
+            }
+            case PopupCorner::BottomRight:
+            {
+                x = desktopWidth  - width  - windowMargin;
+                y = desktopHeight - height - windowMargin;
+                break;
+            }
+            case PopupCorner::BottomLeft:
+            {
+                x = windowMargin;
+                y = desktopHeight - height - windowMargin;
+                break;
+            }
+        }
     }
 
     hwnd = CreateWindowExW(
@@ -83,18 +118,88 @@ bool PopupWindow::Initialize(HWND parentWindow)
     return true;
 }
 
-void PopupWindow::Show(int timeoutMilliseconds)
+void PopupWindow::Show(int dismissMilliseconds)
 {
-    // @TODO: timeoutMilliseconds unused!
+    this->dismissMilliseconds = dismissMilliseconds;
 
-    //SetLayeredWindowAttributes(hwnd, 0, 128, LWA_ALPHA);
-    //SetForegroundWindow(hwnd);
-    //SetFocus(hwnd);
+    SetWindowPos(
+        hwnd,
+        HWND_TOPMOST,
+        0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW
+    );
+    SetForegroundWindow(hwnd);
+    SetFocus(hwnd);
 
-    ::ShowWindow(hwnd, SW_SHOW);
-    //AnimateWindow(hwnd, WindowAnimation::Hide);
+    WindowAnimationProperties props;
+    props.animationDuration = 3;
+    SetLayeredWindowAttributes(hwnd, 0, 128, LWA_ALPHA);
+    props.startAlpha = 255; // @TODO: Current alpha.
+    props.endAlpha = 0;
+
+    //::ShowWindow(hwnd, SW_SHOW);
+    AnimateWindow(hwnd, props);
 
     OnPaint();
+}
+
+void PopupWindow::Dismiss()
+{
+    if (dismissing)
+        return;
+    dismissing = true;
+
+    UninstallDismissTimer();
+
+    WindowAnimationProperties props;
+    props.animationDuration = 0.5;
+    props.allowToStopAnimation = true;
+    props.startAlpha = 255; // @TODO: Current alpha.
+    props.endAlpha = 0;
+
+    if (!AnimateWindow(hwnd, props))
+    {
+        OutputDebugStringW(L"AnimateWindow was stopped\n");
+        // Animation was stopped by application.
+        dismissing = false;
+        return;
+    }
+
+    ::ShowWindow(hwnd, SW_HIDE);
+    DestroyWindow(hwnd);
+}
+
+void PopupWindow::InstallDismissTimer()
+{
+    SetTimer(hwnd, DismissTimerId, dismissMilliseconds, nullptr);
+}
+
+void PopupWindow::UninstallDismissTimer()
+{
+    KillTimer(hwnd, DismissTimerId);
+}
+
+void PopupWindow::OnMouseEnter()
+{
+    OutputDebugStringW(L"OnMouseEnter()\n");
+
+    if (dismissing)
+    {
+        SendStopAnimationMessage(hwnd);
+        dismissing = false;
+    }
+
+    UninstallDismissTimer();
+}
+
+void PopupWindow::OnMouseLeave()
+{
+    OutputDebugStringW(L"OnMouseLeave()\n");
+
+    if (dismissing)
+        return;
+
+    InstallDismissTimer();
 }
 
 void PopupWindow::CreateGraphicsResources()
@@ -186,16 +291,20 @@ bool PopupWindow::InitializeStaticResources()
     if (initialized)
         return true;
 
-    WNDCLASSEXW wc {};
-    wc.cbSize = sizeof(wc);
-    wc.hCursor = LoadCursorW(0, IDC_ARROW);
-    wc.hIcon = LoadIconW(0, IDI_APPLICATION);
-    wc.lpszClassName = L"PopupWindow";
-    wc.style = CS_HREDRAW | CS_VREDRAW;
-    wc.lpfnWndProc = StaticWindowProc;
+    if (g_windowClass == 0)
+    {
+        WNDCLASSEXW wc{};
+        wc.cbSize = sizeof(wc);
+        wc.hCursor = LoadCursorW(0, IDC_ARROW);
+        wc.hIcon = LoadIconW(0, IDI_APPLICATION);
+        wc.lpszClassName = L"PopupWindow";
+        wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+        wc.lpfnWndProc = StaticWindowProc;
+        wc.hInstance = GetModuleHandleW(0);
 
-    if (!(g_windowClass = RegisterClassExW(&wc)))
-        return false;
+        if (!(g_windowClass = RegisterClassExW(&wc)))
+            return false;
+    }
 
     initialized = true;
     return true;
@@ -217,7 +326,35 @@ LRESULT PopupWindow::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         {
             return OnPaint();
         }
+        case WM_TIMER:
+        {
+            if (wParam == DismissTimerId)
+            {
+                Dismiss();
+            }
+            return 0;
+        }
+        case WM_MOUSEMOVE:
+        {
+            if (GetCapture() != hwnd)
+            {
+                SetCapture(hwnd);
+                OnMouseEnter();
+            }
+            else
+            {
+                POINT cursor = { GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam) };
+                RECT clientRect;
+                GetClientRect(hwnd, &clientRect);
+                if (!PtInRect(&clientRect, cursor))
+                {
+                    ReleaseCapture();
+                    OnMouseLeave();
+                }
+            }
+        }
     }
+
     return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
@@ -227,14 +364,17 @@ LRESULT PopupWindow::StaticWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM
     if (msg == WM_CREATE)
     {
         auto cs = (CREATESTRUCT*)lParam;
-        if (cs)
-        {
-            window = (PopupWindow*)cs->lpCreateParams;
-            if (window)
-            {
-                SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)window);
-            }
-        }
+        if (!cs)  return 1;
+
+        window = (PopupWindow*)cs->lpCreateParams;
+        if (!window)  return 1;
+
+        SetWindowLongPtrW(hwnd, GWLP_USERDATA, (LONG_PTR)window);
     }
+    else
+    {
+        window = reinterpret_cast<PopupWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+    }
+
     return window ? window->WindowProc(hwnd, msg, wParam, lParam) : DefWindowProcW(hwnd, msg, wParam, lParam);
 }

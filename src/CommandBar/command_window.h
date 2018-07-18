@@ -23,8 +23,6 @@ struct CommandWindow
 
 	void Exit();
 
-	LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
-
 	HWND hwnd = 0;
 
     ID2D1Factory* d2d1 = nullptr;
@@ -55,6 +53,9 @@ private:
     bool CreateGraphicsResources();
     void DisposeGraphicsResources();
 	static bool InitializeStaticResources(HINSTANCE hInstance);
+
+    LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+    static LRESULT __stdcall StaticWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
     static HKL g_englishKeyboardLayout;
 	static ATOM g_windowClass;

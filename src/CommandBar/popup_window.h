@@ -23,16 +23,26 @@ struct Margin
     }
 };
 
+enum class PopupCorner
+{
+    TopRight,
+    TopLeft,
+    BottomRight,
+    BottomLeft,
+};
+
 struct PopupWindow
 {
     HWND hwnd = 0;
     
     void SetHeaderText(const Newstring& text, bool takeOwnership = false);
     void SetMainText(const Newstring& text, bool takeOwnership = false);
+    void SetPopupCorner(PopupCorner corner);
 
     /** Call Initialize after setup functions (Set...) */
     bool Initialize(HWND parentWindow);
-    void Show(int timeoutMilliseconds);
+    void Show(int dismissMilliseconds);
+    void Dismiss();
 private:
     ID2D1HwndRenderTarget* renderTarget = nullptr;
     IDWriteTextLayout* headerTextLayout = nullptr;
@@ -45,8 +55,18 @@ private:
     GraphicsContext* graphics = nullptr;
     Newstring headerText;
     Newstring mainText;
+    PopupCorner popupCorner = PopupCorner::TopRight;
 
-    int windowMargin = 25;
+    void InstallDismissTimer();
+    void UninstallDismissTimer();
+
+    void OnMouseEnter();
+    void OnMouseLeave();
+
+    int dismissMilliseconds = 3000;
+    bool dismissing = false;
+
+    int windowMargin = 15;
     Margin headerTextMargin = Margin{ 5, 5, 5, 5 };
     Margin mainTextMargin = Margin{ 5, 40, 5, 5 };
     

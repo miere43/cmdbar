@@ -5,16 +5,25 @@
 /** Contains various utilities for window management. */
 namespace WindowManagement
 {
-    /** Represents animations that can be played using AnimateWindow method. */
-    enum class WindowAnimation
-    {
-        /** Fade in from zero opacity to full opacity. */
-        Show = 1,
+    const UINT StopWindowAnimationMessageId = WM_USER + 123;
 
-        /** Fade out from full opacity to zero opacity. */
-        Hide = 2,
+    struct WindowAnimationProperties
+    {
+        double animationDuration = 0.05;
+        bool allowToStopAnimation = false;
+        bool useCurrentAlpha = false;
+        BYTE startAlpha = 0; // Alpha at the start of animation.
+        BYTE endAlpha = 255; // Alpha at the end of animation.
+        //BYTE targetShowAlpha
     };
 
-    /** Creates new message loop and does specified window animation. */
-    void AnimateWindow(HWND hwnd, WindowAnimation animation);
+    /**
+     * Creates new message loop and does specified window animation.
+     *
+     * If animation was stopped by stop message, returns false, true otherwise.
+     **/
+    bool AnimateWindow(HWND hwnd, const WindowAnimationProperties& properties = WindowAnimationProperties());
+
+    /** Sends stop animation message to specified window. */
+    void SendStopAnimationMessage(HWND hwnd);
 }

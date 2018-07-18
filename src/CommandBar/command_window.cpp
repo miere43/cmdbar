@@ -26,7 +26,6 @@
 #include "utils.h"
 
 
-LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void beforeRunCallback(CommandEngine* engine, void* userdata);
 
 HICON CommandWindow::g_appIcon = 0;
@@ -43,7 +42,9 @@ enum
     CURSOR_BLINK_TIMER_ID = 0
 };
 
+
 using namespace WindowManagement;
+
 
 bool CommandWindow::InitializeStaticResources(HINSTANCE hInstance)
 {
@@ -60,7 +61,7 @@ bool CommandWindow::InitializeStaticResources(HINSTANCE hInstance)
         wc.cbSize = sizeof(wc);
         wc.lpszClassName = g_className;
         wc.hInstance = hInstance;
-        wc.lpfnWndProc = commandWindowWndProc;
+        wc.lpfnWndProc = StaticWindowProc;
         wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
         wc.hCursor = LoadCursorW(0, IDC_IBEAM);
         wc.hIcon = g_appIcon;
@@ -738,14 +739,15 @@ bool CommandWindow::Initialize(CommandEngine* engine, CommandWindowStyle* style,
     exitcmd->commandWindow = this;
     commandEngine->RegisterCommand(exitcmd);
     
-    if (nCmdShow != 0) ShowWindow();
+    //if (nCmdShow != 0) ShowWindow();
 
     // @TODO
-    //PopupWindow* window = new PopupWindow();
-    //window->SetHeaderText(Newstring::Format(L"This is header."), true);
-    //window->SetMainText(Newstring::Format(L"This is main text."), true);
-    //window->Initialize(hwnd);
-    //window->Show(3000);
+    PopupWindow* window = new PopupWindow();
+    window->SetHeaderText(Newstring::Format(L"Holy shit."), true);
+    window->SetMainText(Newstring::Format(L"There were errors when reading your commands file.\n\nClick here to do something."), true);
+    window->SetPopupCorner(PopupCorner::BottomRight);
+    window->Initialize(hwnd);
+    window->Show(3000);
 
     isInitialized = true;
     return isInitialized;
@@ -783,12 +785,18 @@ void CommandWindow::ShowWindow()
         autocompletionCandidate = showPreviousCommandAutocompletion_command;
     }
 
-    AnimateWindow(hwnd, WindowAnimation::Show);
+    WindowAnimationProperties props;
+    props.startAlpha = 0;
+    props.endAlpha = 255;
+    AnimateWindow(hwnd, props);
 }
 
 void CommandWindow::HideWindow()
 {
-    AnimateWindow(hwnd, WindowAnimation::Hide);
+    WindowAnimationProperties props;
+    props.startAlpha = 255;
+    props.endAlpha = 0;
+    AnimateWindow(hwnd, props);
 
     ::ShowWindow(hwnd, SW_HIDE);
     ClearText();
@@ -1002,11 +1010,32 @@ LRESULT CommandWindow::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
     return DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
+LRESULT __stdcall CommandWindow::StaticWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+    CommandWindow* window = nullptr;
+
+    if (msg == WM_CREATE)
+    {
+        CREATESTRUCT* cs = reinterpret_cast<CREATESTRUCT*>(lParam);
+        if (cs == nullptr)  return 1;
+
+        window = reinterpret_cast<CommandWindow*>(cs->lpCreateParams);
+        if (window == nullptr)  return 1;
+
+        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
+    }
+    else
+    {
+        window = reinterpret_cast<CommandWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
+    }
+
+    return window ? window->WindowProc(hwnd, msg, wParam, lParam) : DefWindowProcW(hwnd, msg, wParam, lParam);
+}
+
 void CommandWindow::BeforeCommandRun()
 {
     HideWindow();
 }
-
 
 Newstring AskUserForCmdsFilePath()
 {
@@ -1136,28 +1165,6 @@ void CommandWindow::ReloadCommandsFile()
     Array<Command*> commands = commandLoader.LoadFromFile(GetCommandsFilePath());
     for (uint32_t i = 0; i < commands.count; ++i)
         commandEngine->RegisterCommand(commands.data[i]);
-}
-
-LRESULT WINAPI commandWindowWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-    CommandWindow* window = nullptr;
-
-    if (msg == WM_CREATE)
-    {
-        CREATESTRUCT* cs = reinterpret_cast<CREATESTRUCT*>(lParam);
-        if (cs == nullptr)  return 1;
-
-        window = reinterpret_cast<CommandWindow*>(cs->lpCreateParams);
-        if (window == nullptr)  return 1;
-        
-        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(window));
-    }
-    else
-    {
-        window = reinterpret_cast<CommandWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
-    }
-
-    return window ? window->WindowProc(hwnd, msg, wParam, lParam) : DefWindowProcW(hwnd, msg, wParam, lParam);
 }
 
 void beforeRunCallback(CommandEngine* engine, void* userdata)
