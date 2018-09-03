@@ -204,6 +204,25 @@ uint32_t Newstring::GetFormatCount() const
     return IsZeroTerminated() ? count - 1 : count;
 }
 
+Newstring Newstring::SkipChar(wchar_t c) const
+{
+    if (IsNullOrEmpty(this))
+        return *this;
+
+    wchar_t* result = data;
+    uint32_t i = 0;
+    
+    for (; i < count; ++i) {
+        if (*result == c) {
+            ++result;
+        } else {
+            break;
+        }
+    }
+
+    return Newstring(result, count - i);
+}
+
 bool Newstring::IsNullOrEmpty(const Newstring& string)
 {
     return IsNullOrEmpty(&string);

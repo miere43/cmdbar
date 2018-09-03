@@ -6,7 +6,6 @@
 #include "parse_utils.h"
 #include "defer.h"
 
-
 Command* runApp_createCommand(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values);
 Command* openDir_createCommand(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values);
 Command* quit_createCommand(CreateCommandState* state, Array<Newstring>& keys, Array<Newstring>& values);
@@ -46,23 +45,47 @@ OpenDirCommand::~OpenDirCommand()
 bool OpenDirCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
 {
     Newstring folder;
+    Newstring subfolder;
+
     if (Newstring::IsNullOrEmpty(dirPath))
     {
         if (args.count == 0)
             return false;
 
-        folder = args.data[0];
+        folder = args.data[0].SkipChar(L'\\').SkipChar(L'/');
     }
     else
     {
         folder = this->dirPath;
+        if (args.count > 0)
+        {
+            subfolder = args.data[0].SkipChar(L'\\').SkipChar(L'/');
+        }
     }
 
     if (Newstring::IsNullOrEmpty(folder))
         return false;
 
     Newstring actualFolder = folder;
-    if (!actualFolder.IsZeroTerminated())
+    if (!Newstring::IsNullOrEmpty(subfolder))
+    {
+        Newstring result = Newstring::New(actualFolder.GetFormatCount() + 1 + subfolder.GetFormatCount() + 1, &g_tempAllocator);
+        uint32_t now = 0;
+
+        now += actualFolder.WithoutZeroTermination().CopyTo(&result, 0, now);
+
+        if (result.data[now - 1] != L'\\')
+        {
+            result.data[now] = L'\\';
+            now += 1;
+        }
+
+        now += subfolder.WithoutZeroTermination().CopyTo(&result, 0, now);
+        result.data[now++] = L'\0';
+
+        actualFolder = result;
+    }
+    else if (!actualFolder.IsZeroTerminated())
     {
         actualFolder = folder.CloneAsCString(&g_tempAllocator);
         assert(!Newstring::IsNullOrEmpty(actualFolder));

@@ -124,6 +124,9 @@ struct Newstring
     /** Returns string length without zero-terminating character at the end (if present). */ 
     uint32_t GetFormatCount() const;
 
+    /** Skips specified characters from start of the string. */
+    Newstring SkipChar(wchar_t c) const;
+
     /** Returns true if string data is null or string length is zero. */
     static bool IsNullOrEmpty(const Newstring& string);
 
