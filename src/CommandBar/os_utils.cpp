@@ -97,7 +97,7 @@ void* ReadFileContents(const Newstring& fileName, uint32_t* fileSize, IAllocator
         return nullptr;
     }
 
-    Newstring actualFileName = fileName.AsTempCString();
+    Newstring actualFileName = fileName.CloneAsTempCString();
     if (Newstring::IsNullOrEmpty(actualFileName))
         return nullptr;
 
@@ -137,7 +137,7 @@ bool WriteFileContents(const Newstring& fileName, void* contents, uint32_t conte
     if (Newstring::IsNullOrEmpty(fileName))
         return false;
 
-    Newstring actualFileName = fileName.AsTempCString();
+    Newstring actualFileName = fileName.CloneAsTempCString();
     if (Newstring::IsNullOrEmpty(actualFileName))
         return false;
 
@@ -239,7 +239,7 @@ void TruncateFileNameToDirectory(Newstring* fileName)
 
 bool FileExists(const Newstring& fileName)
 {
-    Newstring actualFileName = fileName.AsTempCString();
+    Newstring actualFileName = fileName.CloneAsTempCString();
     if (Newstring::IsNullOrEmpty(actualFileName))
         return false;
 
@@ -251,7 +251,7 @@ bool FileExists(const Newstring& fileName)
 
 bool DirectoryExists(const Newstring& fileName)
 {
-    Newstring actualFileName = fileName.AsTempCString();
+    Newstring actualFileName = fileName.CloneAsTempCString();
     if (Newstring::IsNullOrEmpty(actualFileName))
         return false;
 

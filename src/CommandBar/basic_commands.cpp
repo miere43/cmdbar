@@ -69,10 +69,10 @@ bool OpenDirCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
     Newstring actualFolder = folder;
     if (!Newstring::IsNullOrEmpty(subfolder))
     {
-        Newstring result = Newstring::New(actualFolder.GetFormatCount() + 1 + subfolder.GetFormatCount() + 1, &g_tempAllocator);
+        Newstring result = Newstring::New(actualFolder.count + 1 + subfolder.count + 1, &g_tempAllocator);
         uint32_t now = 0;
 
-        now += actualFolder.WithoutZeroTermination().CopyTo(&result, 0, now);
+        now += actualFolder.CopyTo(&result, 0, now);
 
         if (result.data[now - 1] != L'\\')
         {
@@ -80,12 +80,12 @@ bool OpenDirCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
             now += 1;
         }
 
-        now += subfolder.WithoutZeroTermination().CopyTo(&result, 0, now);
+        now += subfolder.CopyTo(&result, 0, now);
         result.data[now++] = L'\0';
 
         actualFolder = result;
     }
-    else if (!actualFolder.IsZeroTerminated())
+    else
     {
         actualFolder = folder.CloneAsCString(&g_tempAllocator);
         assert(!Newstring::IsNullOrEmpty(actualFolder));
@@ -93,7 +93,6 @@ bool OpenDirCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
 
     if (!OSUtils::DirectoryExists(actualFolder))
     {
-        actualFolder.RemoveZeroTermination();
         state->FormatErrorMessage(L"Folder \"%.*s\" does not exist.", actualFolder.count, actualFolder.data);
 
         return false;

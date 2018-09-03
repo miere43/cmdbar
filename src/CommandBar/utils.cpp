@@ -10,10 +10,7 @@ bool ShowErrorBox(HWND hwnd, const Newstring& text)
         msg = Newstring::WrapConstWChar(L"Unknown error.");
     }
 
-    if (!msg.IsZeroTerminated())
-    {
-        msg = msg.CloneAsCString(&g_tempAllocator);
-    }
+    msg = msg.CloneAsCString(&g_tempAllocator);
 
     MessageBoxW(hwnd, msg.data, L"Error", MB_ICONERROR);
     return false;

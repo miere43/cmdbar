@@ -828,12 +828,8 @@ void CommandWindow::Evaluate()
         {
             message = Newstring::WrapConstWChar(L"Unknown error.");
         }
-        else if (!message.IsZeroTerminated())
-        {
-            message = message.CloneAsCString(&g_tempAllocator);
-            assert(!Newstring::IsNullOrEmpty(message));
-        }
 
+        message = message.CloneAsCString(&g_tempAllocator);
         MessageBoxW(hwnd, message.data, L"Error", MB_OK | MB_ICONERROR);
         SetFocus(hwnd);  // We lose focus after MessageBox
 
@@ -886,7 +882,7 @@ bool CommandWindow::CreateGraphicsResources()
     }
 
     hr = dwrite->CreateTextFormat(
-        style->fontFamily.AsTempCString().data,
+        style->fontFamily.CloneAsCString(&g_tempAllocator).data,
         nullptr,
         style->fontWeight,
         style->fontStyle,

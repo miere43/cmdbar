@@ -138,14 +138,11 @@ Newstring Newstring::CloneAsCString(IAllocator* allocator) const
     if (IsNullOrEmpty(ns))  return Empty();
 
     CopyTo(&ns);
-    ns.data[ns.count - 1] = L'\0';
+    
+    ns.count -= 1;
+    ns.data[ns.count] = L'\0';
 
     return ns;
-}
-
-Newstring Newstring::AsTempCString() const
-{
-    return IsZeroTerminated() ? *this : CloneAsCString(&g_tempAllocator);
 }
 
 Newstring Newstring::Trimmed() const
@@ -181,27 +178,6 @@ void Newstring::Dispose(IAllocator* allocator)
     allocator->Deallocate(data);
     data  = nullptr;
     count = 0;
-}
-
-bool Newstring::IsZeroTerminated() const
-{
-    if (IsNullOrEmpty(this))  return false;
-    return data[count - 1] == L'\0';
-}
-
-void Newstring::RemoveZeroTermination()
-{
-    if (IsZeroTerminated())  count -= 1;
-}
-
-Newstring Newstring::WithoutZeroTermination() const
-{
-    return IsZeroTerminated() ? Newstring(data, count - 1) : Newstring(data, count);
-}
-
-uint32_t Newstring::GetFormatCount() const
-{
-    return IsZeroTerminated() ? count - 1 : count;
 }
 
 Newstring Newstring::SkipChar(wchar_t c) const
@@ -456,6 +432,8 @@ Newstring Newstring::FormatWithAllocator(IAllocator* allocator, const wchar_t* f
     assert(written == charCount);
 
     result.count = written;
+    if (result.count - 1 == '\0')
+        __debugbreak();
     return result;
 }
 

@@ -97,8 +97,10 @@ struct Newstring
     /** Creates copy of this string using specified allocator. Resulting string is zero-terminated. */
     Newstring CloneAsCString(IAllocator* allocator = &g_standardAllocator) const;
 
-    /** If string is not zero-terminated, then creates temporary copy of the string with temporary allocator. Resulting string is null-terminated. */
-    Newstring AsTempCString() const;
+    /** Creates copy of this string using temporary allocator. Resulting string is zero-terminated. */
+    __forceinline Newstring CloneAsTempCString() const {
+        return CloneAsCString(&g_tempAllocator);
+    }
 
     /** Returns string which references this string data, but without tabs and spaces at start and the end of string. */
     Newstring Trimmed() const;
@@ -108,21 +110,6 @@ struct Newstring
 
     /** Deallocates string data using specified allocator and resets string state. */
     void Dispose(IAllocator* allocator = &g_standardAllocator);
-
-    /** Returns true if last character of the string is zero. */
-    bool IsZeroTerminated() const;
-
-    /** If string is zero-terminated, decreases string length by one. */
-    void RemoveZeroTermination();
-
-    /**
-     * If string is zero-terminated, returns same string but with string length decreased by one.
-     * If string is not zero-terminated, returns same string.
-     */
-    Newstring WithoutZeroTermination() const;
-
-    /** Returns string length without zero-terminating character at the end (if present). */ 
-    uint32_t GetFormatCount() const;
 
     /** Skips specified characters from start of the string. */
     Newstring SkipChar(wchar_t c) const;

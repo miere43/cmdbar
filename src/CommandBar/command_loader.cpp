@@ -16,8 +16,8 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
         
         Newstring msg = Newstring::FormatTempCString(
             L"Unable to open commands declaration file \"%.*s\": %.*s",
-            filePath.GetFormatCount(), filePath.data,
-            osError.GetFormatCount(), osError.data);
+            filePath.count, filePath.data,
+            osError.count, osError.data);
 
         MessageBoxW(0, msg.data, L"Error", MB_ICONERROR);
     }
