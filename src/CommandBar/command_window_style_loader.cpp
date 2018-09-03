@@ -33,7 +33,7 @@ bool CommandWindowStyleLoader::LoadFromFile(const Newstring& filePath, CommandWi
                 else if (p.key == L"font_family")
                 {
                     fontFamily.Dispose();
-                    style->fontFamily = fontFamily = p.value.CloneAsCString();
+                    style->fontFamily = fontFamily = p.value.Clone();
                 }
             }
         }

@@ -1,17 +1,13 @@
 #include "utils.h"
 
 
-bool ShowErrorBox(HWND hwnd, const Newstring& text)
+bool ShowErrorBox(HWND hwnd, const wchar_t* text)
 {
-    Newstring msg = text;
-    if (Newstring::IsNullOrEmpty(msg))
+    if (!text)
     {
-        // @TODO: Insert debug build debugbreak here.
-        msg = Newstring::WrapConstWChar(L"Unknown error.");
+        text = L"Unknown error.";    
     }
 
-    msg = msg.CloneAsCString(&g_tempAllocator);
-
-    MessageBoxW(hwnd, msg.data, L"Error", MB_ICONERROR);
+    MessageBoxW(hwnd, text, L"Error", MB_ICONERROR);
     return false;
 }

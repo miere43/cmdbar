@@ -715,8 +715,8 @@ bool CommandWindow::Initialize(CommandEngine* engine, CommandWindowStyle* style,
 
     if (!Newstring::IsNullOrEmpty(trayFailureReason))
     {
-        MessageBoxW(hwnd, trayFailureReason.data, L"Error", MB_ICONERROR);
-    }
+        MessageBoxW(hwnd, trayFailureReason.CloneAsTempCString(), L"Error", MB_ICONERROR);
+    } 
 
     if (!CreateGraphicsResources())
         return false;
@@ -829,8 +829,7 @@ void CommandWindow::Evaluate()
             message = Newstring::WrapConstWChar(L"Unknown error.");
         }
 
-        message = message.CloneAsCString(&g_tempAllocator);
-        MessageBoxW(hwnd, message.data, L"Error", MB_OK | MB_ICONERROR);
+        MessageBoxW(hwnd, message.CloneAsCString(&g_tempAllocator), L"Error", MB_OK | MB_ICONERROR);
         SetFocus(hwnd);  // We lose focus after MessageBox
 
         Redraw();
@@ -860,7 +859,7 @@ bool CommandWindow::CreateGraphicsResources()
 {
     SafeRelease(d2d1);
     SafeRelease(dwrite);
-    const auto format = Newstring::FormatTempCStringWithFallback;
+    const auto format = Newstring::FormatTempCString;
 
     HRESULT hr = E_UNEXPECTED;
     defer(
@@ -878,11 +877,11 @@ bool CommandWindow::CreateGraphicsResources()
     }
     else
     {
-        return ShowErrorBox(hwnd, Newstring::WrapConstWChar(L"Unable to initialize graphics."));
+        return ShowErrorBox(hwnd, L"Unable to initialize graphics.");
     }
 
     hr = dwrite->CreateTextFormat(
-        style->fontFamily.CloneAsCString(&g_tempAllocator).data,
+        style->fontFamily.CloneAsCString(&g_tempAllocator),
         nullptr,
         style->fontWeight,
         style->fontStyle,
@@ -1039,8 +1038,7 @@ Newstring AskUserForCmdsFilePath()
     defer(
         if (FAILED(hr))
         {
-            auto msg = Newstring::FormatCString(L"Error: 0x%08X.", hr);
-            MessageBoxW(0, msg.data, L"Error", MB_ICONERROR);
+            MessageBoxW(0, Newstring::FormatCString(L"Error: 0x%08X.", hr), L"Error", MB_ICONERROR);
         }
     );
 

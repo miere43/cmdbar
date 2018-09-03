@@ -97,11 +97,11 @@ void* ReadFileContents(const Newstring& fileName, uint32_t* fileSize, IAllocator
         return nullptr;
     }
 
-    Newstring actualFileName = fileName.CloneAsTempCString();
-    if (Newstring::IsNullOrEmpty(actualFileName))
+    wchar_t* actualFileName = fileName.CloneAsTempCString();
+    if (!actualFileName)
         return nullptr;
 
-    HANDLE handle = CreateFileW(actualFileName.data, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+    HANDLE handle = CreateFileW(actualFileName, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
     if (handle == INVALID_HANDLE_VALUE)
         return nullptr;
     defer(CloseHandle(handle));
@@ -137,11 +137,11 @@ bool WriteFileContents(const Newstring& fileName, void* contents, uint32_t conte
     if (Newstring::IsNullOrEmpty(fileName))
         return false;
 
-    Newstring actualFileName = fileName.CloneAsTempCString();
-    if (Newstring::IsNullOrEmpty(actualFileName))
+    wchar_t* actualFileName = fileName.CloneAsTempCString();
+    if (!actualFileName)
         return false;
 
-    HANDLE handle = CreateFileW(actualFileName.data, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+    HANDLE handle = CreateFileW(actualFileName, GENERIC_WRITE, 0, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
     defer(CloseHandle(handle));
     
     if (handle == INVALID_HANDLE_VALUE)
@@ -239,11 +239,14 @@ void TruncateFileNameToDirectory(Newstring* fileName)
 
 bool FileExists(const Newstring& fileName)
 {
-    Newstring actualFileName = fileName.CloneAsTempCString();
-    if (Newstring::IsNullOrEmpty(actualFileName))
-        return false;
+    return FileExists(fileName.CloneAsTempCString());
+}
 
-    DWORD attrs = GetFileAttributesW(actualFileName.data);
+bool FileExists(const wchar_t* fileName)
+{
+    if (!fileName)  return false;
+
+    DWORD attrs = GetFileAttributesW(fileName);
     bool result = attrs != INVALID_FILE_ATTRIBUTES && !(attrs & FILE_ATTRIBUTE_DIRECTORY);
 
     return result;
@@ -251,11 +254,14 @@ bool FileExists(const Newstring& fileName)
 
 bool DirectoryExists(const Newstring& fileName)
 {
-    Newstring actualFileName = fileName.CloneAsTempCString();
-    if (Newstring::IsNullOrEmpty(actualFileName))
-        return false;
+    return DirectoryExists(fileName.CloneAsTempCString());
+}
 
-    DWORD attrs = GetFileAttributesW(actualFileName.data);
+bool DirectoryExists(const wchar_t* fileName)
+{
+    if (!fileName)  return false;
+
+    DWORD attrs = GetFileAttributesW(fileName);
     bool result = attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_DIRECTORY);
 
     return result;

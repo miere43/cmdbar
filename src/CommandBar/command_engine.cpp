@@ -66,7 +66,7 @@ bool CommandEngine::Evaluate(const Newstring& expression)
 
     if (args.count == 0)
     {
-        executionState.errorMessage = Newstring::WrapConstWChar(L"Invalid input.").CloneAsCString(&g_tempAllocator);
+        executionState.errorMessage = Newstring::WrapConstWChar(L"Invalid input.").Clone(&g_tempAllocator);
         return false;
     }
 
@@ -173,7 +173,7 @@ void BaseCommandState::FormatErrorMessage(const wchar_t* format, ...)
     if (Newstring::IsNullOrEmpty(errorMessage))
     {
         // @TODO: log error.
-        errorMessage = Newstring::WrapConstWChar(L"Unknown error.").CloneAsCString(&g_tempAllocator);
+        errorMessage = Newstring::WrapConstWChar(L"Unknown error.").Clone(&g_tempAllocator);
         assert(!Newstring::IsNullOrEmpty(errorMessage));
     }
 }

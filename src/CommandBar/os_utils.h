@@ -46,15 +46,17 @@ namespace OSUtils
 
     void TruncateFileNameToDirectory(Newstring* fileName);
 
-    /**
-     * Returns true if specified file exists.
-     */
+    /** Returns true if specified file exists. */
     bool FileExists(const Newstring& fileName);
+
+    /** Returns true if specified file exists. */
+    bool FileExists(const wchar_t* fileName);
     
-    /**
-     * Returns true if specified directory exists.
-     */
+    /** Returns true if specified directory exists. */
     bool DirectoryExists(const Newstring& fileName);
+
+    /** Returns true if specified directory exists. */
+    bool DirectoryExists(const wchar_t* fileName);
 
     /**
      * If specified encoding is invalid, returns Encoding::Unknown, otherwise returns specified encoding.

@@ -31,9 +31,9 @@ struct OpenDirCommand : public Command
 
 struct RunAppCommand : public Command
 {
-    Newstring appPath;
-    Newstring appArgs;
-    Newstring workDir;
+    wchar_t* appPath;
+    wchar_t* appArgs;
+    wchar_t* workDir;
 
     bool shellExec = false;
     bool asAdmin = false;

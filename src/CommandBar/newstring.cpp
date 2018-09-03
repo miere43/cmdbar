@@ -129,20 +129,22 @@ Newstring Newstring::Clone(IAllocator* allocator) const
     return Newstring::Clone(this, allocator);
 }
 
-Newstring Newstring::CloneAsCString(IAllocator* allocator) const
+wchar_t* Newstring::CloneAsCString(IAllocator* allocator) const
 {
     assert(allocator);
-    if (IsNullOrEmpty(this))  return Empty();
 
-    Newstring ns = New(count + 1, allocator);
-    if (IsNullOrEmpty(ns))  return Empty();
+    if (!data)  return nullptr;
 
-    CopyTo(&ns);
+    wchar_t* cstring = (wchar_t*)allocator->Allocate(sizeof(wchar_t) * (count + 1));
+    if (!cstring)  return nullptr;
     
-    ns.count -= 1;
-    ns.data[ns.count] = L'\0';
+    if (count > 0)
+    {
+        wmemcpy(cstring, data, count);
+    }
+    cstring[count] = L'\0';
 
-    return ns;
+    return cstring;
 }
 
 Newstring Newstring::Trimmed() const
@@ -234,20 +236,18 @@ Newstring Newstring::NewFromWChar(const wchar_t* string, uint32_t count, IAlloca
     return Newstring::Clone(Newstring::WrapConstWChar(string, count), allocator);
 }
 
-Newstring Newstring::NewCStringFromWChar(const wchar_t * string, IAllocator * allocator)
+wchar_t* Newstring::NewCStringFromWChar(const wchar_t* string, IAllocator* allocator) noexcept
 {
     assert(allocator);
+    if (!string)  return nullptr;
 
-    auto wrapper = WrapConstWChar(string);
-    if (IsNullOrEmpty(wrapper))  return Empty();
+    uint32_t count = (uint32_t)wcslen(string);
+    wchar_t* result = (wchar_t*)allocator->Allocate(sizeof(wchar_t) * (count + 1));
+    if (!result)  return nullptr;
 
-    Newstring ns = New(wrapper.count + 1, allocator);
-    if (IsNullOrEmpty(ns))  return Empty();
+    wmemcpy(result, string, count + 1);
 
-    wrapper.CopyTo(&ns);
-    ns.data[ns.count - 1] = L'\0';
-
-    return ns;
+    return result;
 }
 
 Newstring Newstring::Clone(const Newstring& string, IAllocator* allocator)
@@ -304,7 +304,7 @@ Newstring Newstring::Format(const wchar_t* format, ...)
     return result;
 }
 
-Newstring Newstring::FormatCString(const wchar_t* format, ...)
+wchar_t* Newstring::FormatCString(const wchar_t* format, ...)
 {
     assert(format);
 
@@ -315,31 +315,7 @@ Newstring Newstring::FormatCString(const wchar_t* format, ...)
 
     va_end(args);
 
-    return result;
-}
-
-Newstring Newstring::FormatCStringWithFallback(const wchar_t* format, ...)
-{
-    assert(format);
-
-    va_list args;
-    va_start(args, format);
-
-    Newstring result = FormatWithAllocator(&g_standardAllocator, format, args, true);
-
-    va_end(args);
-
-    if (IsNullOrEmpty(result))
-    {
-        result = Newstring::NewCStringFromWChar(format, &g_standardAllocator);
-        if (IsNullOrEmpty(result))
-        {
-            result = Newstring::WrapConstWChar(format);
-            result.count -= 1; // Don't count terminating null.
-        }
-    }
-
-    return result;
+    return result.data;
 }
 
 Newstring Newstring::FormatTemp(const wchar_t* format, ...)
@@ -356,7 +332,7 @@ Newstring Newstring::FormatTemp(const wchar_t* format, ...)
     return result;
 }
 
-Newstring Newstring::FormatTempCString(const wchar_t* format, ...)
+wchar_t* Newstring::FormatTempCString(const wchar_t* format, ...)
 {
     assert(format);
 
@@ -367,31 +343,7 @@ Newstring Newstring::FormatTempCString(const wchar_t* format, ...)
 
     va_end(args);
 
-    return result;
-}
-
-Newstring Newstring::FormatTempCStringWithFallback(const wchar_t* format, ...)
-{
-    assert(format);
-
-    va_list args;
-    va_start(args, format);
-
-    Newstring result = FormatWithAllocator(&g_tempAllocator, format, args, true);
-
-    va_end(args);
-
-    if (IsNullOrEmpty(result))
-    {
-        result = Newstring::NewCStringFromWChar(format, &g_tempAllocator);
-        if (IsNullOrEmpty(result))
-        {
-            result = Newstring::WrapConstWChar(format);
-            result.count -= 1; // Don't count terminating null.
-        }
-    }
-
-    return result;
+    return result.data;
 }
 
 Newstring Newstring::FormatWithAllocator(IAllocator* allocator, const wchar_t* format, ...)

@@ -95,10 +95,10 @@ struct Newstring
     Newstring Clone(IAllocator* allocator = &g_standardAllocator) const;
 
     /** Creates copy of this string using specified allocator. Resulting string is zero-terminated. */
-    Newstring CloneAsCString(IAllocator* allocator = &g_standardAllocator) const;
+    wchar_t* CloneAsCString(IAllocator* allocator = &g_standardAllocator) const;
 
     /** Creates copy of this string using temporary allocator. Resulting string is zero-terminated. */
-    __forceinline Newstring CloneAsTempCString() const {
+    __forceinline wchar_t* CloneAsTempCString() const {
         return CloneAsCString(&g_tempAllocator);
     }
 
@@ -142,7 +142,7 @@ struct Newstring
      * Allocates string with same data as specified c-string using specified allocator. String is zero-terminated.
      * If allocation fails, returns empty string.
      */
-    static Newstring NewCStringFromWChar(const wchar_t* string, IAllocator* allocator = &g_standardAllocator);
+    static wchar_t* NewCStringFromWChar(const wchar_t* string, IAllocator* allocator = &g_standardAllocator) noexcept;
 
     /**
      * Allocates string with same data as specified string using specified allocator.
@@ -163,19 +163,13 @@ struct Newstring
     static Newstring Format(const wchar_t* format, ...);
 
     /** Formats string using standard allocator. String is zero-terminated. */ 
-    static Newstring FormatCString(const wchar_t* format, ...);
+    static wchar_t* FormatCString(const wchar_t* format, ...);
 
-    /** Formats string using standard allocator. If formatting fails, fallback string is used. */ 
-    static Newstring FormatCStringWithFallback(const wchar_t* format, ...);
-    
     /** Formats string using temporary allocator. */ 
     static Newstring FormatTemp(const wchar_t* format, ...);
 
     /** Formats string using temporary allocator. String is null-terminated. */ 
-    static Newstring FormatTempCString(const wchar_t* format, ...);
-
-    /** Formats string using temporary allocator. If formatting fails, fallback string is used. String is null-terminated. */ 
-    static Newstring FormatTempCStringWithFallback(const wchar_t* format, ...);
+    static wchar_t* FormatTempCString(const wchar_t* format, ...);
 
     /** Formats string using specified allocator. */
     static Newstring FormatWithAllocator(IAllocator* allocator, const wchar_t* format, ...);

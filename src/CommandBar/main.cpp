@@ -114,14 +114,14 @@ bool InitializeLibraries()
     icc.dwICC = ICC_STANDARD_CLASSES;
     if (!InitCommonControlsEx(&icc))
     {
-        return ShowErrorBox(0, Newstring::FormatTempCStringWithFallback(
+        return ShowErrorBox(0, Newstring::FormatTempCString(
             L"Failed to initialize common controls.\n\nError code was 0x%08X.", GetLastError()));
     }
 
     hr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE | COINIT_SPEED_OVER_MEMORY);
     if (FAILED(hr))
     {
-        return ShowErrorBox(0, Newstring::FormatTempCStringWithFallback(
+        return ShowErrorBox(0, Newstring::FormatTempCString(
             L"Failed to initialize COM.\n\nError code was 0x%08X.", GetLastError()));
     }
 
@@ -130,7 +130,7 @@ bool InitializeLibraries()
 
 void DisposeAllocators()
 {
-    OutputDebugStringW(Newstring::FormatTempCString(L"std allocator leftover: %d\n", (int)g_standardAllocator.allocated).data);
+    OutputDebugStringW(Newstring::FormatTempCString(L"std allocator leftover: %d\n", (int)g_standardAllocator.allocated));
 
     g_tempAllocator.Dispose();
 }
@@ -144,7 +144,7 @@ bool InitializeAllocators()
 {
     if (!g_tempAllocator.SetSize(4096))
     {
-        return ShowErrorBox(0, Newstring::WrapConstWChar(L"Unable to initialize temporary allocator."));
+        return ShowErrorBox(0, L"Unable to initialize temporary allocator.");
     }
 
     return true;

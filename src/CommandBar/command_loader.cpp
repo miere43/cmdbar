@@ -14,12 +14,12 @@ Array<Command*> CommandLoader::LoadFromFile(const Newstring& filePath)
     {
         Newstring osError = OSUtils::FormatErrorCode(GetLastError(), 0, &g_tempAllocator);
         
-        Newstring msg = Newstring::FormatTempCString(
+        wchar_t* msg = Newstring::FormatTempCString(
             L"Unable to open commands declaration file \"%.*s\": %.*s",
             filePath.count, filePath.data,
             osError.count, osError.data);
 
-        MessageBoxW(0, msg.data, L"Error", MB_ICONERROR);
+        MessageBoxW(0, msg, L"Error", MB_ICONERROR);
     }
 
     INIParser p;

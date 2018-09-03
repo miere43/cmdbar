@@ -45,7 +45,7 @@ fail:
 
     if (failureReason)
     {
-        *failureReason = Newstring::FormatTempCString(
+        *failureReason = Newstring::FormatTemp(
             L"Unable to create tray menu: %s",
             OSUtils::FormatErrorCode(GetLastError(), 0, &g_tempAllocator).data);
     }
