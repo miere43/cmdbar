@@ -8,6 +8,8 @@ using namespace WindowManagement;
 
 ATOM PopupWindow::g_windowClass = 0;
 const UINT_PTR DismissTimerId = 123;
+const int ShowAnimationFilter = 0;
+const int DismissAnimationFilter = 1;
 
 
 /**
@@ -111,7 +113,7 @@ bool PopupWindow::Initialize(HWND parentWindow)
         return false;
 
     SetWindowLongPtrW(hwnd, GWL_EXSTYLE, GetWindowLongPtrW(hwnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-    SetLayeredWindowAttributes(hwnd, 0, 255, LWA_ALPHA);
+    SetLayeredWindowAttributes(hwnd, 0, 0, LWA_ALPHA);
 
     CreateGraphicsResources();
 
@@ -122,6 +124,58 @@ void PopupWindow::Show(int dismissMilliseconds)
 {
     this->dismissMilliseconds = dismissMilliseconds;
 
+    ShowContinue();
+
+    OnPaint();
+}
+
+void PopupWindow::Dismiss()
+{
+    if (dismissing)
+        return;
+    OutputDebugStringW(L"Dismiss!");
+    dismissing = true;
+
+    UninstallDismissTimer();
+
+    WindowAnimationProperties props;
+    props.animationDuration = 0.5;
+    props.allowToStopAnimation = true;
+    props.adjustAnimationDuration = true;
+    props.startAlpha = 255;
+    props.endAlpha = 0;
+    props.stopAnimationMessageFilter = DismissAnimationFilter;
+
+    SendStopAnimationMessage(hwnd, ShowAnimationFilter);
+
+    animatingDismiss = true;
+    OutputDebugStringW(L"Begin dismiss animation.\n");
+    if (!AnimateWindow(hwnd, props))
+    {
+        OutputDebugStringW(L"End dismiss animation.\n");
+        animatingDismiss = false;
+        OutputDebugStringW(L"Dismiss animation was stopped\n");
+        // Animation was stopped by application.
+        dismissing = false;
+        return;
+    }
+    OutputDebugStringW(L"End dismiss animation.\n");
+    animatingDismiss = false;
+
+    // AnimateWindow dispatches window messages, so something could have changed.
+    if (!dismissing)
+        return;
+
+    OutputDebugStringW(L"Dismiss & destroy window!\n");
+
+    UninstallDismissTimer();
+    ::ShowWindow(hwnd, SW_HIDE);
+    DestroyWindow(hwnd);
+    hwnd = 0;
+}
+
+void PopupWindow::ShowContinue()
+{
     SetWindowPos(
         hwnd,
         HWND_TOPMOST,
@@ -133,73 +187,97 @@ void PopupWindow::Show(int dismissMilliseconds)
 
     WindowAnimationProperties props;
     props.animationDuration = 3;
-    SetLayeredWindowAttributes(hwnd, 0, 128, LWA_ALPHA);
-    props.startAlpha = 255; // @TODO: Current alpha.
-    props.endAlpha = 0;
-
-    //::ShowWindow(hwnd, SW_SHOW);
-    AnimateWindow(hwnd, props);
-
-    OnPaint();
-}
-
-void PopupWindow::Dismiss()
-{
-    if (dismissing)
-        return;
-    dismissing = true;
-
-    UninstallDismissTimer();
-
-    WindowAnimationProperties props;
-    props.animationDuration = 0.5;
+    props.adjustAnimationDuration = true;
     props.allowToStopAnimation = true;
-    props.startAlpha = 255; // @TODO: Current alpha.
-    props.endAlpha = 0;
+    props.startAlpha = 0;
+    props.endAlpha = 255;
+    props.stopAnimationMessageFilter = ShowAnimationFilter;
 
+    //StopAnyWindowAnimation();
+
+    SendStopAnimationMessage(hwnd, DismissAnimationFilter);
+
+    animatingShow = true;
+    OutputDebugStringW(L"Begin show animation.\n");
     if (!AnimateWindow(hwnd, props))
     {
-        OutputDebugStringW(L"AnimateWindow was stopped\n");
-        // Animation was stopped by application.
-        dismissing = false;
-        return;
+        OutputDebugStringW(L"Show animation was stopped\n");
     }
-
-    ::ShowWindow(hwnd, SW_HIDE);
-    DestroyWindow(hwnd);
+    OutputDebugStringW(L"End show animation.\n");
+    animatingShow = false;
 }
 
 void PopupWindow::InstallDismissTimer()
 {
-    SetTimer(hwnd, DismissTimerId, dismissMilliseconds, nullptr);
+    if (hwnd != 0)
+    {
+        SetTimer(hwnd, DismissTimerId, dismissMilliseconds, nullptr);
+    }
 }
 
 void PopupWindow::UninstallDismissTimer()
 {
-    KillTimer(hwnd, DismissTimerId);
+    if (hwnd != 0)
+    {
+        KillTimer(hwnd, DismissTimerId);
+    }
 }
 
 void PopupWindow::OnMouseEnter()
 {
     OutputDebugStringW(L"OnMouseEnter()\n");
+    UninstallDismissTimer();
 
     if (dismissing)
     {
-        SendStopAnimationMessage(hwnd);
+        SendStopAnimationMessage(hwnd, DismissAnimationFilter);
         dismissing = false;
+        ShowContinue();
     }
-
-    UninstallDismissTimer();
 }
 
 void PopupWindow::OnMouseLeave()
 {
     OutputDebugStringW(L"OnMouseLeave()\n");
 
-    if (dismissing)
-        return;
+    //if (dismissing)
+    //    return;
 
     InstallDismissTimer();
+}
+
+void PopupWindow::OnDismissTimerExpired()
+{
+    POINT cursor;
+    GetCursorPos(&cursor);
+
+    RECT clientRect;
+    GetWindowRect(hwnd, &clientRect);
+
+    if (PtInRect(&clientRect, cursor))
+    {
+        // Don't dismiss if we have cursor on window.
+        if (dismissing)
+        {
+            SendStopAnimationMessage(hwnd, DismissAnimationFilter);
+            dismissing = false;
+        }
+        UninstallDismissTimer();
+        return;
+    }
+    
+    Dismiss();
+}
+
+void PopupWindow::StopAnyWindowAnimation()
+{
+    //if (animatingShow || animatingDismiss)
+    //{
+    //    OutputDebugStringW(L"Stopped some animation.\n");
+    //    SendStopAnimationMessage(hwnd);
+    //    animatingShow = false;
+    //    animatingDismiss = false;
+    //}
 }
 
 void PopupWindow::CreateGraphicsResources()
@@ -330,7 +408,7 @@ LRESULT PopupWindow::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPara
         {
             if (wParam == DismissTimerId)
             {
-                Dismiss();
+                OnDismissTimerExpired();
             }
             return 0;
         }

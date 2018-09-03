@@ -25,21 +25,42 @@ namespace WindowManagement
         QueryPerformanceFrequency((LARGE_INTEGER*)&clockFrequency);
         QueryPerformanceCounter((LARGE_INTEGER*)&clockCurrTick);
 
+        BYTE currAlpha = 0;
+        GetLayeredWindowAttributes(hwnd, nullptr, &currAlpha, nullptr);
+
+        BYTE startAlpha = properties.startAlpha;
+        BYTE endAlpha = properties.endAlpha;
+
         double animDuration = properties.animationDuration;
+        if (properties.adjustAnimationDuration)
+        {
+            BYTE alphaStartDiff = startAlpha > currAlpha
+                ? startAlpha - currAlpha
+                : currAlpha - startAlpha;
+            BYTE alphaEndDiff = endAlpha > currAlpha
+                ? endAlpha - currAlpha
+                : currAlpha - endAlpha;
+            double unadjusted = animDuration;
+            BYTE alphaDiff = endAlpha > startAlpha
+                ? endAlpha - startAlpha
+                : startAlpha - endAlpha;
+            double progressCoeff = 1.0 - (double)alphaEndDiff / alphaDiff;
+            animDuration -= animDuration * progressCoeff;
+            startAlpha = currAlpha;
+        }
+        
         double currSecs = clockCurrTick / (double)clockFrequency;
         double targetSecs = currSecs + animDuration;
-        BYTE alphaDiff = properties.endAlpha > properties.startAlpha
-            ? properties.endAlpha - properties.startAlpha
-            : properties.startAlpha - properties.endAlpha;
-        BYTE prevAlpha = 0;
-        GetLayeredWindowAttributes(hwnd, nullptr, &prevAlpha, nullptr);
+        BYTE alphaDiff = endAlpha > startAlpha
+            ? endAlpha - startAlpha
+            : startAlpha - endAlpha;
 
         MSG msg;
         while (currSecs < targetSecs)
         {
             while (PeekMessageW(&msg, hwnd, 0, 0, PM_REMOVE) != 0)
             {
-                if (msg.message == StopWindowAnimationMessageId && properties.allowToStopAnimation)
+                if (msg.message == StopWindowAnimationMessageId && properties.allowToStopAnimation && (int)msg.lParam == properties.stopAnimationMessageFilter)
                     return false;
                 TranslateMessage(&msg);
                 DispatchMessageW(&msg);
@@ -50,28 +71,28 @@ namespace WindowManagement
 
             if (currSecs >= targetSecs)
             {
-                //debug("End - set alpha to: %d", endAlpha);
-                SetLayeredWindowAttributes(hwnd, 0, properties.endAlpha, LWA_ALPHA);
+                debug("End - set alpha to: %d", endAlpha);
+                SetLayeredWindowAttributes(hwnd, 0, endAlpha, LWA_ALPHA);
                 break;
             }
             else
             {
                 double diff = ((targetSecs - currSecs) / animDuration);
                 BYTE alpha;
-                if (properties.endAlpha > properties.startAlpha)
+                if (endAlpha > startAlpha)
                 {
                     diff = 1.0 - diff; 
-                    alpha = properties.startAlpha + (BYTE)(diff * alphaDiff);
+                    alpha = startAlpha + (BYTE)(diff * alphaDiff);
                 }
                 else
                 {
-                    alpha = properties.endAlpha + (BYTE)(diff * alphaDiff);
+                    alpha = endAlpha + (BYTE)(diff * alphaDiff);
                 }
 
-                if (alpha != prevAlpha)
+                if (alpha != currAlpha)
                 {
-                    prevAlpha = alpha;
-                    debug("Current alpha: %d  diff: %g", alpha, diff);
+                    currAlpha = alpha;
+                    //debug("Current alpha: %d  diff: %g", alpha, diff);
                     SetLayeredWindowAttributes(hwnd, 0, alpha, LWA_ALPHA);
                 }
             }
@@ -81,9 +102,9 @@ namespace WindowManagement
         return true;
     }
     
-    void SendStopAnimationMessage(HWND hwnd)
+    void SendStopAnimationMessage(HWND hwnd, int filter)
     {
         // Must be PostMessage, doesn't work with SendMessage.
-        PostMessageW(hwnd, StopWindowAnimationMessageId, 0, 0);
+        PostMessageW(hwnd, StopWindowAnimationMessageId, 0, filter);
     }
 }

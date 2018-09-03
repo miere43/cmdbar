@@ -742,12 +742,12 @@ bool CommandWindow::Initialize(CommandEngine* engine, CommandWindowStyle* style,
     //if (nCmdShow != 0) ShowWindow();
 
     // @TODO
-    PopupWindow* window = new PopupWindow();
-    window->SetHeaderText(Newstring::Format(L"Holy shit."), true);
-    window->SetMainText(Newstring::Format(L"There were errors when reading your commands file.\n\nClick here to do something."), true);
-    window->SetPopupCorner(PopupCorner::BottomRight);
-    window->Initialize(hwnd);
-    window->Show(3000);
+    //PopupWindow* window = new PopupWindow();
+    //window->SetHeaderText(Newstring::Format(L"Holy shit."), true);
+    //window->SetMainText(Newstring::Format(L"There were errors when reading your commands file.\n\nClick here to do something."), true);
+    //window->SetPopupCorner(PopupCorner::BottomRight);
+    //window->Initialize(hwnd);
+    //window->Show(3000);
 
     isInitialized = true;
     return isInitialized;

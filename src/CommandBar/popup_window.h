@@ -57,14 +57,21 @@ private:
     Newstring mainText;
     PopupCorner popupCorner = PopupCorner::TopRight;
 
+    void ShowContinue();
+
     void InstallDismissTimer();
     void UninstallDismissTimer();
 
     void OnMouseEnter();
     void OnMouseLeave();
+    void OnDismissTimerExpired();
 
     int dismissMilliseconds = 3000;
     bool dismissing = false;
+
+    bool animatingDismiss = false;
+    bool animatingShow = false;
+    void StopAnyWindowAnimation();
 
     int windowMargin = 15;
     Margin headerTextMargin = Margin{ 5, 5, 5, 5 };
