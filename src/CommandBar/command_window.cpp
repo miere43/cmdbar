@@ -72,7 +72,7 @@ bool CommandWindow::InitializeStaticResources(HINSTANCE hInstance)
     }
 
     if (g_englishKeyboardLayout == 0)
-        g_englishKeyboardLayout = LoadKeyboardLayoutW(L"00000409", KLF_ACTIVATE);
+        g_englishKeyboardLayout = LoadKeyboardLayoutW(L"00000409", 0);
 
     if (g_taskbarCreatedMessageId == 0)
         g_taskbarCreatedMessageId = RegisterWindowMessageW(L"TaskbarCreated");
@@ -390,7 +390,8 @@ LRESULT CommandWindow::OnMouseMove(LPARAM lParam, WPARAM wParam)
 
 LRESULT CommandWindow::OnFocusAcquired()
 {
-    ActivateKeyboardLayout(g_englishKeyboardLayout, KLF_REORDER);
+    SetForegroundWindow(hwnd);
+    ActivateKeyboardLayout(g_englishKeyboardLayout, 0);
 
     shouldDrawCaret = true;
     SetCaretTimer();
