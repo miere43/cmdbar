@@ -51,7 +51,7 @@ private:
     void GetClientSizeF(float* width, float* height);
 
     bool CreateGraphicsResources();
-    void DisposeGraphicsResources();
+    void DiscardGraphicsResources();
 	static bool InitializeStaticResources(HINSTANCE hInstance);
 
     LRESULT WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);

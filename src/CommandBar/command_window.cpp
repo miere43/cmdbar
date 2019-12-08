@@ -590,9 +590,17 @@ LRESULT CommandWindow::OnPaint()
         rt->DrawLine(D2D1::Point2F(cursorActualX, cursorUpY), D2D1::Point2F(cursorActualX, cursorBottomY), textForegroundBrush);
     }
 
-    rt->EndDraw();
+    HRESULT hr = rt->EndDraw();
+    if (hr == D2DERR_RECREATE_TARGET)
+    {
+        DiscardGraphicsResources();
+        CreateGraphicsResources();
+    } 
+    else
+    {
+        ValidateRect(hwnd, nullptr);
+    }
 
-    ValidateRect(hwnd, nullptr);
     return 0;
 }
 
@@ -858,15 +866,13 @@ void CommandWindow::GetClientSizeF(float* width, float* height)
 
 bool CommandWindow::CreateGraphicsResources()
 {
-    SafeRelease(d2d1);
-    SafeRelease(dwrite);
     const auto format = Newstring::FormatTempCString;
 
     HRESULT hr = E_UNEXPECTED;
     defer(
         if (FAILED(hr))
         {
-            DisposeGraphicsResources();
+            DiscardGraphicsResources();
         }
     );
     
@@ -935,7 +941,7 @@ bool CommandWindow::CreateGraphicsResources()
     return true;
 }
 
-void CommandWindow::DisposeGraphicsResources()
+void CommandWindow::DiscardGraphicsResources()
 {
     SafeRelease(textForegroundBrush);
     SafeRelease(autocompletionTextForegroundBrush);
@@ -943,14 +949,12 @@ void CommandWindow::DisposeGraphicsResources()
     SafeRelease(textboxBackgroundBrush);
     SafeRelease(textFormat);
     SafeRelease(hwndRenderTarget);
-    SafeRelease(d2d1);
-    SafeRelease(dwrite);
 }
 
 void CommandWindow::Dispose()
 {
     tray.Dispose();
-    DisposeGraphicsResources();
+    DiscardGraphicsResources();
     textEdit.Dispose();
     history.Dispose();
 
