@@ -81,10 +81,10 @@ void NewstringBuilder::Insert(uint32_t pos, const Newstring& string)
     uint32_t moveIndex = pos + string.count;
     uint32_t moveCount = this->count - pos;
 
-    wmemmove(&data[moveIndex], &data[pos], moveCount);
+    memmove(&data[moveIndex], &data[pos], moveCount * sizeof(wchar_t));
 
     // Insert.
-    wmemmove(&data[pos], string.data, string.count);
+    memmove(&data[pos], string.data, string.count * sizeof(wchar_t));
 
     this->count += string.count;
 }
@@ -110,7 +110,7 @@ void NewstringBuilder::Remove(uint32_t pos, uint32_t count)
     uint32_t moveCount = this->count - pos - count;
     if (moveCount == 0)  return;
 
-    wmemmove(&data[pos], &data[moveIndex], moveCount);
+    memmove(&data[pos], &data[moveIndex], moveCount * sizeof(wchar_t));
 
     this->count -= count;
 }

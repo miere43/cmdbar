@@ -1,6 +1,4 @@
 #include "allocators.h"
-#include <allocators>
-
 
 StandardAllocator g_standardAllocator;
 TempAllocator g_tempAllocator;
@@ -157,16 +155,16 @@ void StandardAllocator::Deallocate(void* block)
 void* StandardAllocator::Reallocate(void* block, uintptr_t size)
 {
     uintptr_t oldSize = block ? static_cast<uintptr_t>(_msize(block)) : 0;
-    block = ::realloc(block, size);
-    if (block == nullptr)
+    auto newBlock = ::realloc(block, size);
+    if (newBlock == nullptr)
     {
         SetLastError(ERROR_OUTOFMEMORY);
         return nullptr;
     }
-    uintptr_t newSize = static_cast<uintptr_t>(_msize(block));
+    uintptr_t newSize = static_cast<uintptr_t>(_msize(newBlock));
 
     allocated = allocated - oldSize + newSize;
-    return block;
+    return newBlock;
 }
 
 void* operator new(size_t size, IAllocator* allocator)

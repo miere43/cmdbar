@@ -1,7 +1,3 @@
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
 #include <Windows.h>
 #include <windowsx.h>
 #include <algorithm>

@@ -1,7 +1,6 @@
 #pragma once
 #include "newstring.h"
 #include "newstring_builder.h"
-#define NOMINMAX
 #include <Windows.h>
 
 namespace OSUtils

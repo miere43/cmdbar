@@ -73,7 +73,7 @@ bool OpenDirCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
         wchar_t* result = (wchar_t*)g_tempAllocator.Allocate(sizeof(wchar_t) * (folder.count + 1 + subfolder.count + 1));
         uint32_t now = 0;
 
-        wmemcpy(&result[now], folder.data, folder.count);
+        memcpy(&result[now], folder.data, folder.count * sizeof(wchar_t));
         now += folder.count;
 
         if (result[now - 1] != L'\\')
@@ -82,7 +82,7 @@ bool OpenDirCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
             now += 1;
         }
 
-        wmemcpy(&result[now], subfolder.data, subfolder.count);
+        memcpy(&result[now], subfolder.data, subfolder.count * sizeof(wchar_t));
         now += subfolder.count;
 
         result[now++] = L'\0';
@@ -244,7 +244,7 @@ bool RunAppCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
         int i = 0;
         if (appArgs != nullptr && wcslen(appArgs) != 0)
         {
-            wmemcpy(&execAppParamsStr[i], appArgs, wcslen(appArgs));
+            memcpy(&execAppParamsStr[i], appArgs, wcslen(appArgs) * sizeof(wchar_t));
             i += wcslen(appArgs);
             execAppParamsStr[i] = L' ';
             i += 1;
@@ -257,7 +257,7 @@ bool RunAppCommand::Execute(ExecuteCommandState* state, Array<Newstring>& args)
             execAppParamsStr[i] = L'"';
             i += 1;
 
-            wmemcpy(&execAppParamsStr[i], arg.data, arg.count);
+            memcpy(&execAppParamsStr[i], arg.data, arg.count * sizeof(wchar_t));
             i += arg.count;
 
             execAppParamsStr[i] = L'"';

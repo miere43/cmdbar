@@ -1,7 +1,6 @@
 #include <assert.h>
-
 #include "string_utils.h"
-
+#include <stdio.h>
 
 bool StringUtils::ParseInt32(const Newstring& string, int* result, int defaultValue)
 {
