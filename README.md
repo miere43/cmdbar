@@ -1,4 +1,4 @@
-## Command Bar [![Build status](https://ci.appveyor.com/api/projects/status/2nn34vl0pfln3g6g?svg=true)](https://ci.appveyor.com/project/miere43/cmdbar)
+## Command Bar
 
 A thing that appears on your screen.
 
