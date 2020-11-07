@@ -5,6 +5,8 @@ configuration:
 platform:
 - x86
 - x64
+image:
+- Visual Studio 2019
 build:
   project: src\CommandBar\CommandBar.sln
   verbosity: minimal
