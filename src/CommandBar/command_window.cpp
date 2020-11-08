@@ -998,6 +998,7 @@ LRESULT CommandWindow::WindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
         {
             case TrayMenuAction::Show: ShowWindow(); break;
             case TrayMenuAction::ReloadCommandsFile: ReloadCommandsFile(); break;
+            case TrayMenuAction::OpenCommandsFile: OpenCommandsFile(); break;
             case TrayMenuAction::Exit: Exit(); break;
             default:                 break;
         }
@@ -1160,6 +1161,25 @@ void CommandWindow::ReloadCommandsFile()
     Array<Command*> commands = commandLoader.LoadFromFile(GetCommandsFilePath());
     for (uint32_t i = 0; i < commands.count; ++i)
         commandEngine->RegisterCommand(commands.data[i]);
+}
+
+void CommandWindow::OpenCommandsFile()
+{
+    auto path = GetCommandsFilePath();
+
+    int result = (int)ShellExecuteW(
+        0,
+        L"open",
+        path.CloneAsTempCString(),
+        nullptr,
+        nullptr,
+        SW_SHOW);
+
+    if (result <= 32) {
+        MessageBoxW(0, L"Failed to launch text editor", L"Error", MB_ICONERROR);
+    }
+
+    Memdelete(path.data);
 }
 
 void beforeRunCallback(CommandEngine* engine, void* userdata)

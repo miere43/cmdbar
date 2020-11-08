@@ -73,6 +73,7 @@ public:
 
     /** Reloads commands from cmds.ini file. */
     void ReloadCommandsFile();
+    void OpenCommandsFile();
 
     TextEdit textEdit;
     CommandHistory history;

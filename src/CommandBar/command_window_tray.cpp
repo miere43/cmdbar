@@ -36,6 +36,7 @@ bool CommandWindowTray::Initialize(Newstring* failureReason)
 
     AppendMenuW(menu, MF_STRING, (UINT_PTR)TrayMenuAction::Show, L"Show");
     AppendMenuW(menu, MF_STRING, (UINT_PTR)TrayMenuAction::ReloadCommandsFile, L"Reload commands file");
+    AppendMenuW(menu, MF_STRING, (UINT_PTR)TrayMenuAction::OpenCommandsFile, L"Open commands file");
     AppendMenuW(menu, MF_SEPARATOR, (UINT_PTR)TrayMenuAction::None, nullptr);
     AppendMenuW(menu, MF_STRING, (UINT_PTR)TrayMenuAction::Exit, L"Exit");
 

@@ -9,7 +9,8 @@ enum class TrayMenuAction
     None = 0,
     Show = 1,
     ReloadCommandsFile = 2,
-    Exit = 3
+    Exit = 3,
+    OpenCommandsFile = 4,
 };
 
 struct CommandWindowTray
